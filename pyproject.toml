@@ -1,0 +1,8 @@
+[tool.black]
+line-length = 200
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.djlint]
+profile = "django"
+ignore = "H031,H021,H006,D018,H023,H020"

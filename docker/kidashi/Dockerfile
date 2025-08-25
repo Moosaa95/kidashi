@@ -1,0 +1,17 @@
+FROM python:3.12.3-slim
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apt-get update && apt-get install -y python3-dev gcc libc-dev libffi-dev
+
+WORKDIR /app
+
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+RUN chmod +x /app/docker/kidashi/server-entrypoint.dev.sh
+RUN chmod +x /app/docker/kidashi/worker-entrypoint.sh

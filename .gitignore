@@ -1,0 +1,16 @@
+*.pyc
+*.sqlite3
+.vscode
+*.iml
+*.xml
+.idea/
+__pycache__/
+frontend/static
+prod.env
+.venv/
+venv/
+.env
+media/
+*.DS_store
+*.ds_store
+*.Ds_store
