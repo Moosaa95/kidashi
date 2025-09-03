@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import admin
+from django.views.generic import TemplateView
 from django.urls import path
 from django.urls.conf import include
 from drf_spectacular.views import (
@@ -16,8 +17,9 @@ DJANGO_ADMIN = [
 
 FRONT_END = [
     # FRONT END URLS
-    path("", include("frontend.kidashi_admin.urls")),
-    path("kidashi/", include("frontend.kidashi_admin.urls")),
+    path("kidashi_admin", include("frontend.kidashi_admin.urls")),
+    # path("kidashi/", include("frontend.kidashi_admin.urls")),
+    path("", TemplateView.as_view(template_name="index.html"), name="kidashi"),
 ]
 
 API_URLS = [

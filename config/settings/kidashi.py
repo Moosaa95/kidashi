@@ -73,7 +73,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
-            "frontend/kidashi_admin/pages",
+            "frontend/kidashi_ui/dist",
         ],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -167,7 +167,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "frontend/static")
 
 STATIC_URL = "/static/"
 
-STATICFILES_DIRS = (os.path.join(BASE_DIR, "frontend/kidashi_admin/static/kidashi_admin"),)
+STATICFILES_DIRS = (os.path.join(BASE_DIR, "frontend/kidashi_ui/dist"),)
 
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
