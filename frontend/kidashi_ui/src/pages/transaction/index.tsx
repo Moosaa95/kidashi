@@ -27,8 +27,8 @@ export default function TransactionManagement() {
             description: "Total transactions"
         },
         {
-            name: "Total Amount Transacted",
-            value: `₦${(stats.totalVolume || 0).toLocaleString()}`,
+            name: "Successful Transactions",
+            value: `₦${(stats.successful || 0).toLocaleString()}`,
             change: "",
             changeType: "positive" as const,
             icon: "CheckCircle",
@@ -42,8 +42,8 @@ export default function TransactionManagement() {
             icon: "Building2",
         },
         {
-            name: "Approved Transactions",
-            value: String(stats.approved ?? 0),
+            name: "Failed Transactions",
+            value: String(stats.failed ?? 0),
             change: "+0.8%",
             changeType: "positive" as const,
             icon: "TrendingUp",
@@ -82,11 +82,11 @@ export default function TransactionManagement() {
                 ))}
             </div>
 
-            <Tabs className="space-y-4" value={filter} defaultValue="all" onValueChange={(val) => dispatch(setFilter(val as unknown as 'all' | 'pending' | 'approved' | 'rejected' | 'suspended'))}>
-                <TabsList className="grid w-full grid-cols-3 gap-4">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="pending">Pending</TabsTrigger>
-                    <TabsTrigger value="rejected">Failed</TabsTrigger>
+            <Tabs className="space-y-4" value={filter} defaultValue="all" onValueChange={(val) => dispatch(setFilter(val as unknown as 'all' | 'pending' | 'successful' | 'failed'))}>
+                <TabsList className="grid w-full grid-cols-3 gap-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="pending">Pending</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="failed">Failed</TabsTrigger>
                 </TabsList>
                 <TabsContent value={filter}>
                     {loading ? (

@@ -7,21 +7,21 @@ interface TransactionsState {
     transactions: Transaction[]
     loading: boolean
     error: string | null
-    filter: "all" | "pending" | "approved" | "rejected" | "suspended"
+    filter: "all" | "pending" | "successful" | "failed"
     stats: {
         pending: number
-        approved: number
+        successful: number
         total: number
-        totalVolume: number
+        failed: number
     }
 }
 
 const initialState: TransactionsState = {
     stats: {
-        pending: 2,
-        approved: 2,
+        pending: 3,
+        successful: 2,
         total: 15,
-        totalVolume: 0,
+        failed: 10,
     },
     transactions: [
         {
@@ -48,7 +48,7 @@ const initialState: TransactionsState = {
             charges: 750,
             transaction_type: "Disbursement",
             transaction_date: "2025-08-25T14:30:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-003",
@@ -61,7 +61,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Repayment",
             transaction_date: "2025-08-30T09:15:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-004",
@@ -74,7 +74,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Refund",
             transaction_date: "2025-09-02T11:45:00Z",
-            status: "rejected",
+            status: "failed",
         },
         {
             id: "TRX-005",
@@ -100,7 +100,7 @@ const initialState: TransactionsState = {
             charges: 600,
             transaction_type: "Disbursement",
             transaction_date: "2025-09-04T10:20:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-007",
@@ -113,7 +113,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Repayment",
             transaction_date: "2025-09-05T09:00:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-008",
@@ -126,7 +126,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Refund",
             transaction_date: "2025-09-06T12:30:00Z",
-            status: "rejected",
+            status: "failed",
         },
         {
             id: "TRX-009",
@@ -152,7 +152,7 @@ const initialState: TransactionsState = {
             charges: 700,
             transaction_type: "Disbursement",
             transaction_date: "2025-09-08T11:10:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-011",
@@ -165,7 +165,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Repayment",
             transaction_date: "2025-09-09T08:50:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-012",
@@ -178,7 +178,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Refund",
             transaction_date: "2025-09-10T13:40:00Z",
-            status: "rejected",
+            status: "failed",
         },
         {
             id: "TRX-013",
@@ -204,7 +204,7 @@ const initialState: TransactionsState = {
             charges: 650,
             transaction_type: "Disbursement",
             transaction_date: "2025-09-12T10:05:00Z",
-            status: "approved",
+            status: "successful",
         },
         {
             id: "TRX-015",
@@ -217,7 +217,7 @@ const initialState: TransactionsState = {
             charges: 0,
             transaction_type: "Repayment",
             transaction_date: "2025-09-13T09:25:00Z",
-            status: "approved",
+            status: "successful",
         },
     ],
     loading: false,
