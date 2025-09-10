@@ -93,10 +93,8 @@ const communityPerformanceData = [
 ]
 
 const womenParticipationData = [
-    { category: "With Just Nin", count: 30, percentage: 55.8, color: "#15803d" },
-    { category: "With Just Bvn", count: 6, percentage: 55.8, color: "#15221e" },
-    { category: "Without Bvn or Nin", count: 53, percentage: 44.2, color: "#19aa33" },
-    { category: "With Both", count: 53, percentage: 44.2, color: "#84eefa" },
+    { category: "With Smartphone", count: 67, percentage: 55.8, color: "#15803d" },
+    { category: "Without Smartphone", count: 53, percentage: 44.2, color: "#84cc16" },
 ]
 
 const transactionTypeData = [
@@ -213,12 +211,12 @@ export default function AnalyticsDashboard() {
 
             {/* Analytics Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="vendors">Vendor Performance</TabsTrigger>
-                    <TabsTrigger value="communities">Community Reports</TabsTrigger>
-                    <TabsTrigger value="women">Women Participation</TabsTrigger>
-                    <TabsTrigger value="financial">Financial Analysis</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-5 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overview">Overview</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="vendors">Vendor Performance</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="communities">Community Reports</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="women">Women Participation</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="financial">Financial Analysis</TabsTrigger>
                 </TabsList>
 
                 {/* Overview Tab */}

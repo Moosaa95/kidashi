@@ -3,9 +3,7 @@ import Register from "./auth/register"
 import Login from "./auth/login"
 import { PrivateRoutes, PublicRoutes } from "./routes"
 import { AdminDashboardLayout } from "./layout"
-import { AnalyticsDashboard, DashboardOverview, TransactionManagement, VendorDetail, VendorManagement, VendorRequest, WomenDetail, WomenManagement } from "./pages"
-import TrustCircle from "./pages/trust-circle"
-import TrustDetail from "./pages/trust-circle/detail"
+import { AnalyticsDashboard, DashboardOverview, TransactionManagement, TrustCircleDetail, TrustCircles, VendorDetail, VendorManagement, WomenDetail, WomenManagement } from "./pages"
 
 
 export default function AppRouter() {
@@ -26,8 +24,8 @@ export default function AppRouter() {
                         <Route path=":id" element={<VendorDetail />} />
                     </Route>
                     <Route path="trust-circles">
-                        <Route path="list" element={<TrustCircle />} />
-                        <Route path=":id" element={<TrustDetail />} />
+                        <Route path="list" element={<TrustCircles />} />
+                        <Route path=":id" element={<TrustCircleDetail />} />
                     </Route>
                     <Route path="women">
                         <Route path="list" element={<WomenManagement />} />
@@ -36,9 +34,9 @@ export default function AppRouter() {
                     <Route path="transactions">
                         <Route path="list" element={<TransactionManagement />} />
                     </Route>
-                    <Route path="requests">
+                    {/* <Route path="requests">
                         <Route path="list" element={<VendorRequest />} />
-                    </Route>
+                    </Route> */}
                     <Route path="analytics">
                         <Route path="list" element={<AnalyticsDashboard />} />
                     </Route>

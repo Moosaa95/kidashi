@@ -24,6 +24,6 @@ export const navigation = [
     { name: "Transaction Monitoring", href: "/dashboard/transactions/list", icon: TrendingUp },
     // { name: "Requests", href: "/dashboard/requests/list", icon: TrendingUp },
     { name: "Communication Center", href: "/dashboard/communications", icon: MessageSquare },
-    { name: "Analytics Dashboard", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Analytics Dashboard", href: "/dashboard/analytics/list", icon: BarChart3 },
     { name: "Staff Management", href: "/dashboard/staff", icon: Users },
 ]
