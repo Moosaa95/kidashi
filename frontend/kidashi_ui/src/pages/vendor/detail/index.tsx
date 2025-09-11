@@ -1,12 +1,12 @@
 import { useState } from "react"
-import { ArrowLeft, CheckCircle, XCircle, Users, Phone, Mail, MapPin, FileText, Shield } from "lucide-react"
+import { CheckCircle, XCircle, Users, Phone, Mail, MapPin, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Progress } from "@/components/ui/progress"
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+// import { Progress } from "@/components/ui/progress"
 import { DataTable } from "@/components/datatable"
 import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
 import { VendorInfoItem } from "@/components/vendors/vendorInfoItem"
@@ -266,14 +266,14 @@ export default function VendorDetailPage() {
         return variants[status as keyof typeof variants] || variants.pending
     }
 
-    const getRepaymentStatusBadge = (status: string) => {
-        const variants = {
-            current: "bg-success text-success-foreground",
-            overdue: "bg-destructive text-destructive-foreground",
-            completed: "bg-primary text-primary-foreground",
-        }
-        return variants[status as keyof typeof variants] || variants.current
-    }
+    // const getRepaymentStatusBadge = (status: string) => {
+    //     const variants = {
+    //         current: "bg-success text-success-foreground",
+    //         overdue: "bg-destructive text-destructive-foreground",
+    //         completed: "bg-primary text-primary-foreground",
+    //     }
+    //     return variants[status as keyof typeof variants] || variants.current
+    // }
 
     return (
         <div className="min-h-screen bg-background p-6">

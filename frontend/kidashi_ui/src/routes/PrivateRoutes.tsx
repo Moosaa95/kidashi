@@ -1,4 +1,4 @@
-import { useAppSelector } from "@/states/app/hooks"
+// import { useAppSelector } from "@/states/app/hooks"
 import { Navigate, Outlet } from "react-router"
 
 export default function PrivateRoutes() {
