@@ -42,7 +42,11 @@ DJANGO_APPS = [
 
 FRONTEND_APPS = ["kidashi_admin"]
 
-MODULES = []
+MODULES = [
+    "trust_circle",
+    "vendor",
+    "woman",
+]
 
 
 THIRD_PARTY = [
