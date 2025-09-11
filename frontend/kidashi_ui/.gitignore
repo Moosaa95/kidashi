@@ -7,10 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0c1cc0ea80db71189513d531940811158f0c99c8
 node_modules
 dist
 dist-ssr
 *.local
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0c1cc0ea80db71189513d531940811158f0c99c8
 
 # Editor directories and files
 .vscode/*

@@ -100,6 +100,12 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
     // }
 };
 
+// export const apiSlice = createApi({
+//     reducerPath: 'api',
+//     baseQuery: baseQueryWithReauth as BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
+//     tagTypes: ["Auth"],
+//     endpoints: builder => ({})
+// })
 
 export const apiSlice = createApi({
     reducerPath: 'api',

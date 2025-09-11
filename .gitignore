@@ -14,3 +14,4 @@ media/
 *.DS_store
 *.ds_store
 *.Ds_store
+*/**/node_modules
