@@ -1,7 +1,7 @@
 import os
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator
 from django.db import models
 from typing import TYPE_CHECKING
 
@@ -14,8 +14,7 @@ from modules.woman.enums import WomanStatus
 
 class TrustCircle(ModelMixin):
     circle_name = models.CharField(max_length=255)
-    location = models.CharField(max_length=255)
-    loan_eligibility = models.CharField(max_length=20, choices=LoanEligibility.choices, default=LoanEligibility.UNDER_REVIEW)
+    loan_eligibility = models.CharField(max_length=20, choices=LoanEligibility.choices, default=LoanEligibility.UNDER_REVIEW, db_index=True)
     status = models.CharField(max_length=20, choices=TrustCircleStatus.choices, default=TrustCircleStatus.FORMING)
 
     # Foreign key to vendor who created this trust circle
@@ -23,10 +22,10 @@ class TrustCircle(ModelMixin):
 
     max_members = models.PositiveIntegerField(
         default=10,
-        validators=[MinValueValidator(int(os.getenv("TRUST_CIRCLE_MIN_MEMBERS", 3))), MaxValueValidator(int(os.getenv("TRUST_CIRCLE_MAX_MEMBERS", 10)))],
+        validators=[MaxValueValidator(int(os.getenv("TRUST_CIRCLE_MAX_MEMBERS", 10)))],
         help_text="Maximum number of women allowed in this circle",
     )
-    activation_date = models.DateField(blank=True, null=True)
+    activation_date = models.DateTimeField(blank=True, null=True)
 
     description = models.TextField(blank=True, null=True)
 
@@ -39,8 +38,6 @@ class TrustCircle(ModelMixin):
         unique_together = ["vendor", "circle_name"]
         indexes = [
             models.Index(fields=["vendor", "status"]),
-            models.Index(fields=["location"]),
-            models.Index(fields=["loan_eligibility"]),
         ]
 
     def __str__(self):
@@ -82,7 +79,7 @@ class CircleMembershipVote(ModelMixin):
     candidate_phone = models.CharField(max_length=20)
     vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices)
 
-    voting_deadline = models.DateTimeField(blank=True, null=True)
+    voting_deadline = models.DateTimeField(blank=True, null=True, db_index=True)
     reason = models.TextField(blank=True, null=True, help_text="Optional reason for the vote")
 
     class Meta:
@@ -90,7 +87,6 @@ class CircleMembershipVote(ModelMixin):
         unique_together = ["trust_circle", "voter", "candidate_phone"]
         indexes = [
             models.Index(fields=["trust_circle", "candidate_phone"]),
-            models.Index(fields=["voting_deadline"]),
         ]
 
     def __str__(self):
@@ -111,7 +107,7 @@ class CircleActivity(ModelMixin):
     trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE)
     activity_type = models.CharField(max_length=20, choices=TrustCircleActivityType.choices)
     description = models.TextField()
-    performed_by = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE)
+    performed_by = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True)
     affected_woman = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, blank=True, null=True)
 
     metadata = models.JSONField(blank=True, null=True, help_text="Additional context data for the activity")
@@ -122,8 +118,6 @@ class CircleActivity(ModelMixin):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["trust_circle", "activity_type"]),
-            models.Index(fields=["performed_by"]),
-            models.Index(fields=["created_at"]),  # For audit queries
         ]
 
     def __str__(self):

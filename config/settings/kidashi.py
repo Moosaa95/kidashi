@@ -43,6 +43,7 @@ DJANGO_APPS = [
 FRONTEND_APPS = ["kidashi_admin"]
 
 MODULES = [
+    "general",
     "trust_circle",
     "vendor",
     "woman",
