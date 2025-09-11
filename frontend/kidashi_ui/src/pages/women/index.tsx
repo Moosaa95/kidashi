@@ -1,4 +1,4 @@
-import { useState } from "react"
+// import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks"
 import { setFilter } from "@/states/features/dashboard/womenSlice"
@@ -7,7 +7,8 @@ import { DataTable } from "@/components/datatable"
 import { womenColumns } from "@/components/women/womenColumn"
 
 export default function WomenManagement() {
-    const [searchQuery, setSearchQuery] = useState("")
+    // const [searchQuery, setSearchQuery] = useState("")
+    const searchQuery = ""
     const dispatch = useAppDispatch()
 
     const { women, loading, filter, stats } = useAppSelector((state) => state.women)

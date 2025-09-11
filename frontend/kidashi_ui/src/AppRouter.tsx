@@ -16,7 +16,7 @@ export default function AppRouter() {
             </Route>
 
             {/* private routes */}
-            <Route path="/dashboard" element={<PrivateRoutes />}>
+            <Route path="" element={<PrivateRoutes />}>
                 <Route element={<AdminDashboardLayout />}>
                     <Route path="" element={<DashboardOverview />} />
                     <Route path="vendors">
@@ -34,9 +34,6 @@ export default function AppRouter() {
                     <Route path="transactions">
                         <Route path="list" element={<TransactionManagement />} />
                     </Route>
-                    {/* <Route path="requests">
-                        <Route path="list" element={<VendorRequest />} />
-                    </Route> */}
                     <Route path="analytics">
                         <Route path="list" element={<AnalyticsDashboard />} />
                     </Route>

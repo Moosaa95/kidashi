@@ -256,7 +256,7 @@ export default function AnalyticsDashboard() {
                                             outerRadius={80}
                                             fill="#8884d8"
                                             dataKey="volume"
-                                            label={({ type, percentage }) => `${type}: ${percentage}%`}
+                                        // label={({ type, percentage }) => `${type}: ${percentage}%`}
                                         >
                                             {transactionTypeData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
@@ -457,7 +457,7 @@ export default function AnalyticsDashboard() {
                                             outerRadius={80}
                                             fill="#8884d8"
                                             dataKey="count"
-                                            label={({ category, percentage }) => `${category}: ${percentage}%`}
+                                        // label={({ category, percentage }) => `${category}: ${percentage}%`}
                                         >
                                             {womenParticipationData.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />

@@ -5,10 +5,11 @@ import { DataTable } from "@/components/datatable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks"
 import { setFilter } from "@/states/features/dashboard/trustCircleSlice"
-import { useState } from "react"
+// import { useState } from "react"
 
 export default function TrustCircle() {
-    const [searchQuery, setSearchQuery] = useState("")
+    // const [searchQuery, setSearchQuery] = useState("")
+    const searchQuery = ""
     const dispatch = useAppDispatch()
     const { circles, loading, filter, stats } = useAppSelector(state => state.circles)
 
