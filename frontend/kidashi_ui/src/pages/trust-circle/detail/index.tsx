@@ -1,16 +1,10 @@
 import { useParams } from "react-router"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import {
-    Phone,
-    UserCheck,
-    UserX,
     CreditCard,
-    CheckCircle,
-    AlertTriangle,
-    Clock,
     Users,
     TrendingUp,
 } from "lucide-react"

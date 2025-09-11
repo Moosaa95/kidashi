@@ -1,7 +1,6 @@
 export { default as DashboardOverview } from "./home"
 export { default as VendorManagement } from "./vendor"
 export { default as VendorDetail } from "./vendor/detail"
-export { default as VendorRequest } from "./request"
 export { default as WomenManagement } from "./women"
 export { default as WomenDetail } from "./women/detail"
 export { default as TrustCircles } from "./trust-circle"

@@ -1,18 +1,20 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+// import { useEffect, useState } from "react";
+// import { useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks";
-import { updateVendorStatus, setFilter } from "@/states/features/dashboard/vendorSlice";
+// import { updateVendorStatus setFilter } from "@/states/features/dashboard/vendorSlice";
+import { setFilter } from "@/states/features/dashboard/vendorSlice";
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard";
 import { DataTable } from "@/components/datatable";
 import { vendorColumns } from "@/components/vendors/vendorColumn";
 
 export default function VendorManagement() {
-    const [searchQuery, setSearchQuery] = useState("")
-    const [selectedVendor, setSelectedVendor] = useState<any>(null)
-    const navigate = useNavigate()
+    // const [searchQuery, setSearchQuery] = useState("")
+    const searchQuery = ""
+    // const [selectedVendor, setSelectedVendor] = useState<any>(null)
+    // const navigate = useNavigate()
     const dispatch = useAppDispatch()
-    const [searchParams] = useSearchParams()
+    // const [searchParams] = useSearchParams()
 
     const { vendors, loading, filter, stats } = useAppSelector((state) => state.vendors)
 
@@ -57,26 +59,26 @@ export default function VendorManagement() {
         return matchesSearch && matchesFilter
     })
 
-    useEffect(() => {
-        const reviewId = searchParams.get("review")
-        if (reviewId) {
-            const vendor = vendors.find((v) => v.id === reviewId)
-            if (vendor) {
-                setSelectedVendor(vendor)
-            }
-        }
-    }, [searchParams, vendors])
+    // useEffect(() => {
+    //     const reviewId = searchParams.get("review")
+    //     if (reviewId) {
+    //         const vendor = vendors.find((v) => v.id === reviewId)
+    //         if (vendor) {
+    //             setSelectedVendor(vendor)
+    //         }
+    //     }
+    // }, [searchParams, vendors])
 
 
-    const handleApproveVendor = (vendorId: string, vendorName: string) => {
-        console.log("[v0] Approving vendor:", vendorName)
-        dispatch(updateVendorStatus({ id: vendorId, status: "approved" }))
-    }
+    // const handleApproveVendor = (vendorId: string, vendorName: string) => {
+    //     console.log("[v0] Approving vendor:", vendorName)
+    //     dispatch(updateVendorStatus({ id: vendorId, status: "approved" }))
+    // }
 
-    const handleRejectVendor = (vendorId: string, vendorName: string) => {
-        console.log("[v0] Rejecting vendor:", vendorName)
-        dispatch(updateVendorStatus({ id: vendorId, status: "rejected" }))
-    }
+    // const handleRejectVendor = (vendorId: string, vendorName: string) => {
+    //     console.log("[v0] Rejecting vendor:", vendorName)
+    //     dispatch(updateVendorStatus({ id: vendorId, status: "rejected" }))
+    // }
 
 
 
