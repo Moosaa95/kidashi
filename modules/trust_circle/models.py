@@ -48,7 +48,6 @@ class TrustCircle(ModelMixin):
 
     @property
     def current_member_count(self):
-        # IMPROVEMENT: Use enum value instead of string
         return self.women.filter(status=WomanStatus.ACTIVE).count()
 
     @property
