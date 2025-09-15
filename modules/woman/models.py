@@ -13,9 +13,9 @@ class Woman(ModelMixin):
     first_name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
     other_name = models.CharField(max_length=255, blank=True, null=True)
-    phone = models.CharField(max_length=20, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Phone number must be valid")], db_index=True)
+    phone = models.CharField(max_length=20, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Phone number must be valid")])
     email = models.EmailField(blank=True, null=True)
-    dob = models.DateTimeField(null=True, blank=True)
+    dob = models.DateField(null=True, blank=True)
     mobile_number = models.CharField(max_length=12)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
@@ -45,7 +45,7 @@ class Woman(ModelMixin):
         db_index=True,
     )
 
-    cba_customer_id = models.UUIDField(max_length=50, blank=True, null=True, help_text="Customer ID from the bank system", unique=True, db_index=True)
+    cba_customer_id = models.UUIDField(blank=True, null=True, help_text="Customer ID from the bank system", unique=True, db_index=True)
     loan_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     repayment_status = models.CharField(max_length=20, choices=RepaymentStatus.choices, default=RepaymentStatus.NOT_APPLICABLE, db_index=True)
     status = models.CharField(max_length=20, choices=WomanStatus.choices, default=WomanStatus.ACTIVE)
@@ -87,9 +87,9 @@ class Woman(ModelMixin):
         super().clean()
 
         # Check woman belongs only to trust circle created by the same vendor
-        if self.vendor_id and self.trust_circle_id:
-            if self.vendor != self.trust_circle.vendor:
-                raise ValidationError("Woman must be assigned to a trust circle created by the same vendor")
+        # if self.vendor_id and self.trust_circle_id:
+        #     if self.vendor != self.trust_circle.vendor:
+        #         raise ValidationError("Woman must be assigned to a trust circle created by the same vendor")
 
         # Check if trust circle is full
         if not self.pk and self.trust_circle_id:  # Only check for new instances

@@ -41,7 +41,7 @@ class TrustCircle(ModelMixin):
         ]
 
     def __str__(self):
-        return f"{self.circle_name} - {self.vendor.name}"
+        return f"{self.circle_name} - {self.vendor}"
 
     @property
     def current_member_count(self):
