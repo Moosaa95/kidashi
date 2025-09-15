@@ -296,3 +296,7 @@ class UUIDEncoder(json.JSONEncoder):
             # return the uuid as a string
             return str(obj)
         return super().default(obj)
+
+
+def json_list_default():
+    return []

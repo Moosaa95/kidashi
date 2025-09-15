@@ -16,3 +16,17 @@ class VendorStatus(models.TextChoices):
     SUSPENDED = "SUSPENDED"
     PENDING = "PENDING"
     REJECTED = "REJECTED"
+
+
+class VendorStage(models.TextChoices):
+    BUSINESS_CATEGORY = "BUSINESS_CATEGORY"
+    ITEMS = "ITEMS"
+    GUARANTORS = "GUARANTORS"
+    UNDER_REVIEW = "UNDER_REVIEW"
+
+
+class GurantorVerificationStatus(models.TextChoices):
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
+    EXPIRED = "EXPIRED"

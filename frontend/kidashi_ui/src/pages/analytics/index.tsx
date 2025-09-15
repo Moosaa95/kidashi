@@ -5,23 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell,
-    AreaChart,
-    Area,
-} from "recharts"
 import { TrendingUp, TrendingDown, CreditCard, DollarSign, Smartphone, Download } from "lucide-react"
+import { AreaChart, BarChart, ChartCard, LineChart, PieChart } from "@/components/charts"
 
 const vendorPerformanceData = [
     {
@@ -214,7 +199,7 @@ export default function AnalyticsDashboard() {
                 <TabsList className="grid w-full grid-cols-5 bg-card p-1 h-auto rounded-lg border shadow-sm">
                     <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overview">Overview</TabsTrigger>
                     <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="vendors">Vendor Performance</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="communities">Community Reports</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="circles">Trust Circles Reports</TabsTrigger>
                     <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="women">Women Participation</TabsTrigger>
                     <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="financial">Financial Analysis</TabsTrigger>
                 </TabsList>
@@ -222,110 +207,106 @@ export default function AnalyticsDashboard() {
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Monthly Trends</CardTitle>
-                                <CardDescription>Loan disbursements and repayments over time</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <LineChart data={monthlyTrendsData}>
-                                        <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="month" />
-                                        <YAxis />
-                                        <Tooltip />
-                                        <Line type="monotone" dataKey="loans" stroke="#15803d" strokeWidth={2} name="Loans Disbursed" />
-                                        <Line type="monotone" dataKey="repayments" stroke="#84cc16" strokeWidth={2} name="Repayments" />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Transaction Types Distribution</CardTitle>
-                                <CardDescription>Breakdown of transaction types by volume</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            data={transactionTypeData}
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="volume"
-                                        // label={({ type, percentage }) => `${type}: ${percentage}%`}
-                                        >
-                                            {transactionTypeData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value: number) => [`₦${(value / 1000).toFixed(0)}K`, "Volume"]} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
+                        <ChartCard
+                            title="Monthly Trends"
+                            description="Loan disbursements and repayments over time"
+                        >
+                            <LineChart
+                                data={monthlyTrendsData}
+                                xAxisKey="month"
+                                lines={[
+                                    {
+                                        dataKey: "loans",
+                                        stroke: "#15803d",
+                                        strokeWidth: 2,
+                                        name: "Loans Disbursed"
+                                    },
+                                    {
+                                        dataKey: "repayments",
+                                        stroke: "#84cc16",
+                                        strokeWidth: 2,
+                                        name: "Repayments"
+                                    }
+                                ]}
+                                height={300}
+                            />
+                        </ChartCard>
+                        <ChartCard
+                            title="Transaction Types Distribution"
+                            description="Breakdown of transaction types by volume"
+                        >
+                            <PieChart
+                                data={transactionTypeData}
+                                dataKey="volume"
+                                nameKey="type"
+                                height={300}
+                                labelFormatter={(entry) => `${entry.type}: ${entry.percentage}%`}
+                            />
+                        </ChartCard>
                     </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Platform Growth</CardTitle>
-                            <CardDescription>New vendors and women onboarded over time</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={monthlyTrendsData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="newWomen"
-                                        stackId="1"
-                                        stroke="#15803d"
-                                        fill="#15803d"
-                                        fillOpacity={0.6}
-                                        name="New Women"
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="newVendors"
-                                        stackId="1"
-                                        stroke="#84cc16"
-                                        fill="#84cc16"
-                                        fillOpacity={0.6}
-                                        name="New Vendors"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard
+                        title="Platform Growth"
+                        description="New vendors and women onboarded over time"
+                    >
+                        <AreaChart
+                            data={monthlyTrendsData}
+                            xAxisKey="month"
+                            areas={[
+                                {
+                                    dataKey: "newWomen",
+                                    stackId: "1",
+                                    stroke: "#15803d",
+                                    fill: "#15803d",
+                                    fillOpacity: 0.6,
+                                    name: "New Women"
+                                },
+                                {
+                                    dataKey: "newVendors",
+                                    stackId: "1",
+                                    stroke: "#84cc16",
+                                    fill: "#84cc16",
+                                    fillOpacity: 0.6,
+                                    name: "New Vendors"
+                                }
+                            ]}
+                            height={300}
+                        />
+                    </ChartCard>
                 </TabsContent>
 
                 {/* Vendor Performance Tab */}
                 <TabsContent value="vendors" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Vendor Performance Comparison</CardTitle>
-                            <CardDescription>Repayment rates and loan volumes by vendor</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <BarChart data={vendorPerformanceData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="vendorName" angle={-45} textAnchor="end" height={100} />
-                                    <YAxis yAxisId="left" />
-                                    <YAxis yAxisId="right" orientation="right" />
-                                    <Tooltip />
-                                    <Bar yAxisId="left" dataKey="repaymentRate" fill="#15803d" name="Repayment Rate (%)" />
-                                    <Bar yAxisId="right" dataKey="totalVolume" fill="#84cc16" name="Total Volume (₦)" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard
+                        title="Vendor Performance Comparison"
+                        description="Repayment rates and loan volumes by vendor"
+                    >
+                        <BarChart
+                            data={vendorPerformanceData}
+                            xAxisKey="vendorName"
+                            xAxisProps={{
+                                angle: -5,
+                                textAnchor: "end",
+                                height: 100
+                            }}
+                            bars={[
+                                {
+                                    dataKey: "repaymentRate",
+                                    fill: "#15803d",
+                                    name: "Repayment Rate (%)",
+                                    yAxisId: "left"
+                                },
+                                {
+                                    dataKey: "totalVolume",
+                                    fill: "#84cc16",
+                                    name: "Total Volume (₦)",
+                                    yAxisId: "right"
+                                }
+                            ]}
+                            yAxes={{ left: true, right: true }}
+                            height={400}
+                        />
+                    </ChartCard>
 
                     <div className="grid gap-6">
                         {vendorPerformanceData.map((vendor, index) => (
@@ -379,25 +360,36 @@ export default function AnalyticsDashboard() {
                 </TabsContent>
 
                 {/* Community Reports Tab */}
-                <TabsContent value="communities" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Community Loan Uptake</CardTitle>
-                            <CardDescription>Loan participation rates across communities</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={communityPerformanceData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Bar dataKey="loans" fill="#15803d" name="Active Loans" />
-                                    <Bar dataKey="members" fill="#84cc16" name="Total Members" />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="circles" className="space-y-6">
+                    <ChartCard
+                        title="Trust Circles Loan Uptake"
+                        description="Loan participation rates across the trust circles"
+                    >
+                        <BarChart
+                            data={communityPerformanceData}
+                            xAxisKey="name"
+                            xAxisProps={{
+                                angle: -5,
+                                textAnchor: "end",
+                                height: 100
+                            }}
+                            bars={[
+                                {
+                                    dataKey: "loans",
+                                    fill: "#15803d",
+                                    name: "Active Loans",
+                                    yAxisId: "left"
+                                },
+                                {
+                                    dataKey: "members",
+                                    fill: "#84cc16",
+                                    name: "Total Members",
+                                    yAxisId: "right"
+                                }
+                            ]}
+                        />
+
+                    </ChartCard>
 
                     <div className="grid gap-4">
                         {communityPerformanceData.map((community, index) => (
@@ -442,33 +434,18 @@ export default function AnalyticsDashboard() {
                 {/* Women Participation Tab */}
                 <TabsContent value="women" className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Smartphone vs Non-Smartphone Users</CardTitle>
-                                <CardDescription>Distribution of women by device access</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <PieChart>
-                                        <Pie
-                                            data={womenParticipationData}
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={80}
-                                            fill="#8884d8"
-                                            dataKey="count"
-                                        // label={({ category, percentage }) => `${category}: ${percentage}%`}
-                                        >
-                                            {womenParticipationData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
+                        <ChartCard
+                            title="Smartphone vs Non-Smartphone Users"
+                            description="Distribution of women by device access"
+                        >
+                            <PieChart
+                                data={womenParticipationData}
+                                dataKey="count"
+                                nameKey="category"
+                                height={300}
+                                labelFormatter={(entry) => `${entry.category}: ${entry.percentage}%`}
+                            />
+                        </ChartCard>
                         <Card>
                             <CardHeader>
                                 <CardTitle>Transaction Frequency by Device Type</CardTitle>
@@ -631,40 +608,34 @@ export default function AnalyticsDashboard() {
                         </Card>
                     </div>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Financial Performance Over Time</CardTitle>
-                            <CardDescription>Loan disbursements, repayments, and outstanding balances</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <AreaChart data={monthlyTrendsData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="loans"
-                                        stackId="1"
-                                        stroke="#15803d"
-                                        fill="#15803d"
-                                        fillOpacity={0.6}
-                                        name="Loans Disbursed"
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="repayments"
-                                        stackId="2"
-                                        stroke="#84cc16"
-                                        fill="#84cc16"
-                                        fillOpacity={0.6}
-                                        name="Repayments Received"
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                    <ChartCard
+                        title="Financial Performance Over Time"
+                        description="Loan disbursements, repayments, and outstanding balances"
+                    >
+                        <AreaChart
+                            data={monthlyTrendsData}
+                            xAxisKey="month"
+                            areas={[
+                                {
+                                    dataKey: "loans",
+                                    stackId: "1",
+                                    stroke: "#15803d",
+                                    fill: "#15803d",
+                                    fillOpacity: 0.6,
+                                    name: "Loans Disbursed"
+                                },
+                                {
+                                    dataKey: "repayments",
+                                    stackId: "2",
+                                    stroke: "#84cc16",
+                                    fill: "#84cc16",
+                                    fillOpacity: 0.6,
+                                    name: "Repayments Received"
+                                }
+                            ]}
+                            height={400}
+                        />
+                    </ChartCard>
                 </TabsContent>
             </Tabs>
         </div>
