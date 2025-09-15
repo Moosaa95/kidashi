@@ -3,7 +3,7 @@ import Register from "./auth/register"
 import Login from "./auth/login"
 import { PrivateRoutes, PublicRoutes } from "./routes"
 import { AdminDashboardLayout } from "./layout"
-import { AnalyticsDashboard, DashboardOverview, TransactionManagement, TrustCircleDetail, TrustCircles, VendorDetail, VendorManagement, WomenDetail, WomenManagement } from "./pages"
+import { AnalyticsDashboard, CommunicationCenter, DashboardOverview, TransactionManagement, TrustCircleDetail, TrustCircles, VendorDetail, VendorManagement, WomenDetail, WomenManagement } from "./pages"
 
 
 export default function AppRouter() {
@@ -33,6 +33,9 @@ export default function AppRouter() {
                     </Route>
                     <Route path="transactions">
                         <Route path="list" element={<TransactionManagement />} />
+                    </Route>
+                    <Route path="communications">
+                        <Route path="" element={<CommunicationCenter />} />
                     </Route>
                     <Route path="analytics">
                         <Route path="list" element={<AnalyticsDashboard />} />
