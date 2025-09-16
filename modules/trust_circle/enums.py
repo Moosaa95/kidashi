@@ -21,6 +21,7 @@ class NewMembershipVoteOption(models.TextChoices):
 
 
 class TrustCircleActivityType(models.TextChoices):
+    CIRCLE_CREATED = "CIRCLE_CREATED"
     MEMBER_ADDED = "MEMBER_ADDED"
     MEMBER_REMOVED = "MEMBER_REMOVED"
     LOAN_DISBURSED = "LOAN_DISBURSED"

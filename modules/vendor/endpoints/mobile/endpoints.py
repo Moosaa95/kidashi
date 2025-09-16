@@ -44,7 +44,7 @@ class CreateVendorBusinessOnboarding(APIView):
         cba_customer_data = payrep.get_cba_customer_details(cba_customer_id, token)
         if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
             VendorActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
-            return dict(status=False, message="Unable to fetch customer from Payrep", status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Unable to fetch customer from Payrep"}, status=status.HTTP_400_BAD_REQUEST)
 
         customer = cba_customer_data.get("data", {})
 
