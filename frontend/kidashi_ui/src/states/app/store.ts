@@ -1,12 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit"
-// import { apiSlice } from "../api/apiSlice";
+import { apiSlice } from "../api/apiSlice";
 import { AuthReducer, DashboardReducer, TransactionsReducer, TrustCircleReducer, VendorsReducer, WomenReducer } from "..";
 
 
 
 export const store = configureStore({
     reducer: {
-        // [apiSlice.reducerPath]: apiSlice.reducer,
+        [apiSlice.reducerPath]: apiSlice.reducer,
         auth: AuthReducer,
         dashboard: DashboardReducer,
         vendors: VendorsReducer,
@@ -14,8 +14,8 @@ export const store = configureStore({
         women: WomenReducer,
         transactions: TransactionsReducer,
     },
-    // middleware: (getDefaultMiddleware) =>
-    //     getDefaultMiddleware().concat(apiSlice.middleware),
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(apiSlice.middleware),
     devTools: process.env.NODE_ENV !== "production",
 })
 

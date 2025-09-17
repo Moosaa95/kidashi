@@ -1,12 +1,14 @@
-// import { useEffect, useState } from "react";
-// import { useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks";
-// import { updateVendorStatus setFilter } from "@/states/features/dashboard/vendorSlice";
 import { setFilter } from "@/states/features/dashboard/vendorSlice";
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard";
 import { DataTable } from "@/components/datatable";
 import { vendorColumns } from "@/components/vendors/vendorColumn";
+import { useFetchOnboardedVendorsQuery, useFetchPendingVendorsQuery } from "@/states/api/endpoints/vendors/vendorApiSlice";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCardSkeleton } from "@/components/loaders/skeletons/StatSkeleton";
+import { DataTableSkeleton } from "@/components/loaders/skeletons/DataTableSkeleton";
+
 
 export default function VendorManagement() {
     // const [searchQuery, setSearchQuery] = useState("")
@@ -16,7 +18,14 @@ export default function VendorManagement() {
     const dispatch = useAppDispatch()
     // const [searchParams] = useSearchParams()
 
-    const { vendors, loading, filter, stats } = useAppSelector((state) => state.vendors)
+    const { data: onboardedData, isLoading: onboardedLoading } = useFetchOnboardedVendorsQuery();
+    const { data: pendingData, isLoading: pendingLoading } = useFetchPendingVendorsQuery();
+
+    const vendors = [...(onboardedData?.data || []), ...(pendingData?.data || [])];
+    const isLoading = onboardedLoading || pendingLoading;
+
+    const filter = useAppSelector((state) => state.vendors.filter);
+    const stats = useAppSelector((state) => state.vendors.stats);
 
     const statsData: StatProps[] = [
         {
@@ -93,25 +102,40 @@ export default function VendorManagement() {
                 </div>
             </div>
             <div className="grid gap-6 lg:grid-cols-4">
-                {statsData.map((stat) => (
-                    <StatCard key={stat.name} {...stat} />
-                ))}
+                {isLoading ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                        <StatCardSkeleton key={index} />
+                    ))
+                ) : (
+                    statsData.map((stat) => (
+                        <StatCard key={stat.name} {...stat} />
+                    ))
+                )}
             </div>
 
             <Tabs className="space-y-6" value={filter} defaultValue="all" onValueChange={(val) => dispatch(setFilter(val as any))}>
-                <TabsList className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="pending">Pending</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="approved">Approved</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="rejected">Rejected</TabsTrigger>
-                </TabsList>
-                <TabsContent value={filter}>
-                    {loading ? (
-                        <p className="text-center text-muted-foreground">Loading vendors...</p>
-                    ) : (
-                        <DataTable columns={vendorColumns} data={filtered} searchColumn="name" searchPlaceholder="search vendors" />
-                    )}
-                </TabsContent>
+                {isLoading ? (
+                    <div className="space-y-6">
+                        <div className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <Skeleton key={index} className="h-10 rounded-md" />
+                            ))}
+                        </div>
+                        <DataTableSkeleton />
+                    </div>
+                ) : (
+                    <>
+                        <TabsList className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="pending">Pending</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="approved">Approved</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="rejected">Rejected</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value={filter}>
+                            <DataTable columns={vendorColumns} data={filtered} searchColumn="name" searchPlaceholder="search vendors" />
+                        </TabsContent>
+                    </>
+                )}
             </Tabs>
         </div>
     )

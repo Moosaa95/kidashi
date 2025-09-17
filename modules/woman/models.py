@@ -70,6 +70,21 @@ class Woman(ModelMixin):
         full_name = f"{self.first_name} {self.other_name} {self.surname}"
         return f"{full_name} - {self.trust_circle.circle_name}"
 
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "first_name",
+            "surname",
+            "other_name",
+            "phone",
+            "email",
+            "dob",
+            "mobile_number",
+            "nationality",
+            "occupation",
+        ]
+
     @property
     def has_active_loan(self):
         return self.loan_amount > 0 and self.repayment_status in [RepaymentStatus.ONGOING, RepaymentStatus.ON_TIME, RepaymentStatus.LATE]
@@ -102,6 +117,18 @@ class Woman(ModelMixin):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+    @classmethod
+    def fetch_women(cls, conditions):
+        query = cls.objects.filter(conditions).order_by("-pk").values(*cls.get_fields())
+        return query
+
+    @classmethod
+    def get_woman(cls, **filters):
+        try:
+            return cls.objects.get(**filters)
+        except cls.DoesNotExist:
+            return False
 
 
 class NextOfKin(ModelMixin):

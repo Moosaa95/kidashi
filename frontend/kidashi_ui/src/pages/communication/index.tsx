@@ -163,7 +163,7 @@ const communicationStats = {
 
 export default function CommunicationCenter() {
     const [searchTerm, setSearchTerm] = useState("")
-    const [selectedMessage, setSelectedMessage] = useState<any>(null)
+    const [_selectedMessage, setSelectedMessage] = useState<any>(null)
     const [isComposingMessage, setIsComposingMessage] = useState(false)
     const [newMessage, setNewMessage] = useState({
         type: "broadcast",
@@ -247,7 +247,7 @@ export default function CommunicationCenter() {
                                 message={newMessage}
                                 setMessage={setNewMessage}
                                 onSend={handleSendMessage}
-                                templates={messageTemplates}
+                            // templates={messageTemplates}
                             />
                         </DialogContent>
                     </Dialog>
@@ -571,12 +571,12 @@ function ComposeMessageForm({
     message,
     setMessage,
     onSend,
-    templates,
+    // templates,
 }: {
     message: any
     setMessage: (message: any) => void
     onSend: () => void
-    templates: any[]
+    // templates: any[]
 }) {
     const handleChannelChange = (channel: string, checked: boolean) => {
         if (checked) {
