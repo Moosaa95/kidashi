@@ -90,3 +90,26 @@ class GetVendorDetail(APIView):
         vendor = Vendor.get_vendor(id=vendor_id)
         response_dict.update(status=True, data=vendor)
         return Response(response_dict, status=status.HTTP_200_OK)
+
+
+class UpdateVendorApplicationStatus(APIView):
+    @extend_schema(
+        tags=["Vendors"],
+        summary="Update Vendor Application Status",
+        request=VendorSerializer,
+    )
+    def post(self, request):
+        response_dict = dict(status=False)
+        serializer = VendorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        vendor_id = serializer.validated_data.get("vendor_id")
+        status_value = serializer.validated_data.get("status")
+        if not vendor_id or not status_value:
+            response_dict.update(message="vendor id and status are required")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        updated_count = Vendor.update_vendor(filters={"id": vendor_id}, params={"status": status_value})
+        if not updated_count:
+            response_dict.update(message="No vendor found or update failed")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        response_dict.update(status=True, message="Vendor status updated successfully")
+        return Response(response_dict, status=status.HTTP_200_OK)

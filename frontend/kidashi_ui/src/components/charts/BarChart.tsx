@@ -16,7 +16,7 @@ interface BarChartProps {
     showLegend?: boolean
     xAxisProps?: {
         angle?: number
-        textAnchor?: string
+        textAnchor?: "start" | "middle" | "end" | "inherit"
         height?: number
     }
     yAxes?: {
