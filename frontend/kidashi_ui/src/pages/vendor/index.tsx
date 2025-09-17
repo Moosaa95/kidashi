@@ -1,15 +1,14 @@
-// import { useEffect, useState } from "react";
-// import { useNavigate, useSearchParams } from "react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks";
-// import { updateVendorStatus setFilter } from "@/states/features/dashboard/vendorSlice";
 import { setFilter } from "@/states/features/dashboard/vendorSlice";
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard";
 import { DataTable } from "@/components/datatable";
 import { vendorColumns } from "@/components/vendors/vendorColumn";
 import { useFetchOnboardedVendorsQuery, useFetchPendingVendorsQuery } from "@/states/api/endpoints/vendors/vendorApiSlice";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTableSkeleton, StatCardSkeleton } from "@/components/vendors/loaders/skeletonLoader";
+import { StatCardSkeleton } from "@/components/loaders/skeletons/StatSkeleton";
+import { DataTableSkeleton } from "@/components/loaders/skeletons/DataTableSkeleton";
+
 
 export default function VendorManagement() {
     // const [searchQuery, setSearchQuery] = useState("")

@@ -5,13 +5,18 @@ import { setFilter } from "@/states/features/dashboard/womenSlice"
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard"
 import { DataTable } from "@/components/datatable"
 import { womenColumns } from "@/components/women/womenColumn"
+import { useFetchWomenQuery } from "@/states/api/endpoints/women/womenApiSlice"
+import { DataTableSkeleton } from "@/components/loaders/skeletons/DataTableSkeleton"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WomenManagement() {
     // const [searchQuery, setSearchQuery] = useState("")
     const searchQuery = ""
     const dispatch = useAppDispatch()
 
-    const { women, loading, filter, stats } = useAppSelector((state) => state.women)
+    const { filter, stats } = useAppSelector((state) => state.women)
+    const { data: womenData, isLoading: womenLoading } = useFetchWomenQuery()
+    const women = womenData?.data || []
 
     const statsData: StatProps[] = [
         {
@@ -88,24 +93,34 @@ export default function WomenManagement() {
                 defaultValue="all"
                 onValueChange={(val) => dispatch(setFilter(val as any))}
             >
-                <TabsList className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="withLoans">With Loans</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="noLoans">No Loans</TabsTrigger>
-                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overdue">Overdue</TabsTrigger>
-                </TabsList>
-                <TabsContent value={filter}>
-                    {loading ? (
-                        <p className="text-center text-muted-foreground">Loading women members...</p>
-                    ) : (
-                        <DataTable
-                            columns={womenColumns}
-                            data={filtered}
-                            searchColumn="name"
-                            searchPlaceholder="search women members"
-                        />
-                    )}
-                </TabsContent>
+                {womenLoading ? (
+                    <div className="space-y-6">
+                        <div className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                            {Array.from({ length: 4 }).map((_, index) => (
+                                <Skeleton key={index} className="h-10 rounded-md" />
+                            ))}
+                        </div>
+                        <DataTableSkeleton />
+                    </div>
+                ) : (
+                    <>
+                        <TabsList className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="withLoans">With Loans</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="noLoans">No Loans</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overdue">Overdue</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value={filter}>
+                            <DataTable
+                                columns={womenColumns}
+                                data={filtered}
+                                searchColumn="name"
+                                searchPlaceholder="search women members"
+                            />
+                        </TabsContent>
+                    </>
+                )}
+
             </Tabs>
         </div>
     )
