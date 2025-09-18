@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.views.generic import TemplateView
-from django.urls import path
+from django.urls import path, re_path
 from django.urls.conf import include
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -19,7 +19,8 @@ FRONT_END = [
     # FRONT END URLS
     path("kidashi_admin", include("frontend.kidashi_admin.urls")),
     # path("kidashi/", include("frontend.kidashi_admin.urls")),
-    path("", TemplateView.as_view(template_name="index.html"), name="kidashi"),
+    # path("", TemplateView.as_view(template_name="index.html"), name="kidashi"),
+    re_path(r"^(?!api/|admin/).*", TemplateView.as_view(template_name="index.html")),
 ]
 
 API_URLS = [

@@ -1,5 +1,5 @@
+from django.utils import timezone
 from django.db import models, transaction
-from django.db.models import Q
 from django.db.utils import IntegrityError
 from typing import TYPE_CHECKING
 from common.functions import json_list_default
@@ -41,6 +41,28 @@ class Vendor(ModelMixin):
     def __str__(self):
         return f"{self.first_name} {self.other_name} {self.surname} ({self.cba_customer_id})"
 
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "first_name",
+            "surname",
+            "other_name",
+            "phone",
+            "email",
+            "business_type",
+            "business_description",
+            "address",
+            "community",
+            "items_sold",
+            "status",
+            "cba_customer_id",
+            "geo_region__name",
+            "state__name",
+            "lga__name",
+            "country__name",
+        ]
+
     @property
     def active_trust_circles_count(self):
         return self.trust_circles.filter(status=TrustCircleStatus.ACTIVE).count()
@@ -64,24 +86,35 @@ class Vendor(ModelMixin):
             return dict(status=False, message=e.args[0])
 
     @classmethod
-    def fetch_vendors(cls, current_status=VendorStatus.ACTIVE, filters=None, count=None):
-        filters = filters or Q()
-        query = cls.objects.filter(filters).order_by("-created_at").values(*cls.get_fields())
+    def fetch_vendors(cls, conditions=None, count=None):
+        queryset = None
+        if conditions:
+            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
 
-        if current_status == VendorStatus.ACTIVE:
-            query = query.filter(status=VendorStatus.ACTIVE)
-        else:
-            query = query.exclude(status=VendorStatus.ACTIVE)
+        if count:
+            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
 
-        return list(query[: int(count)] if count else list(query))
+        return list(queryset)
 
-    @classmethod
-    def fetch_onboarded_vendors(cls, filters=None, count=None):
-        return cls.fetch_vendors(current_status=VendorStatus.ACTIVE, filters=filters, count=count)
+    # @classmethod
+    # def fetch_vendors(cls, current_status=VendorStatus.ACTIVE, filters=None, count=None):
+    #     filters = filters or Q()
+    #     query = cls.objects.filter(filters).order_by("-created_at").values(*cls.get_fields())
 
-    @classmethod
-    def fetch_pending_vendors(cls, filters=None, count=None):
-        return cls.fetch_vendors(current_status=VendorStatus.PENDING, filters=filters, count=count)
+    #     if current_status == VendorStatus.ACTIVE:
+    #         query = query.filter(status=VendorStatus.ACTIVE)
+    #     else:
+    #         query = query.exclude(status=VendorStatus.ACTIVE)
+
+    #     return list(query[: int(count)] if count else list(query))
+
+    # @classmethod
+    # def fetch_onboarded_vendors(cls, filters=None, count=None):
+    #     return cls.fetch_vendors(current_status=VendorStatus.ACTIVE, filters=filters, count=count)
+
+    # @classmethod
+    # def fetch_pending_vendors(cls, filters=None, count=None):
+    #     return cls.fetch_vendors(current_status=VendorStatus.PENDING, filters=filters, count=count)
 
     @classmethod
     def get_vendor(cls, **filters):

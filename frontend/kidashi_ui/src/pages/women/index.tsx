@@ -14,9 +14,9 @@ export default function WomenManagement() {
     const searchQuery = ""
     const dispatch = useAppDispatch()
 
-    const { filter, stats } = useAppSelector((state) => state.women)
-    const { data: womenData, isLoading: womenLoading } = useFetchWomenQuery()
-    const women = womenData?.data || []
+    const { filter, stats, women, loading: womenLoading } = useAppSelector((state) => state.women)
+    // const { data: womenData, isLoading: womenLoading } = useFetchWomenQuery()
+    // const women = womenData?.data || []
 
     const statsData: StatProps[] = [
         {

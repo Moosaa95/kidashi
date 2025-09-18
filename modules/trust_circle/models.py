@@ -62,10 +62,6 @@ class TrustCircle(ModelMixin):
         """
         return self.current_member_count >= 3
 
-    @classmethod
-    def create_trust_circle(cls, **kwargs):
-        return cls.objects.create(**kwargs)
-
     def clean(self):
         super().clean()
         if self.pk and self.current_member_count > self.max_members:
@@ -126,7 +122,3 @@ class CircleActivity(ModelMixin):
 
     def __str__(self):
         return f"{self.activity_type} - {self.trust_circle.circle_name}"
-
-    @classmethod
-    def create_activity(cls, **kwargs):
-        return cls.objects.create(**kwargs)

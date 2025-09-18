@@ -85,7 +85,7 @@ export const womenColumns: ColumnDef<WomenMember>[] = [
             return (
                 <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
-                        <Link to={`/dashboard/women/${woman.id}`}>
+                        <Link to={`/women/${woman.id}`}>
                             <Eye className="h-4 w-4 mr-1" />
                             View
                         </Link>

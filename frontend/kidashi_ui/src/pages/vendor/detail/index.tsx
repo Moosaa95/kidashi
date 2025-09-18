@@ -1,433 +1,232 @@
 import { useState } from "react"
-import { CheckCircle, XCircle, Users, Phone, Mail, MapPin, Shield } from "lucide-react"
+import {
+    Users, Phone, Mail, MapPin, Shield, Calendar,
+    UserCheck, UserX, TrendingUp, FileText, ArrowRight, CheckCircle, XCircle
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import StatCard from "@/components/dashboard/StatCard"
 import { DataTable } from "@/components/datatable"
 import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
-import { VendorInfoItem } from "@/components/vendors/vendorInfoItem"
-import { VendorMetricsCard } from "@/components/vendors/vendorMetricCard"
 
 const mockVendor = {
     id: "VEN-002",
-    name: "Amina Hassan",
+    first_name: "Amina",
+    surname: "Hassan",
+    other_name: "Fatima",
+    phone: "+2348034567890",
     email: "amina.hassan@email.com",
-    phone: "+234 803 456 7890",
-    location: "Kano, Nigeria",
+    business_name: "Amina's Textiles",
+    business_type: "Retail Trading",
+    business_description: "Retailer of textiles and household goods in Kano market.",
+    address: "No. 12 Kano Central Market",
+    community: "Kano Central",
+    items_sold: ["Textiles", "Household Items", "Accessories"],
     status: "pending" as const,
-    applicationDate: "2024-11-20",
-    guarantorName: "Ibrahim Hassan",
-    guarantorPhone: "+234 804 567 8901",
-    trustCirclesCount: 3,
-    totalWomen: 45,
-    repaymentRate: 96.8,
-    documents: ["id_card.pdf", "guarantor_form.pdf", "business_license.pdf"],
-    profileImage: "/professional-woman-vendor.jpg",
-    businessType: "Retail Trading",
+    cba_customer_id: "8f14e45f-ea12-4b57-b22e-91a1a3e55936",
+    geo_region: "North West",
+    state: "Kano State",
+    lga: "Kano Municipal",
+    country: "Nigeria",
     ownerName: "Amina Hassan",
+    profileImage: "/professional-woman-vendor.jpg",
     submittedAt: "2024-11-20T10:30:00Z",
-    guarantors: [
-        {
-            name: "Ibrahim Hassan",
-            relationship: "Brother",
-            phone: "+234 804 567 8901",
-        },
-        {
-            name: "Fatima Usman",
-            relationship: "Business Partner",
-            phone: "+234 805 678 9012",
-        },
-    ],
+    repaymentRate: 96.8,
     trustCircles: [
-        {
-            id: "TC-001",
-            name: "Kano Market Women",
-            memberCount: 15,
-            totalLoanAmount: 750000,
-            repaymentRate: 98.5,
-            status: "active" as const,
-        },
-        {
-            id: "TC-002",
-            name: "Textile Traders Circle",
-            memberCount: 20,
-            totalLoanAmount: 1200000,
-            repaymentRate: 95.2,
-            status: "active" as const,
-        },
-        {
-            id: "TC-003",
-            name: "Small Business Network",
-            memberCount: 10,
-            totalLoanAmount: 500000,
-            repaymentRate: 100,
-            status: "completed" as const,
-        },
+        { id: "TC-001", name: "Kano Market Women", memberCount: 15, totalLoanAmount: 750000, repaymentRate: 98.5, status: "active" as const },
+        { id: "TC-002", name: "Textile Traders Circle", memberCount: 20, totalLoanAmount: 1200000, repaymentRate: 95.2, status: "active" as const },
+        { id: "TC-003", name: "Small Business Network", memberCount: 10, totalLoanAmount: 500000, repaymentRate: 100, status: "completed" as const },
     ],
     womenMembers: [
-        {
-            id: "W-001",
-            name: "Hauwa Abdullahi",
-            phone: "+234 806 789 0123",
-            loanAmount: 50000,
-            repaymentStatus: "current" as const,
-            joinDate: "2024-10-15",
-        },
-        {
-            id: "W-002",
-            name: "Zainab Mohammed",
-            phone: "+234 807 890 1234",
-            loanAmount: 75000,
-            repaymentStatus: "current" as const,
-            joinDate: "2024-09-20",
-        },
-        {
-            id: "W-003",
-            name: "Aisha Ibrahim",
-            phone: "+234 808 901 2345",
-            loanAmount: 30000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2024-08-10",
-        },
-        {
-            id: "W-004",
-            name: "Maryam Musa",
-            phone: "+234 809 123 4567",
-            loanAmount: 60000,
-            repaymentStatus: "current" as const,
-            joinDate: "2024-07-12",
-        },
-        {
-            id: "W-005",
-            name: "Fatima Aliyu",
-            phone: "+234 810 234 5678",
-            loanAmount: 45000,
-            repaymentStatus: "completed" as const,
-            joinDate: "2024-06-18",
-        },
-        {
-            id: "W-006",
-            name: "Khadija Suleiman",
-            phone: "+234 811 345 6789",
-            loanAmount: 80000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2024-05-25",
-        },
-        {
-            id: "W-007",
-            name: "Rahma Yusuf",
-            phone: "+234 812 456 7890",
-            loanAmount: 55000,
-            repaymentStatus: "current" as const,
-            joinDate: "2024-04-14",
-        },
-        {
-            id: "W-008",
-            name: "Jamila Danjuma",
-            phone: "+234 813 567 8901",
-            loanAmount: 70000,
-            repaymentStatus: "completed" as const,
-            joinDate: "2024-03-28",
-        },
-        {
-            id: "W-009",
-            name: "Hadiza Lawal",
-            phone: "+234 814 678 9012",
-            loanAmount: 40000,
-            repaymentStatus: "current" as const,
-            joinDate: "2024-02-10",
-        },
-        {
-            id: "W-010",
-            name: "Safiya Mohammed",
-            phone: "+234 815 789 0123",
-            loanAmount: 95000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2024-01-05",
-        },
-        {
-            id: "W-011",
-            name: "Asma'u Bello",
-            phone: "+234 816 890 1234",
-            loanAmount: 35000,
-            repaymentStatus: "current" as const,
-            joinDate: "2023-12-19",
-        },
-        {
-            id: "W-012",
-            name: "Amina Umar",
-            phone: "+234 817 901 2345",
-            loanAmount: 120000,
-            repaymentStatus: "completed" as const,
-            joinDate: "2023-11-30",
-        },
-        {
-            id: "W-013",
-            name: "Zahra Ibrahim",
-            phone: "+234 818 012 3456",
-            loanAmount: 67000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2023-10-15",
-        },
-        {
-            id: "W-014",
-            name: "Halima Abdullahi",
-            phone: "+234 819 123 4567",
-            loanAmount: 72000,
-            repaymentStatus: "current" as const,
-            joinDate: "2023-09-02",
-        },
-        {
-            id: "W-015",
-            name: "Rukaiya Usman",
-            phone: "+234 820 234 5678",
-            loanAmount: 50000,
-            repaymentStatus: "completed" as const,
-            joinDate: "2023-08-21",
-        },
-        {
-            id: "W-016",
-            name: "Sa'adatu Kabir",
-            phone: "+234 821 345 6789",
-            loanAmount: 88000,
-            repaymentStatus: "current" as const,
-            joinDate: "2023-07-09",
-        },
-        {
-            id: "W-017",
-            name: "Bilqis Haruna",
-            phone: "+234 822 456 7890",
-            loanAmount: 46000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2023-06-25",
-        },
-        {
-            id: "W-018",
-            name: "Na'ima Idris",
-            phone: "+234 823 567 8901",
-            loanAmount: 52000,
-            repaymentStatus: "completed" as const,
-            joinDate: "2023-05-11",
-        },
-        {
-            id: "W-019",
-            name: "Bilkisu Salisu",
-            phone: "+234 824 678 9012",
-            loanAmount: 81000,
-            repaymentStatus: "current" as const,
-            joinDate: "2023-04-03",
-        },
-        {
-            id: "W-020",
-            name: "Habiba Nuhu",
-            phone: "+234 825 789 0123",
-            loanAmount: 94000,
-            repaymentStatus: "overdue" as const,
-            joinDate: "2023-03-17",
-        },
-    ]
-
+        { id: "W-001", name: "Hauwa Abdullahi", phone: "+234 806 789 0123", loanAmount: 50000, repaymentStatus: "current" as const, joinDate: "2024-10-15" },
+        { id: "W-002", name: "Zainab Mohammed", phone: "+234 807 890 1234", loanAmount: 75000, repaymentStatus: "current" as const, joinDate: "2024-09-20" },
+        { id: "W-003", name: "Aisha Ibrahim", phone: "+234 808 901 2345", loanAmount: 30000, repaymentStatus: "overdue" as const, joinDate: "2024-08-10" },
+    ],
+    guarantors: [
+        { name: "Ibrahim Hassan", relationship: "Brother", phone: "+234 804 567 8901" },
+        { name: "Fatima Usman", relationship: "Business Partner", phone: "+234 805 678 9012" },
+    ],
 }
 
 export default function VendorDetailPage() {
-    //   const router = useRouter()
     const [vendor] = useState(mockVendor)
+    const [activeTab, setActiveTab] = useState("overview")
     const [isProcessing, setIsProcessing] = useState(false)
 
-    const handleApprove = async () => {
-        setIsProcessing(true)
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        setIsProcessing(false)
-        // In real app, update vendor status and redirect
-        // router.push("/vendors")
-    }
-
-    const handleReject = async () => {
-        setIsProcessing(true)
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        setIsProcessing(false)
-        // In real app, update vendor status and redirect
-        // router.push("/vendors")
-    }
+    const statData = [
+        { name: "Trust Circles", value: vendor.trustCircles.length, icon: "Users", description: "Total circles created by vendor" },
+        { name: "Women Members", value: vendor.womenMembers.length, icon: "UserCheck", description: "Women onboarded under vendor" },
+        { name: "Repayment Rate", value: `${vendor.repaymentRate}%`, icon: "TrendingUp", description: "Overall repayment success" },
+        { name: "Membership", value: "11 months", icon: "Calendar", description: `Joined ${new Date(vendor.submittedAt).toLocaleDateString()}` },
+    ]
 
     const getStatusBadge = (status: string) => {
         const variants = {
-            pending: "bg-warning text-warning-foreground",
-            approved: "bg-success text-success-foreground",
-            rejected: "bg-destructive text-destructive-foreground",
-            suspended: "bg-muted text-muted-foreground",
+            pending: "bg-yellow-100 text-yellow-800",
+            approved: "bg-green-100 text-green-800",
+            rejected: "bg-red-100 text-red-800",
+            suspended: "bg-gray-100 text-gray-800",
         }
         return variants[status as keyof typeof variants] || variants.pending
     }
 
-    // const getRepaymentStatusBadge = (status: string) => {
-    //     const variants = {
-    //         current: "bg-success text-success-foreground",
-    //         overdue: "bg-destructive text-destructive-foreground",
-    //         completed: "bg-primary text-primary-foreground",
-    //     }
-    //     return variants[status as keyof typeof variants] || variants.current
-    // }
+    const handleApprove = async () => {
+        setIsProcessing(true)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        setIsProcessing(false)
+    }
+
+    const handleReject = async () => {
+        setIsProcessing(true)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        setIsProcessing(false)
+    }
 
     return (
-        <div className="min-h-screen bg-background p-6">
-            <div className="max-w-7xl mx-auto space-y-6">
+        <div className="min-h-screen bg-muted/20 p-4 md:p-6">
+            <div className="space-y-6">
 
-                {/* Vendor Profile Header */}
-                <Card className="glass-card">
-                    <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row gap-6">
-                            <div className="flex-shrink-0">
-                                <Avatar className="h-24 w-24">
-                                    <AvatarImage src={vendor.profileImage || "/placeholder.svg"} alt={vendor.name} />
-                                    <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                                        {vendor.name
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")}
+                {/* Header Section */}
+                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                    <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6">
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-md">
+                                    <AvatarImage src={vendor.profileImage} alt={vendor.business_name} />
+                                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-lg">
+                                        {vendor.business_name.split(" ").map((n) => n[0]).join("")}
                                     </AvatarFallback>
                                 </Avatar>
-                            </div>
-
-                            <div className="flex-1 space-y-4">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <h1 className="text-3xl font-bold text-foreground">{vendor.name}</h1>
-                                        <p className="text-muted-foreground">{vendor.businessType}</p>
-                                    </div>
-                                    <Badge className={getStatusBadge(vendor.status)}>
-                                        {vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}
+                                <div>
+                                    <h1 className="text-2xl font-bold text-foreground">{vendor.business_name}</h1>
+                                    <p className="text-sm text-muted-foreground">{vendor.business_type}</p>
+                                    <Badge className={`mt-2 ${getStatusBadge(vendor.status)}`}>
+                                        {vendor.status}
                                     </Badge>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <VendorInfoItem icon={Mail} text={vendor.email} />
-                                    <VendorInfoItem icon={Phone} text={vendor.phone} />
-                                    <VendorInfoItem icon={MapPin} text={vendor.location} />
-
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <VendorMetricsCard value={vendor.trustCirclesCount} label="Trust Circles" />
-                                    <VendorMetricsCard value={vendor.totalWomen} label="Women Members" />
-                                    <VendorMetricsCard value={`${vendor.repaymentRate}%`} label="Repayment Rate" />
-                                </div>
                             </div>
+                            {vendor.status === "pending" && (
+                                <div className="flex flex-wrap gap-2">
+                                    <Button onClick={handleApprove} disabled={isProcessing} className="gap-1 bg-green-600 hover:bg-green-700 text-white">
+                                        <CheckCircle className="h-4 w-4" />
+                                        {isProcessing ? "Processing..." : "Approve"}
+                                    </Button>
+                                    <Button onClick={handleReject} disabled={isProcessing} variant="destructive" className="gap-1">
+                                        <XCircle className="h-4 w-4" />
+                                        {isProcessing ? "Processing..." : "Reject"}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
-                    </CardContent>
-                </Card>
-
-                {/* Action Buttons */}
-                {vendor.status === "pending" && (
-                    <div className="flex gap-4">
-                        <Button
-                            onClick={handleApprove}
-                            disabled={isProcessing}
-                            className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
-                        >
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            {isProcessing ? "Processing..." : "Approve Application"}
-                        </Button>
-                        <Button variant="destructive" onClick={handleReject} disabled={isProcessing} className="flex-1">
-                            <XCircle className="h-4 w-4 mr-2" />
-                            {isProcessing ? "Processing..." : "Reject Application"}
-                        </Button>
                     </div>
-                )}
 
-                {/* Tabbed Content */}
-                <Tabs defaultValue="overview" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-4 bg-muted">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="trust-circles">Trust Circles</TabsTrigger>
-                        <TabsTrigger value="women-members">Women Members</TabsTrigger>
-                        <TabsTrigger value="documents">Documents</TabsTrigger>
+                    {/* Stats Grid */}
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t">
+                        {statData.map((stat, index) => (
+                            <StatCard key={index} name={stat.name} value={stat.value as string} icon={stat.icon} description={stat.description} />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Tabs Section */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <TabsList className="w-full grid grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                        <TabsTrigger value="overview" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
+                            <Users className="h-4 w-4" /> Overview
+                        </TabsTrigger>
+                        <TabsTrigger value="trust-circles" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
+                            <Users className="h-4 w-4" /> Trust Circles
+                        </TabsTrigger>
+                        <TabsTrigger value="women-members" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
+                            <UserCheck className="h-4 w-4" /> Women Members
+                        </TabsTrigger>
+                        <TabsTrigger value="documents" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
+                            <FileText className="h-4 w-4" /> Documents
+                        </TabsTrigger>
                     </TabsList>
 
+                    {/* Overview */}
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Business Information */}
-                            <Card>
+                            {/* Personal & Contact Info */}
+                            <Card className="border shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Users className="h-5 w-5 text-primary" />
-                                        Business Information
+                                        <UserCheck className="h-5 w-5 text-primary" /> Personal Information
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Owner:</span>
-                                            <span className="font-medium">{vendor.ownerName}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Business Type:</span>
-                                            <span className="font-medium">{vendor.businessType}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Location:</span>
-                                            <span className="font-medium">{vendor.location}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Submitted:</span>
-                                            <span className="font-medium">{new Date(vendor.submittedAt!).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
+                                <CardContent className="space-y-2">
+                                    <p><strong>Full Name:</strong> {`${vendor.first_name} ${vendor.surname ?? ""} ${vendor.surname}`}</p>
+                                    <p><strong>Phone:</strong> {vendor.phone}</p>
+                                    <p><strong>Email:</strong> {vendor.email || "N/A"}</p>
+                                </CardContent>
+                            </Card>
+                            {/* Business & location Info */}
+                            <Card className="border shadow-sm">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-primary" /> Business & Location Information
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <p><strong>Business Name:</strong> {vendor.business_name}</p>
+                                    <p><strong>Business Type:</strong> {vendor.business_type}</p>
+                                    <p><strong>Business Description:</strong> {vendor.business_description}</p>
+                                    <p><strong>Items Sold:</strong>
+                                        {vendor.items_sold?.length
+                                            ? vendor.items_sold.map((item: string, i: number) => (
+                                                <Badge key={i} variant="outline" className="ml-2">{item}</Badge>
+                                            ))
+                                            : "N/A"}
+                                    </p>
+                                    <p><strong>Address:</strong> {vendor.address}</p>
+                                    <p><strong>Community:</strong> {vendor.community || "N/A"}</p>
+                                    <p><strong>Region:</strong> {vendor.geo_region || "N/A"}</p>
+                                    <p><strong>State:</strong> {vendor.state || "N/A"}</p>
+                                    <p><strong>LGA:</strong> {vendor.lga || "N/A"}</p>
+                                    <p><strong>Country:</strong> {vendor.country || "N/A"}</p>
                                 </CardContent>
                             </Card>
 
                             {/* Guarantors */}
-                            <Card>
+                            <Card className="border shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Shield className="h-5 w-5 text-primary" />
-                                        Guarantors ({vendor.guarantors?.length})
+                                        <Shield className="h-5 w-5 text-primary" /> Guarantors ({vendor.guarantors.length})
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-3">
-                                        {vendor.guarantors?.map((guarantor, index) => (
-                                            <div key={index} className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                                                <div>
-                                                    <p className="font-medium">{guarantor.name}</p>
-                                                    <p className="text-sm text-muted-foreground">{guarantor.relationship}</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm">{guarantor.phone}</p>
-                                                    <Badge variant="outline" className="text-xs bg-success text-success-foreground">
-                                                        Verified
-                                                    </Badge>
-                                                </div>
+                                <CardContent className="space-y-3">
+                                    {vendor.guarantors.map((g, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                                            <div>
+                                                <p className="font-medium">{g.name}</p>
+                                                <p className="text-sm text-muted-foreground">{g.relationship}</p>
                                             </div>
-                                        ))}
-                                    </div>
+                                            <div className="text-right">
+                                                <p className="text-sm">{g.phone}</p>
+                                                <Badge variant="outline" className="text-xs bg-green-100 text-green-800">Verified</Badge>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </CardContent>
                             </Card>
                         </div>
                     </TabsContent>
 
+                    {/* Trust Circles */}
                     <TabsContent value="trust-circles">
-                        <DataTable
-                            columns={trustCircleColumns}
-                            data={vendor.trustCircles}
-                            searchColumn="name"
-                            searchPlaceholder="Search circles..."
-                        />
+                        <DataTable columns={trustCircleColumns} data={vendor.trustCircles} searchColumn="name" searchPlaceholder="Search circles..." />
                     </TabsContent>
 
+                    {/* Women Members */}
                     <TabsContent value="women-members">
-                        <DataTable
-                            columns={womenColumns}
-                            data={vendor.womenMembers}
-                            searchColumn="name"
-                            searchPlaceholder="Search women..."
-                        />
+                        <DataTable columns={womenColumns} data={vendor.womenMembers} searchColumn="name" searchPlaceholder="Search women..." />
                     </TabsContent>
 
+                    {/* Documents */}
                     <TabsContent value="documents">
                         <DataTable
                             columns={documentColumns}
@@ -435,7 +234,7 @@ export default function VendorDetailPage() {
                                 { id: 1, name: "BVN Document", type: "Bank Verification Number", status: "verified" },
                                 { id: 2, name: "NIN Document", type: "National Identity Number", status: "verified" },
                                 { id: 3, name: "Business License", type: "CAC Registration", status: "verified" },
-                                { id: 4, name: "Guarantor Forms", type: "Completed Forms", status: "complete" }
+                                { id: 4, name: "Guarantor Forms", type: "Completed Forms", status: "complete" },
                             ]}
                             searchColumn="name"
                             searchPlaceholder="Search documents..."

@@ -8,69 +8,40 @@ from modules.vendor.models import Vendor
 from modules.vendor.serializers import FetchVendorFilterSerializer, VendorSerializer
 
 
-class BaseVendorFilter(APIView):
-    @staticmethod
-    def process_filters(validated_data):
-        """Helper function to process filters and date ranges."""
-        date = validated_data.pop("date", None)
-        start_date = validated_data.pop("start_date", None)
-        end_date = validated_data.pop("end_date", None)
-
+class FetchVendorsFilter(APIView):
+    @extend_schema(
+        tags=["Vendors"],
+        summary="Fetch Vendors with Filters",
+        request=FetchVendorFilterSerializer,
+    )
+    def post(self, request):
+        serializer = FetchVendorFilterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         and_condition = Q()
 
+        filters = serializer.validated_data.get("filters", {})
+        if not filters:
+            filtered = Vendor.fetch_vendors(count=50)
+            return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
+
+        date = filters.pop("date", None)
+        start_date = filters.pop("start_date", None)
+        end_date = filters.pop("end_date", None)
         # Apply date filters
         if date:
-            validated_data["created_at__startswith"] = date
+            filters["created_at__startswith"] = date
         if start_date and end_date:
-            validated_data["created_at__range"] = [start_date, end_date]  # Matches range
+            filters["created_at__range"] = [start_date, end_date]
 
         # Apply remaining filters
-
-        for key, value in validated_data.items():
+        for key, value in filters.items():
             if value is not None:
                 if key in ["first_name", "last_name", "email"]:
                     key = f"{key}__icontains"
                 and_condition.add(Q(**{key: value}), Q.AND)
 
-        return and_condition
-
-    def handle_vendor_fetch(self, request, fetch_function):
-        """Common logic for fetching customers."""
-        # filters = request.data.get("filters", {})
-        serializer = FetchVendorFilterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        validated_data = serializer.validated_data
-        count = validated_data.pop("count", None)
-
-        and_condition = self.process_filters(validated_data)
-
-        if count:
-            customers = fetch_function(count=count)
-            return Response({"status": True, "data": customers}, status=status.HTTP_200_OK)
-
-        customers = fetch_function(filters=and_condition)
-        return Response({"status": True, "data": customers}, status=status.HTTP_200_OK)
-
-
-class FetchOnboardedVendorsFilter(BaseVendorFilter):
-    @extend_schema(
-        tags=["Vendors"],
-        summary="Fetch Onboarded Vendors with Filters",
-        request=FetchVendorFilterSerializer,
-    )
-    def post(self, request):
-        return self.handle_vendor_fetch(request, Vendor.fetch_onboarded_vendors)
-
-
-class FetchPendingVendorsFilter(BaseVendorFilter):
-    @extend_schema(
-        tags=["Vendors"],
-        summary="Fetch Registered Vendors with Filters",
-        request=FetchVendorFilterSerializer,
-    )
-    def post(self, request):
-        return self.handle_vendor_fetch(request, Vendor.fetch_pending_vendors)  # or define fetch_registered_vendors
+        filtered = Vendor.fetch_vendors(filters=and_condition)
+        return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
 
 
 class GetVendorDetail(APIView):
