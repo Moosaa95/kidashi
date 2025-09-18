@@ -21,6 +21,7 @@ from modules.trust_circle.serializers import (
     VoteStatusRequestSerializer,
     PendingVotesRequestSerializer,
     ResendOtpRequestSerializer,
+    ExpiredVotesRequestSerializer,
 )
 from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
@@ -68,9 +69,9 @@ class CreateTrustCircle(APIView):
         serializer = CreateTrustCircleRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        vendor_cba_customer_id = serializer.validated_data["cba_customer_id"]
+        vendor_id = serializer.validated_data["vendor_id"]
 
-        vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
+        vendor = Vendor.get_vendor(id=vendor_id)
 
         if not vendor:
             return Response({"status": False, "message": "Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -220,10 +221,10 @@ class FetchTrustCircles(APIView):
         serializer = FetchTrustCirclesRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        vendor_cba_customer_id = serializer.validated_data["cba_customer_id"]
+        vendor_id = serializer.validated_data["vendor_id"]
         circle_status_filter = serializer.validated_data.get("status_filter", TrustCircleStatus.ACTIVE)
 
-        vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
+        vendor = Vendor.get_vendor(id=vendor_id)
         if not vendor:
             return Response({"status": False, "message": "Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -779,6 +780,89 @@ class GetPendingInitiatedVotes(APIView):
                 "data": {
                     "pending_initiated_votes": pending_votes_data,
                     "total_count": len(pending_votes_data),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class GetExpiredInitiatedVotes(APIView):
+    @extend_schema(
+        tags=["Trust Circle"],
+        description="Get all expired votes for an initiating vendor's trust circles",
+        request=ExpiredVotesRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="ExpiredVotesResponse",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                    data=inline_serializer(
+                        name="ExpiredVotesData",
+                        fields={
+                            "expired_initiated_votes": serializers.ListField(
+                                child=inline_serializer(
+                                    name="ExpiredVoteItem",
+                                    fields={
+                                        "vote_id": serializers.UUIDField(),
+                                        "trust_circle_name": serializers.CharField(),
+                                        "candidate_name": serializers.CharField(),
+                                        "votes_received": serializers.IntegerField(),
+                                        "voting_deadline": serializers.DateTimeField(),
+                                        "is_expired": serializers.BooleanField(),
+                                        "created_at": serializers.DateTimeField(),
+                                    },
+                                )
+                            ),
+                            "total_count": serializers.IntegerField(),
+                        },
+                    ),
+                ),
+            ),
+        },
+    )
+    def post(self, request):
+        initiating_vendor_id = request.data.get("initiating_vendor_id")
+        trust_circle_id = request.data.get("trust_circle_id")
+
+        if not initiating_vendor_id:
+            return Response({"status": False, "message": "initiating_vendor_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get vendor
+        vendor = Vendor.get_vendor(id=initiating_vendor_id)
+        if not vendor:
+            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Build query
+        queryset = CircleMembershipVote.objects.filter(initiating_vendor=vendor, status=VoteStatus.EXPIRED).select_related("trust_circle", "candidate_member")
+
+        if trust_circle_id:
+            queryset = queryset.filter(trust_circle_id=trust_circle_id)
+
+        votes = queryset.order_by("created_at")
+
+        expired_votes_data = []
+
+        for vote in votes:
+            expired_votes_data.append(
+                {
+                    "vote_id": vote.id,
+                    "trust_circle_name": vote.trust_circle.circle_name,
+                    "candidate_name": vote.candidate_member.first_name + " " + vote.candidate_member.surname,
+                    "votes_received": vote.votes_received,
+                    "voting_deadline": vote.voting_deadline,
+                    "is_expired": vote.is_expired,
+                    "created_at": vote.created_at,
+                }
+            )
+
+        return Response(
+            {
+                "status": True,
+                "message": "Expired Initiated votes retrieved successfully",
+                "data": {
+                    "expired_initiated_votes": expired_votes_data,
+                    "total_count": len(expired_votes_data),
                 },
             },
             status=status.HTTP_200_OK,

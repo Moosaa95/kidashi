@@ -3,32 +3,32 @@ from modules.trust_circle.enums import TrustCircleStatus, NewMembershipVoteOptio
 
 
 class CreateTrustCircleRequestSerializer(serializers.Serializer):
-    cba_customer_id = serializers.UUIDField(max_length=50, help_text="CBA Customer ID of the vendor creating the trust circle")
+    vendor_id = serializers.UUIDField(help_text="ID of the vendor creating the trust circle")
     circle_name = serializers.CharField(max_length=255, help_text="Name of the trust circle")
     description = serializers.CharField(max_length=1000, required=False, allow_blank=True, help_text="Optional description of the trust circle")
 
 
 class GetTrustCircleRequestSerializer(serializers.Serializer):
-    trust_circle_id = serializers.UUIDField(required=False, help_text="UUID of the trust circle to retrieve")
-    cba_customer_id = serializers.UUIDField(max_length=50, required=False, help_text="CBA Customer ID of the vendor (alternative lookup)")
+    id = serializers.UUIDField(required=False, help_text="UUID of the trust circle to retrieve")
+    vendor_id = serializers.UUIDField(required=False, help_text="ID of the vendor that created the trust circle (alternative lookup)")
     circle_name = serializers.CharField(max_length=255, required=False, help_text="Name of the trust circle (alternative lookup)")
 
     def validate(self, data):
         """
         Ensure at least one lookup method is provided
         """
-        if not data.get("trust_circle_id") and not (data.get("cba_customer_id") and data.get("circle_name")):
-            raise serializers.ValidationError("Either 'trust_circle_id' or both 'cba_customer_id' and 'circle_name' must be provided")
+        if not data.get("id") and not (data.get("vendor_id") and data.get("circle_name")):
+            raise serializers.ValidationError("Either 'id' or both 'vendor_id' and 'circle_name' must be provided")
         return data
 
 
 class FetchTrustCirclesRequestSerializer(serializers.Serializer):
-    cba_customer_id = serializers.CharField(max_length=50, help_text="CBA Customer ID of the vendor whose trust circles to fetch")
+    vendor_id = serializers.UUIDField(help_text="ID of the vendor whose trust circles to fetch")
     status_filter = serializers.ChoiceField(choices=TrustCircleStatus.choices, required=False, help_text="Optional filter by trust circle status")
 
 
 class ProposeWomanRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.CharField(max_length=50, help_text="ID of the vendor proposing the addition")
+    initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor proposing the addition")
     trust_circle_id = serializers.UUIDField(help_text="UUID of the trust circle")
     woman_id = serializers.UUIDField(help_text="UUID of the woman to be added to the trust circle")
     selected_voters = serializers.ListField(
@@ -53,7 +53,7 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
 
 
 class UpdateVoteRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.UUIDField(max_length=50, help_text="ID of the vendor submitting the vote")
+    initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor submitting the vote")
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
     voter_position = serializers.IntegerField(min_value=1, max_value=3, help_text="Position of the voter (1, 2, or 3)")
     otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
@@ -61,7 +61,7 @@ class UpdateVoteRequestSerializer(serializers.Serializer):
         choices=NewMembershipVoteOption.choices,
         help_text="Vote choice: APPROVE or REJECT",
         required=False,
-        allow_empty=True,
+        allow_blank=True,
     )
 
     def validate_otp(self, value):
@@ -76,25 +76,21 @@ class UpdateVoteRequestSerializer(serializers.Serializer):
 
 
 class ExpiredVotesRequestSerializer(serializers.Serializer):
-    """
-    Optional serializer for fetching expired votes
-    """
-
-    cba_customer_id = serializers.CharField(max_length=50, help_text="CBA Customer ID of the vendor")
+    initiating_vendor_id = serializers.CharField(max_length=50, help_text="ID of the vendor initiating the membership vote")
     trust_circle_id = serializers.UUIDField(required=False, help_text="Optional: UUID of specific trust circle")
 
 
 class VoteStatusRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.UUIDField(max_length=50, help_text="ID of the vendor initiating the membership vote")
+    initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor initiating the membership vote")
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote to check")
 
 
 class PendingVotesRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.UUIDField(max_length=50, help_text="ID of the vendor initiating the membership vote")
+    initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor initiating the membership vote")
     trust_circle_id = serializers.UUIDField(help_text="UUID of the trust circle to check")
 
 
 class ResendOtpRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.UUIDField(max_length=50, help_text="ID of the initiating vendor requesting the OTP resend")
+    initiating_vendor_id = serializers.UUIDField(help_text="ID of the initiating vendor requesting the OTP resend")
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
     voter_position = serializers.IntegerField(min_value=1, max_value=3, help_text="Position of the voter (1, 2, or 3)")
