@@ -74,6 +74,9 @@ class TrustCircle(ModelMixin):
         return [
             "id",
             "vendor_id",
+            "vendor__first_name",
+            "vendor__surname",
+            "vendor__cba_customer_id",
             "circle_name",
             "loan_eligibility",
             "status",
@@ -87,6 +90,23 @@ class TrustCircle(ModelMixin):
             "created_at",
             "updated_at",
         ]
+
+    @classmethod
+    def fetch_trust_circles_with_filter(cls, conditions=None, count=None, use_today=False):
+        queryset = cls.objects.all()
+
+        if use_today:
+            queryset = queryset.filter(created_at__date=timezone.now().date())
+
+        if conditions:
+            queryset = queryset.filter(conditions)
+
+        queryset = queryset.order_by("-created_at")
+
+        if count:
+            queryset = queryset[: int(count)]
+
+        return list(queryset.values(*cls.get_fields()))
 
     @classmethod
     def get_trust_circle(cls, **kwargs):

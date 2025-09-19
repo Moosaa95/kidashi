@@ -27,6 +27,11 @@ class FetchTrustCirclesRequestSerializer(serializers.Serializer):
     status_filter = serializers.ChoiceField(choices=TrustCircleStatus.choices, required=False, help_text="Optional filter by trust circle status")
 
 
+class FetchTrustCircleWithFilterRequestSerializer(serializers.Serializer):
+    filters = serializers.DictField(child=serializers.CharField(), required=False)
+    count = serializers.IntegerField(required=False, min_value=1)
+
+
 class ProposeWomanRequestSerializer(serializers.Serializer):
     initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor proposing the addition")
     trust_circle_id = serializers.UUIDField(help_text="UUID of the trust circle")
