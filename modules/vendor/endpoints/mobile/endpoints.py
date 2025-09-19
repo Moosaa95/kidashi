@@ -1,5 +1,4 @@
 from django.db import transaction
-from modules.general.models import OnboardingActivityLogs
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +6,7 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from modules.service.providers import PayrepCba
-from modules.vendor.models import Guarantor, Vendor
+from modules.vendor.models import Guarantor, OnboardingActivityLogs, Vendor
 from modules.vendor.serializers import VendorBusinessOnboardingSerializer
 
 
@@ -77,7 +76,7 @@ class CreateVendorBusinessOnboarding(APIView):
                     status=True,
                     data={"vendor": data, "guarantors": guarantors_data},
                 )
-                return Response(status=status.HTTP_200_OK, data=result)
+                return Response(status=status.HTTP_201_CREATED, data=result)
 
             except Exception:
                 transaction.set_rollback(True)
