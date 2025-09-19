@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.types import OpenApiTypes
 
 from modules.service.providers.PayrepCba import PayrepCba
 from modules.vendor.models import Vendor
@@ -38,6 +39,16 @@ class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
         tags=["Kidashi Woman Onboarding"],
         description="Verify woman's mobile number with Payrep",
         request=WomanMobileVerifySerializer,
+        responses={
+            200: inline_serializer(
+                name="VerifyWomanMobileNumberResponse",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                ),
+            ),
+            400: OpenApiTypes.OBJECT,
+        },
     )
     def post(self, request):
         serializer = WomanMobileVerifySerializer(data=request.data)
