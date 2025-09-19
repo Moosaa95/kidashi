@@ -12,6 +12,7 @@ class GetTrustCircleRequestSerializer(serializers.Serializer):
     id = serializers.UUIDField(required=False, help_text="UUID of the trust circle to retrieve")
     vendor_id = serializers.UUIDField(required=False, help_text="ID of the vendor that created the trust circle (alternative lookup)")
     circle_name = serializers.CharField(max_length=255, required=False, help_text="Name of the trust circle (alternative lookup)")
+    values = serializers.BooleanField(required=False, default=False)
 
     def validate(self, data):
         """

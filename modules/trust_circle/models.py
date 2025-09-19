@@ -121,7 +121,7 @@ class TrustCircle(ModelMixin):
                 if trust_circle.count():
                     trust_circle = trust_circle.first()
             else:
-                trust_circle = cls.objects.select_related("vendor", "women").get(**kwargs)
+                trust_circle = cls.objects.select_related("vendor").prefetch_related("women").get(**kwargs)
             return trust_circle
         except cls.DoesNotExist:
             return None
