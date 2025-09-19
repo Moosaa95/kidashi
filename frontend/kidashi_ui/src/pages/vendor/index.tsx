@@ -4,10 +4,10 @@ import { setFilter } from "@/states/features/dashboard/vendorSlice";
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard";
 import { DataTable } from "@/components/datatable";
 import { vendorColumns } from "@/components/vendors/vendorColumn";
-import { useFetchOnboardedVendorsQuery, useFetchPendingVendorsQuery } from "@/states/api/endpoints/vendors/vendorApiSlice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCardSkeleton } from "@/components/loaders/skeletons/StatSkeleton";
 import { DataTableSkeleton } from "@/components/loaders/skeletons/DataTableSkeleton";
+import { useFetchVendorsQuery } from "@/states/api/endpoints/vendors/vendorApiSlice";
 
 
 export default function VendorManagement() {
@@ -18,14 +18,16 @@ export default function VendorManagement() {
     const dispatch = useAppDispatch()
     // const [searchParams] = useSearchParams()
 
-    const { data: onboardedData, isLoading: onboardedLoading } = useFetchOnboardedVendorsQuery();
-    const { data: pendingData, isLoading: pendingLoading } = useFetchPendingVendorsQuery();
+    const { data: _vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery();
 
-    const vendors = [...(onboardedData?.data || []), ...(pendingData?.data || [])];
-    const isLoading = onboardedLoading || pendingLoading;
+
+    const isLoading = isLoadingVendors;
 
     const filter = useAppSelector((state) => state.vendors.filter);
     const stats = useAppSelector((state) => state.vendors.stats);
+    const vendors = useAppSelector((state) => state.vendors.vendors)
+
+    console.log("FILTER:", filter);
 
     const statsData: StatProps[] = [
         {
@@ -62,11 +64,14 @@ export default function VendorManagement() {
 
     const filtered = vendors.filter((vendor) => {
         const matchesSearch =
-            vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (vendor.first_name + " " + vendor.surname).toLowerCase().includes(searchQuery.toLowerCase()) ||
             vendor.location.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesFilter = filter === "all" || vendor.status === filter
+        const matchesFilter = filter === "all" || vendor.status.toLowerCase() === filter
         return matchesSearch && matchesFilter
     })
+
+    console.log("[v0] Vendors:", vendors);
+    console.log("[v0] Filtered Vendors:", filtered, filter);
 
     // useEffect(() => {
     //     const reviewId = searchParams.get("review")

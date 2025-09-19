@@ -26,7 +26,7 @@ export default function VendorCard({ vendor, onApprove, onReject }: VendorCardPr
                             <Building2 className="h-6 w-6 text-primary" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-foreground">{vendor.name}</h3>
+                            <h3 className="font-semibold text-foreground">{vendor.first_name} {vendor.surname}</h3>
                             <p className="text-sm text-muted-foreground">{vendor.location}</p>
                         </div>
                     </div>
@@ -38,7 +38,7 @@ export default function VendorCard({ vendor, onApprove, onReject }: VendorCardPr
                                 {getStatusIcon(vendor.status)}
                                 <Badge variant={getStatusBadge(vendor.status) as any}>{vendor.status}</Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground">Applied {vendor.applicationDate}</p>
+                            <p className="text-xs text-muted-foreground">Applied {vendor.application_date}</p>
                         </div>
 
                         <Button variant="outline" size="sm" onClick={() => setOpen(true)}>

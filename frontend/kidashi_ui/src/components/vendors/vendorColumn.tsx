@@ -17,25 +17,25 @@ export const vendorColumns: ColumnDef<Vendor>[] = [
     },
     {
         accessorKey: "name",
-        header: "Name",
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        header: "Vendor Name",
+        cell: ({ row }) => <span className="font-medium">{row.original.first_name} {row.original.surname}</span>,
     },
     {
         accessorKey: "phone",
         header: "Phone Number",
     },
     {
-        accessorKey: "totalWomen",
+        accessorKey: "total_women",
         header: "Women",
     },
     {
-        accessorKey: "businessType",
+        accessorKey: "business_type",
         header: "Business Type",
     },
-    {
-        accessorKey: "trustCirclesCount",
-        header: "Trust Circles",
-    },
+    // {
+    //     accessorKey: "trustCirclesCount",
+    //     header: "Trust Circles",
+    // },
     {
         accessorKey: "location",
         header: "Location",
@@ -44,7 +44,7 @@ export const vendorColumns: ColumnDef<Vendor>[] = [
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-            const status = row.original.status
+            const status = row.original.status.toLowerCase()
             return (
                 <span
                     className={`px-2 py-1 rounded text-xs font-medium ${status === "approved"
@@ -71,7 +71,7 @@ export const vendorColumns: ColumnDef<Vendor>[] = [
                         variant="outline"
                         asChild
                     >
-                        <Link to={`/dashboard/vendors/${vendor.id}`}>View</Link>
+                        <Link to={`/vendors/${vendor.id}`}>View</Link>
                     </Button>
                 </div>
             )

@@ -319,3 +319,26 @@ class TaskScheduler(ModelMixin):
             return cls.objects.create(**kwargs)
         except IntegrityError:
             return None
+
+
+class OnboardingActivityLogs(ModelMixin):
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities")
+    action = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.BooleanField(default=False)
+    data = models.JSONField(default=dict)
+
+    @classmethod
+    def create_log(cls, **kwargs):
+        return cls.objects.create(**kwargs)
+
+    @classmethod
+    def get_log(cls, **filters):
+        try:
+            return cls.objects.get(**filters)
+        except cls.DoesNotExist:
+            return False
+
+    @classmethod
+    def update_log(cls, log_id, **kwargs):
+        return cls.objects.filter(id=log_id).update(**kwargs)

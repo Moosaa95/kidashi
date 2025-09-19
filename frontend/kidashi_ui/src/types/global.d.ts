@@ -39,22 +39,27 @@ export interface Alert {
     relatedId?: string
 }
 
-export type VendorStatus = "pending" | "approved" | "rejected" | "suspended"
+export type VendorStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED"
 
 export interface Vendor {
     id: string
-    name: string
+    first_name: string
+    surname: string
+    other_names?: string
+    community?: string
     email: string
     phone: string
     location: string
     status: VendorStatus
-    applicationDate: string
-    businessType: string
-    guarantorName: string
-    guarantorPhone: string
-    trustCirclesCount: number
-    totalWomen: number
-    repaymentRate: number
+    application_date: string
+    business_type: string
+    business_description: string
+    business_address: string
+    guarantor_name: string
+    guarantor_phone: string
+    trust_circles_count: number
+    total_women: number
+    repayment_rate: number
     documents: string[]
 }
 

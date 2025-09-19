@@ -1,4 +1,39 @@
 from django.urls import path
-from modules.vendor.endpoints.mobile.endpoints import CreateVendorBusinessOnboarding
 
-urlpatterns = (path("onboarding/business", CreateVendorBusinessOnboarding.as_view()),)
+from .endpoints import (
+    CreateWomanOnboarding,
+    RegisterWomanEmailAddress,
+    RegisterWomanMobileNumber,
+    WomanBvnLookup,
+    WomanFacialCapture,
+    WomanIdentificationCheck,
+    WomanLocationSetup,
+    WomanManualCustomerDetails,
+    WomanNextOfKin,
+    WomanVerificationCheck,
+    UpdateWomanNationality,
+    WomanNinLookup,
+    WomanPep,
+    WomanSourceOfIncome,
+    VerifyWomanEmailAddress,
+    VerifyWomanMobileNumber,
+)
+
+urlpatterns = (
+    path("verify_mobile", VerifyWomanMobileNumber.as_view()),
+    path("register_mobile", RegisterWomanMobileNumber.as_view()),
+    path("verify_email", VerifyWomanEmailAddress.as_view()),
+    path("register_email", RegisterWomanEmailAddress.as_view()),
+    path("nationality", UpdateWomanNationality.as_view()),
+    path("nin_lookup", WomanNinLookup.as_view()),
+    path("bvn_lookup", WomanBvnLookup.as_view()),
+    path("verification_check", WomanVerificationCheck.as_view()),
+    path("location_setup", WomanLocationSetup.as_view()),
+    path("next_of_kin", WomanNextOfKin.as_view()),
+    path("identification_check", WomanIdentificationCheck.as_view()),
+    path("pep", WomanPep.as_view()),
+    path("income", WomanSourceOfIncome.as_view()),
+    path("manual_customer_details", WomanManualCustomerDetails.as_view()),
+    path("facial_capture", WomanFacialCapture.as_view()),
+    path("onboarding/create", CreateWomanOnboarding.as_view()),
+)

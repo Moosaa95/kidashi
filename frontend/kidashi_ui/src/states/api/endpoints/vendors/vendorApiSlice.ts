@@ -21,20 +21,20 @@ const vendorApiSlice = apiSlice.injectEndpoints({
                 body: { id: vendor_id }
             }),
         }),
-        fetchOnboardedVendors: builder.query<VendorResponse, Record<string, unknown> | void>({
+        fetchVendors: builder.query<VendorResponse, Record<string, unknown> | void>({
             query: (filters = {}) => ({
-                url: 'vendor/staff/fetch_onboarded_vendors',
+                url: 'vendor/staff/fetch_vendors',
                 method: 'POST',
-                body: { ...filters }
+                body: { filters }
             }),
         }),
-        fetchPendingVendors: builder.query<VendorResponse, Record<string, unknown> | void>({
-            query: (filters = {}) => ({
-                url: 'vendor/staff/fetch_pending_vendors',
-                method: 'POST',
-                body: { ...filters }
-            }),
-        }),
+        // fetchPendingVendors: builder.query<VendorResponse, Record<string, unknown> | void>({
+        //     query: (filters = {}) => ({
+        //         url: 'vendor/staff/fetch_pending_vendors',
+        //         method: 'POST',
+        //         body: { ...filters }
+        //     }),
+        // }),
         updateVendorApplicationStatus: builder.mutation<{ status: boolean; message: string }, { vendor_id: string }>({
             query: ({ vendor_id }) => ({
                 url: 'vendor/staff/update_vendor_application_status',
@@ -46,7 +46,6 @@ const vendorApiSlice = apiSlice.injectEndpoints({
 });
 export const {
     useGetVendorDetailMutation,
-    useFetchOnboardedVendorsQuery,
-    useFetchPendingVendorsQuery,
+    useFetchVendorsQuery,
     useUpdateVendorApplicationStatusMutation,
 } = vendorApiSlice;

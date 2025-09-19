@@ -1,12 +1,12 @@
+from django.utils import timezone
 from django.db import models, transaction
-from django.db.models import Q
 from django.db.utils import IntegrityError
 from typing import TYPE_CHECKING
 from common.functions import json_list_default
 from common.mixins import ModelMixin
 from modules.general.models import Country, GeoRegion, LocalGovernment, State
 from modules.trust_circle.enums import TrustCircleStatus
-from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus, VendorStage, VendorStatus
+from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus, VendorStatus
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -41,6 +41,28 @@ class Vendor(ModelMixin):
     def __str__(self):
         return f"{self.first_name} {self.other_name} {self.surname} ({self.cba_customer_id})"
 
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "first_name",
+            "surname",
+            "other_name",
+            "phone",
+            "email",
+            "business_type",
+            "business_description",
+            "address",
+            "community",
+            "items_sold",
+            "status",
+            "cba_customer_id",
+            "geo_region__name",
+            "state__name",
+            "lga__name",
+            "country__name",
+        ]
+
     @property
     def active_trust_circles_count(self):
         return self.trust_circles.filter(status=TrustCircleStatus.ACTIVE).count()
@@ -51,12 +73,6 @@ class Vendor(ModelMixin):
 
     @classmethod
     def create_vendor(cls, **kwargs):
-
-        cba_customer_id = kwargs.get("cba_customer_id", None)
-
-        if not cba_customer_id:
-            return dict(status=False, message="cba customer id not found")
-
         try:
             new_vendor = cls.objects.create(**kwargs)
             return dict(status=True, message="Vendor registered successfully", vendor_id=new_vendor.id, cba_customer_id=new_vendor.cba_customer_id)
@@ -64,24 +80,35 @@ class Vendor(ModelMixin):
             return dict(status=False, message=e.args[0])
 
     @classmethod
-    def fetch_vendors(cls, current_status=VendorStatus.ACTIVE, filters=None, count=None):
-        filters = filters or Q()
-        query = cls.objects.filter(filters).order_by("-created_at").values(*cls.get_fields())
+    def fetch_vendors(cls, conditions=None, count=None):
+        queryset = None
+        if conditions:
+            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
 
-        if current_status == VendorStatus.ACTIVE:
-            query = query.filter(status=VendorStatus.ACTIVE)
-        else:
-            query = query.exclude(status=VendorStatus.ACTIVE)
+        if count:
+            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
 
-        return list(query[: int(count)] if count else list(query))
+        return list(queryset)
 
-    @classmethod
-    def fetch_onboarded_vendors(cls, filters=None, count=None):
-        return cls.fetch_vendors(current_status=VendorStatus.ACTIVE, filters=filters, count=count)
+    # @classmethod
+    # def fetch_vendors(cls, current_status=VendorStatus.ACTIVE, filters=None, count=None):
+    #     filters = filters or Q()
+    #     query = cls.objects.filter(filters).order_by("-created_at").values(*cls.get_fields())
 
-    @classmethod
-    def fetch_pending_vendors(cls, filters=None, count=None):
-        return cls.fetch_vendors(current_status=VendorStatus.PENDING, filters=filters, count=count)
+    #     if current_status == VendorStatus.ACTIVE:
+    #         query = query.filter(status=VendorStatus.ACTIVE)
+    #     else:
+    #         query = query.exclude(status=VendorStatus.ACTIVE)
+
+    #     return list(query[: int(count)] if count else list(query))
+
+    # @classmethod
+    # def fetch_onboarded_vendors(cls, filters=None, count=None):
+    #     return cls.fetch_vendors(current_status=VendorStatus.ACTIVE, filters=filters, count=count)
+
+    # @classmethod
+    # def fetch_pending_vendors(cls, filters=None, count=None):
+    #     return cls.fetch_vendors(current_status=VendorStatus.PENDING, filters=filters, count=count)
 
     @classmethod
     def get_vendor(cls, **filters):
@@ -150,25 +177,3 @@ class Guarantor(ModelMixin):
             return cls.objects.get(**filters)
         except cls.DoesNotExist:
             return False
-
-
-class VendorActivityLogs(ModelMixin):
-    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True)
-    step_name = models.CharField(max_length=100, choices=VendorStage.choices, default=VendorStage.BUSINESS_CATEGORY)
-    status = models.BooleanField(default=False)
-    data = models.JSONField(default=dict)
-
-    @classmethod
-    def create_log(cls, **kwargs):
-        return cls.objects.create(**kwargs)
-
-    @classmethod
-    def get_log(cls, **filters):
-        try:
-            return cls.objects.get(**filters)
-        except cls.DoesNotExist:
-            return False
-
-    @classmethod
-    def update_log(cls, log_id, **kwargs):
-        return cls.objects.filter(id=log_id).update(**kwargs)

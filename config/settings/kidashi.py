@@ -47,6 +47,7 @@ MODULES = [
     "trust_circle",
     "vendor",
     "woman",
+    "security",
 ]
 
 
