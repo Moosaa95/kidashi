@@ -18,8 +18,8 @@ class BaseCbaClient:
         self.mode = mode or os.getenv("MODE", "DEV")
 
     def send_request(self, url, data=None, method="post", token=None, timeout=120):
-        if not token:
-            return dict(req_status=False, status=401, message="Missing Authorization token")
+        # if not token:
+        #     return dict(req_status=False, status=401, message="Missing Authorization token")
 
         headers = {
             "User-Agent": USER_AGENT,
