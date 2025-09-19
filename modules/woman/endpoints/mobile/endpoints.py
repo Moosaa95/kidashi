@@ -33,7 +33,7 @@ from modules.woman.serializers import (
 )
 
 
-class VerifyWomanMobileNumber(APIView):
+class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Kidashi Woman Onboarding"],
         description="Verify woman's mobile number with Payrep",
@@ -50,20 +50,17 @@ class VerifyWomanMobileNumber(APIView):
         },
     )
     def post(self, request):
-        print("request.data", request.data)
         serializer = WomanMobileVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        print("serializer.validated_data", serializer.validated_data)
+
         payload = dict(
             mobile_number=serializer.validated_data["mobile_number"],
             type=serializer.validated_data.get("type", "INDIVIDUAL"),
         )
-        print("payload", payload)
 
         payrep = PayrepCba()
-        result = payrep.customer_action("verify_mobile", payload=payload)
+        result = payrep.customer_action("verify_mobile", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
-        print("result", result)
         return Response(data=result, status=http_status)
 
 
