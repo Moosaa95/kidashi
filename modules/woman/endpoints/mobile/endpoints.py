@@ -1,6 +1,5 @@
 from django.db.models import Q
 from modules.security.mixins import IsPayrepAuthenticatedMixin
-from modules.trust_circle.serializers import TrustCircleMemberSerializer
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -484,34 +483,3 @@ class FetchWomanDetails(IsPayrepAuthenticatedMixin, APIView):
         woman = Woman.fetch_women(conditions=condition)
 
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
-
-
-class FetchTrustCircleMembers(IsPayrepAuthenticatedMixin, APIView):
-    @extend_schema(
-        tags=["Kidashi Trust Circle"],
-        description="Fetch members of a trust circle",
-        request=inline_serializer(
-            name="FetchTrustCircleMembersRequest",
-            fields=dict(
-                circle_id=serializers.UUIDField(required=True, help_text="Trust Circle ID"),
-            ),
-        ),
-        responses={
-            200: inline_serializer(
-                name="FetchTrustCircleMembersResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    data=WomanSerializer(many=True),
-                ),
-            ),
-        },
-    )
-    def post(self, request):
-        serializer = TrustCircleMemberSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        circle_id = serializer.validated_data.get("circle_id")
-        condition = Q(trust_circle_id=circle_id)
-        members = Woman.fetch_women(conditions=condition)
-
-        return Response(data=dict(status=True, message="Trust Circle members fetched successfully", data=members), status=status.HTTP_200_OK)
