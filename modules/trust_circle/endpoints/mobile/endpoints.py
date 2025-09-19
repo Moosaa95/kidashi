@@ -1,7 +1,5 @@
 from django.db import transaction
-from django.db.models import Q
 from django.db.utils import IntegrityError
-from modules.security.mixins import IsPayrepAuthenticatedMixin
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -10,7 +8,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer
 from modules.trust_circle.enums import TrustCircleActivityType
 from modules.trust_circle.models import TrustCircle, CircleActivity
-from modules.trust_circle.serializers import CreateTrustCircleRequestSerializer, FetchTrustCircleFilterSerializer, TrustCircleSerializer
+from modules.trust_circle.serializers import CreateTrustCircleRequestSerializer
 from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
 
@@ -90,39 +88,3 @@ class CreateTrustCircle(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
-
-
-class FetchTrustCircles(IsPayrepAuthenticatedMixin, APIView):
-    @extend_schema(
-        tags=["Kidashi Trust Circle"],
-        description="Fetch Trust Circles with optional filters",
-        request=FetchTrustCircleFilterSerializer,
-        responses={
-            200: inline_serializer(
-                name="FetchTrustCirclesResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    data=TrustCircleSerializer(many=True),
-                ),
-            ),
-        },
-    )
-    def post(self, request):
-        serializer = FetchTrustCircleFilterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-        and_condition = Q()
-        filters = validated_data.get("filters", {})
-        if not filters:
-            vendor_cba_customer_id = filters.get("vendor_cba_customer_id")
-            and_condition.add(Q(vendor__cba_customer_id=vendor_cba_customer_id), Q.AND)
-            filtered = TrustCircle.fetch_trust_circles(conditions=and_condition, count=10)
-            return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
-
-        for key, value in validated_data.items():
-            and_condition.add(Q(**{key: value}), Q.AND)
-
-        trust_circles = TrustCircle.fetch_trust_circles(conditions=and_condition)
-
-        return Response(data=dict(status=True, message="Trust Circles fetched successfully", data=trust_circles), status=status.HTTP_200_OK)

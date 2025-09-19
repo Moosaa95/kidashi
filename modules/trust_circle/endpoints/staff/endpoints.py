@@ -13,7 +13,7 @@ from modules.trust_circle.serializers import (
 
 class FetchTrustCirclesFilter(APIView):
     @extend_schema(
-        tags=["Trust Circles"],
+        tags=["Trust Circle"],
         summary="Fetch Trust Circles with Filters",
         request=FetchTrustCircleFilterSerializer,
     )
@@ -48,7 +48,7 @@ class FetchTrustCirclesFilter(APIView):
 
 class GetTrustCircleDetail(APIView):
     @extend_schema(
-        tags=["Trust Circles"],
+        tags=["Trust Circle"],
         summary="Get Trust Circle Detail",
         request=TrustCircleSerializer,
     )

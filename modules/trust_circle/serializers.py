@@ -16,13 +16,8 @@ class TrustCircleSerializer(serializers.Serializer):
     date = serializers.CharField(required=False, help_text="Filter by a specific creation date (YYYY-MM-DD)")
     start_date = serializers.CharField(required=False, help_text="Filter by a start date range (YYYY-MM-DD)")
     end_date = serializers.CharField(required=False, help_text="Filter by an end date range (YYYY-MM-DD)")
-    vendor_cba_customer_id = serializers.UUIDField(required=False, help_text="Filter by vendor CBA customer ID")
 
 
 class FetchTrustCircleFilterSerializer(serializers.Serializer):
     filters = TrustCircleSerializer(required=False)
     count = serializers.IntegerField(required=False, help_text="Number of records to fetch")
-
-
-class TrustCircleMemberSerializer(serializers.Serializer):
-    trust_circle_id = serializers.UUIDField(required=True, help_text="ID of the trust circle")

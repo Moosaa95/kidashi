@@ -4,91 +4,92 @@ from modules.service.providers.BaseCbaClient import BaseCbaClient
 
 class PayrepCba(BaseCbaClient):
 
-    def __init__(self, base_url: str = None, mode: str = None):
+    def __init__(self, base_url=None, mode=None):
         super().__init__(
-            base_url=base_url or os.getenv("PAYREP_CBA_BASE_URL", ""),
+            base_url=base_url or os.getenv("PAYREP_CBA_BASE_URL", "http://192.168.0.193:8009/api/v1"),
             fi="payrepcba",
             mode=mode,
         )
 
         self.customer_endpoints = {
             "verify_mobile": {
-                "endpoint": "customer/verify_mobile_number",
+                "endpoint": "customer/mobile/verify_mobile_number",
                 "method": "post",
                 "required_fields": ["mobile_number", "type"],
             },
             "register_mobile": {
-                "endpoint": "customer/register_mobile_number",
+                "endpoint": "customer/mobile/register_mobile_number",
                 "method": "post",
                 "required_fields": ["mobile_number", "otp", "type"],
             },
+            # add the /mobile to the rest of the endpoints
             "verify_email": {
-                "endpoint": "customer/verify_email_address",
+                "endpoint": "customer/mobile/verify_email_address",
                 "method": "post",
                 "required_fields": ["email"],
             },
             "register_email": {
-                "endpoint": "customer/register_email_address",
+                "endpoint": "customer/mobile/register_email_address",
                 "method": "post",
                 "required_fields": ["email", "mobile_number", "otp"],
             },
             "nationality": {
-                "endpoint": "customer/nationality",
+                "endpoint": "customer/mobile/nationality",
                 "method": "put",
                 "required_fields": ["nationality"],
             },
             "nin_lookup": {
-                "endpoint": "customer/nin_lookup",
+                "endpoint": "customer/mobile/nin_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "nin"],
             },
             "bvn_lookup": {
-                "endpoint": "customer/bvn_lookup",
+                "endpoint": "customer/mobile/bvn_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "bvn"],
             },
             "verification_check": {
-                "endpoint": "compliance/verification_check",
+                "endpoint": "compliance/mobile/verification_check",
                 "method": "post",
                 "required_fields": ["verification"],
             },
             "personal_and_location_setup": {
-                "endpoint": "customer/location/{cba_customer_id}",
+                "endpoint": "customer/mobile/location/{cba_customer_id}",
                 "method": "put",
                 "required_fields": ["residential_address", "state", "lga", "country", "community"],
             },
             "next_of_kin": {
-                "endpoint": "customer/next_of_kin",
+                "endpoint": "customer/mobile/next_of_kin",
                 "method": "post",
                 "required_fields": ["first_name", "surname", "phone", "relationship", "nin", "address", "state", "lga"],
             },
             "identification_check": {
-                "endpoint": "compliance/documents/{cba_customer_id}",
+                "endpoint": "compliance/mobile/documents/{cba_customer_id}",
                 "method": "post",
                 "required_fields": ["document_type", "document_class", "file"],
             },
             "pep": {
-                "endpoint": "compliance/pep/{cba_customer_id}",
+                "endpoint": "compliance/mobile/pep/{cba_customer_id}",
                 "method": "post",
                 "required_fields": ["is_pep"],
             },
             "source_of_income": {
-                "endpoint": "customer/income/{cba_customer_id}",
+                "endpoint": "customer/mobile/income/{cba_customer_id}",
                 "method": "post",
                 "required_fields": ["employment_type", "occupation", "annual_income"],
             },
             "manual_customer_details": {
-                "endpoint": "customer/manual_customer_details",
+                "endpoint": "customer/mobile/manual_customer_details",
                 "method": "post",
                 "required_fields": ["first_name", "surname", "phone", "email", "residential_address", "state", "lga", "country", "nin", "bvn", "dob", "nationality", "community"],
             },
             "facial_capture": {
-                "endpoint": "compliance/facial_capture/{cba_customer_id}",
+                "endpoint": "compliance/mobile/facial_capture/{cba_customer_id}",
                 "method": "post",
                 "required_fields": ["file"],
             },
             "attestation": {
-                "endpoint": "compliance/attestation/{cba_customer_id}",
+                "endpoint": "compliance/mobile/attestation/{cba_customer_id}",
                 "method": "post",
                 "required_fields": [],
             },
