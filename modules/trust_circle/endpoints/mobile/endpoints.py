@@ -122,7 +122,7 @@ class CreateTrustCircle(APIView):
 class GetTrustCircle(APIView):
     @extend_schema(
         tags=["Trust Circle"],
-        description="Get details of a specific Trust Circle",
+        description="Get details of a specific Trust Circle. Set 'values=true' to get only basic fields, 'values=false' or omit to get full details including women list.",
         request=GetTrustCircleRequestSerializer,
         responses={
             200: inline_serializer(
@@ -142,6 +142,26 @@ class GetTrustCircle(APIView):
                             "loan_eligibility": serializers.BooleanField(),
                             "created_at": serializers.DateTimeField(),
                             "updated_at": serializers.DateTimeField(),
+                            "women": serializers.ListField(
+                                child=inline_serializer(
+                                    name="WomanData",
+                                    fields={
+                                        "id": serializers.UUIDField(),
+                                        "first_name": serializers.CharField(),
+                                        "other_name": serializers.CharField(allow_blank=True),
+                                        "surname": serializers.CharField(),
+                                        "mobile_number": serializers.CharField(),
+                                        "account_number": serializers.CharField(),
+                                        "loan_amount": serializers.DecimalField(max_digits=10, decimal_places=2),
+                                        "occupation": serializers.CharField(allow_blank=True),
+                                        "employment_type": serializers.CharField(allow_blank=True),
+                                        "image": serializers.CharField(allow_blank=True),
+                                        "status": serializers.CharField(),
+                                    },
+                                ),
+                                required=False,
+                                help_text="Only included when values=false",
+                            ),
                         },
                     ),
                 ),
@@ -160,13 +180,47 @@ class GetTrustCircle(APIView):
         serializer = GetTrustCircleRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         trust_circle_request_detail = serializer.validated_data
-        trust_circle_request_detail.update(values=True)
+
         trust_circle_detail = TrustCircle.get_trust_circle(**trust_circle_request_detail)
         if not trust_circle_detail:
             response_data.update(status=False, message="Trust Circle detail not found")
             return Response(data=response_data, status=status.HTTP_400_BAD_REQUEST)
 
-        response_data.update(data=trust_circle_detail)
+        # Check if values=True was passed (returns dict) or values=False/None (returns model instance)
+        if isinstance(trust_circle_detail, dict):
+            # Dictionary format from values=True
+            response_data.update(data=trust_circle_detail)
+        else:
+            # Model instance format from values=False/None - includes women list
+            trust_circle_data = {
+                "id": trust_circle_detail.id,
+                "circle_name": trust_circle_detail.circle_name,
+                "description": trust_circle_detail.description,
+                "max_members": trust_circle_detail.max_members,
+                "members_count": trust_circle_detail.current_member_count,
+                "status": trust_circle_detail.status,
+                "loan_eligibility": trust_circle_detail.loan_eligibility,
+                "created_at": trust_circle_detail.created_at,
+                "updated_at": trust_circle_detail.updated_at,
+                "women": [
+                    {
+                        "id": woman.id,
+                        "first_name": woman.first_name,
+                        "other_name": woman.other_name,
+                        "surname": woman.surname,
+                        "mobile_number": woman.mobile_number,
+                        "account_number": woman.account_number,
+                        "loan_amount": woman.loan_amount,
+                        "occupation": woman.occupation,
+                        "employment_type": woman.employment_type,
+                        "image": woman.image,
+                        "status": woman.status,
+                    }
+                    for woman in trust_circle_detail.women.all()
+                ],
+            }
+            response_data.update(data=trust_circle_data)
+
         return Response(data=response_data, status=status.HTTP_200_OK)
 
 
