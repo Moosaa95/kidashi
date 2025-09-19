@@ -6,7 +6,7 @@ from common.functions import json_list_default
 from common.mixins import ModelMixin
 from modules.general.models import Country, GeoRegion, LocalGovernment, State
 from modules.trust_circle.enums import TrustCircleStatus
-from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus, VendorStage, VendorStatus
+from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus, VendorStatus
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -73,12 +73,6 @@ class Vendor(ModelMixin):
 
     @classmethod
     def create_vendor(cls, **kwargs):
-
-        cba_customer_id = kwargs.get("cba_customer_id", None)
-
-        if not cba_customer_id:
-            return dict(status=False, message="cba customer id not found")
-
         try:
             new_vendor = cls.objects.create(**kwargs)
             return dict(status=True, message="Vendor registered successfully", vendor_id=new_vendor.id, cba_customer_id=new_vendor.cba_customer_id)
@@ -183,25 +177,3 @@ class Guarantor(ModelMixin):
             return cls.objects.get(**filters)
         except cls.DoesNotExist:
             return False
-
-
-class VendorActivityLogs(ModelMixin):
-    vendor = models.ForeignKey(Vendor, on_delete=models.SET_NULL, null=True)
-    step_name = models.CharField(max_length=100, choices=VendorStage.choices, default=VendorStage.BUSINESS_CATEGORY)
-    status = models.BooleanField(default=False)
-    data = models.JSONField(default=dict)
-
-    @classmethod
-    def create_log(cls, **kwargs):
-        return cls.objects.create(**kwargs)
-
-    @classmethod
-    def get_log(cls, **filters):
-        try:
-            return cls.objects.get(**filters)
-        except cls.DoesNotExist:
-            return False
-
-    @classmethod
-    def update_log(cls, log_id, **kwargs):
-        return cls.objects.filter(id=log_id).update(**kwargs)

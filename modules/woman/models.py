@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-
+from django.db.utils import IntegrityError
 from common.functions import gen_random_key
 from common.mixins import ModelMixin
 from modules.general.enums import CustomerStage
@@ -13,10 +13,10 @@ class Woman(ModelMixin):
     first_name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
     other_name = models.CharField(max_length=255, blank=True, null=True)
-    phone = models.CharField(max_length=20, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Phone number must be valid")])
+    mobile_number = models.CharField(max_length=20, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Phone number must be valid")])
+    account_number = models.CharField(max_length=11, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Account number must be valid")])
     email = models.EmailField(blank=True, null=True)
     dob = models.DateField(null=True, blank=True)
-    mobile_number = models.CharField(max_length=12)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
     annual_income = models.CharField(max_length=100, blank=True, null=True)
@@ -119,6 +119,14 @@ class Woman(ModelMixin):
         super().save(*args, **kwargs)
 
     @classmethod
+    def create_woman(cls, **kwargs):
+        try:
+            woman = cls.objects.create(**kwargs)
+            return dict(status=True, message="Woman created successfully", woman=woman)
+        except IntegrityError as e:
+            return dict(status=False, message=e.args[0])
+
+    @classmethod
     def fetch_women(cls, conditions):
         query = cls.objects.filter(conditions).order_by("-pk").values(*cls.get_fields())
         return query
@@ -136,7 +144,7 @@ class NextOfKin(ModelMixin):
     relationship = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     email = models.EmailField(max_length=255, null=True, blank=True)
-    mobile_phone = models.CharField(max_length=255, null=True, blank=True)
+    mobile_number = models.CharField(max_length=255, null=True, blank=True)
 
     objects = models.Manager()
 

@@ -35,10 +35,7 @@ class FetchVendorsFilter(APIView):
 
         # Apply remaining filters
         for key, value in filters.items():
-            if value is not None:
-                if key in ["first_name", "last_name", "email"]:
-                    key = f"{key}__icontains"
-                and_condition.add(Q(**{key: value}), Q.AND)
+            and_condition.add(Q(**{key: value}), Q.AND)
 
         filtered = Vendor.fetch_vendors(filters=and_condition)
         return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)

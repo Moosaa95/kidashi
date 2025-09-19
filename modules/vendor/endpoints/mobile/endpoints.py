@@ -1,4 +1,5 @@
 from django.db import transaction
+from modules.general.models import OnboardingActivityLogs
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,7 +7,7 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from modules.service.providers import PayrepCba
-from modules.vendor.models import Guarantor, Vendor, VendorActivityLogs
+from modules.vendor.models import Guarantor, Vendor
 from modules.vendor.serializers import VendorBusinessOnboardingSerializer
 
 
@@ -32,18 +33,18 @@ class CreateVendorBusinessOnboarding(APIView):
     def post(self, request):
         serializer = VendorBusinessOnboardingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        log = VendorActivityLogs.create_log(step_name="Vendor Onboarding")
 
         cba_customer_id = serializer.validated_data.get("cba_customer_id")
         guarantors_data = serializer.validated_data["guarantors"]
         token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        log = OnboardingActivityLogs.create_log(vendor_cba_customer_id=cba_customer_id, action="Vendor Onboarding", description="Onboarding vendor to Kidashi")
 
         if not token:
             return Response({"status": False, "message": "Authorization token required"}, status=status.HTTP_401_UNAUTHORIZED)
         payrep = PayrepCba()
         cba_customer_data = payrep.get_cba_customer_details(cba_customer_id, token)
         if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
-            VendorActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
+            OnboardingActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
             return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
 
         customer = cba_customer_data.get("data", {})
@@ -71,7 +72,7 @@ class CreateVendorBusinessOnboarding(APIView):
                     transaction.set_rollback(True)
                     return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
 
-                VendorActivityLogs.update_log(
+                OnboardingActivityLogs.update_log(
                     log_id=log.id,
                     status=True,
                     data={"vendor": data, "guarantors": guarantors_data},

@@ -43,6 +43,40 @@ class TrustCircle(ModelMixin):
     def __str__(self):
         return f"{self.circle_name} - {self.vendor}"
 
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "circle_name",
+            "loan_eligibility",
+            "status",
+            "max_members",
+            "activation_date",
+            "description",
+            "vendor_id",
+            "vendor__first_name",
+            "vendor__surname",
+            "created_at",
+        ]
+
+    @classmethod
+    def fetch_trust_circles(cls, conditions=None, count=None):
+        queryset = None
+        if conditions:
+            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+
+        if count:
+            queryset = cls.objects.filter(created_at__date=models.functions.Now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
+
+        return list(queryset) if queryset else []
+
+    @classmethod
+    def get_trust_circle(cls, **filters):
+        try:
+            return cls.objects.get(**filters)
+        except cls.DoesNotExist:
+            return False
+
     @property
     def current_member_count(self):
         return self.women.filter(status=WomanStatus.ACTIVE).count()
