@@ -90,26 +90,6 @@ class Vendor(ModelMixin):
 
         return list(queryset)
 
-    # @classmethod
-    # def fetch_vendors(cls, current_status=VendorStatus.ACTIVE, filters=None, count=None):
-    #     filters = filters or Q()
-    #     query = cls.objects.filter(filters).order_by("-created_at").values(*cls.get_fields())
-
-    #     if current_status == VendorStatus.ACTIVE:
-    #         query = query.filter(status=VendorStatus.ACTIVE)
-    #     else:
-    #         query = query.exclude(status=VendorStatus.ACTIVE)
-
-    #     return list(query[: int(count)] if count else list(query))
-
-    # @classmethod
-    # def fetch_onboarded_vendors(cls, filters=None, count=None):
-    #     return cls.fetch_vendors(current_status=VendorStatus.ACTIVE, filters=filters, count=count)
-
-    # @classmethod
-    # def fetch_pending_vendors(cls, filters=None, count=None):
-    #     return cls.fetch_vendors(current_status=VendorStatus.PENDING, filters=filters, count=count)
-
     @classmethod
     def get_vendor(cls, **filters):
         try:
@@ -177,3 +157,26 @@ class Guarantor(ModelMixin):
             return cls.objects.get(**filters)
         except cls.DoesNotExist:
             return False
+
+
+class OnboardingActivityLogs(ModelMixin):
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities")
+    action = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.BooleanField(default=False)
+    data = models.JSONField(default=dict)
+
+    @classmethod
+    def create_log(cls, **kwargs):
+        return cls.objects.create(**kwargs)
+
+    @classmethod
+    def get_log(cls, **filters):
+        try:
+            return cls.objects.get(**filters)
+        except cls.DoesNotExist:
+            return False
+
+    @classmethod
+    def update_log(cls, log_id, **kwargs):
+        return cls.objects.filter(id=log_id).update(**kwargs)
