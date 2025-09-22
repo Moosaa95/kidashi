@@ -15,6 +15,8 @@ class Woman(ModelMixin):
     other_name = models.CharField(max_length=255, blank=True, null=True)
     mobile_number = models.CharField(max_length=20, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Phone number must be valid")])
     account_number = models.CharField(max_length=11, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Account number must be valid")])
+    maximum_balance = models.DecimalField(default=0, max_digits=19, decimal_places=2)
+    tier = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     dob = models.DateField(null=True, blank=True)
     nationality = models.CharField(max_length=100, blank=True, null=True)
@@ -44,7 +46,13 @@ class Woman(ModelMixin):
         validators=[RegexValidator(regex=r"^\d{11}$", message="BVN must be exactly 11 digits")],
         db_index=True,
     )
-
+    next_of_kin = models.OneToOneField(
+        "NextOfKin",
+        related_name="next_of_kin",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+    )
     cba_customer_id = models.UUIDField(blank=True, null=True, help_text="Customer ID from the bank system", unique=True, db_index=True)
     loan_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     repayment_status = models.CharField(max_length=20, choices=RepaymentStatus.choices, default=RepaymentStatus.NOT_APPLICABLE, db_index=True)
@@ -153,3 +161,18 @@ class NextOfKin(ModelMixin):
 
     def __str__(self):
         return self.name
+
+
+# class KidashiTransaction(ModelMixin):
+#     """
+#     Mirrors transactions from PayRep into Kidashi DB
+#     """
+
+#     payrep_transaction_id = models.UUIDField(unique=True, db_index=True)
+#     loan_link = models.ForeignKey("loan.LoanLink", on_delete=models.CASCADE, related_name="transactions")
+#     woman = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="transactions")
+#     transaction_type = models.CharField(max_length=20, choices=[("DISBURSEMENT", "Disbursement"), ("REPAYMENT", "Repayment")])
+#     amount = models.DecimalField(max_digits=12, decimal_places=2)
+#     transaction_date = models.DateTimeField()
+#     metadata = models.JSONField(null=True, blank=True)
+#     status = models.CharField(max_length=20, choices=[("SUCCESS", "Success"), ("FAILED", "Failed"), ("PENDING", "Pending")], default="PENDING")

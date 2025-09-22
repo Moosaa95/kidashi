@@ -136,3 +136,7 @@ class WomanSerializer(serializers.Serializer):
 class FetchWomenFilterSerializer(serializers.Serializer):
     filters = WomanSerializer(required=False)
     count = serializers.IntegerField(required=False, help_text="Number of records to fetch")
+
+
+class GetWomanBasicDetailsRequestSerializer(serializers.Serializer):
+    cba_customer_id = serializers.UUIDField(required=True, help_text="CBA customer ID of the woman")
