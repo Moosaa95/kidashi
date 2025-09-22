@@ -353,3 +353,7 @@ class CircleActivity(ModelMixin):
 
     def __str__(self):
         return f"{self.activity_type} - {self.trust_circle.circle_name}"
+
+    @classmethod
+    def create_activity(cls, **kwargs):
+        return cls.objects.create(**kwargs)
