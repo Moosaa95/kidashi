@@ -6,7 +6,7 @@ from common.mixins import ModelMixin
 from modules.general.enums import CustomerStage
 from modules.general.models import GeoRegion, State, LocalGovernment, Country
 from modules.woman.enums import RepaymentStatus, WomanStatus
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import RegexValidator
 
 
 class Woman(ModelMixin):
@@ -54,7 +54,6 @@ class Woman(ModelMixin):
         null=True,
     )
     cba_customer_id = models.UUIDField(blank=True, null=True, help_text="Customer ID from the bank system", unique=True, db_index=True)
-    loan_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     repayment_status = models.CharField(max_length=20, choices=RepaymentStatus.choices, default=RepaymentStatus.NOT_APPLICABLE, db_index=True)
     status = models.CharField(max_length=20, choices=WomanStatus.choices, default=WomanStatus.ACTIVE)
 
