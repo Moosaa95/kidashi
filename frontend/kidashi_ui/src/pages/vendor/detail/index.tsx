@@ -1,10 +1,10 @@
 import { useState } from "react"
 import {
-    Users, Phone, Mail, MapPin, Shield, Calendar,
-    UserCheck, UserX, TrendingUp, FileText, ArrowRight, CheckCircle, XCircle
+    Users, Shield,
+    UserCheck, FileText, CheckCircle, XCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
