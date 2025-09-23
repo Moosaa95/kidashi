@@ -4,7 +4,7 @@ services:
   web:
     restart: unless-stopped
     build:
-      context: docker
+      context: .
       dockerfile: docker/kidashi/Dockerfile.prod
     entrypoint: /app/docker/kidashi/server-entrypoint.prod.sh
     env_file:
@@ -31,7 +31,7 @@ services:
   always_on_task:
     restart: unless-stopped
     build:
-      context: docker
+      context: .
       dockerfile: docker/kidashi/Dockerfile.prod
     entrypoint: /app/docker/kidashi/worker-entrypoint.sh
     volumes:
@@ -43,7 +43,7 @@ services:
   schedule_task:
     restart: unless-stopped
     build:
-      context: docker
+      context: .
       dockerfile: docker/kidashi/Dockerfile.prod
     entrypoint: /app/docker/kidashi/scheduler-entrypoint.sh
     volumes:
