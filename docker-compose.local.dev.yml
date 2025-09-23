@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: docker
+      dockerfile: docker/kidashi/Dockerfile
+    entrypoint: /app/docker/kidashi/server-entrypoint.dev.sh
+    env_file:
+      - ./envs/.env
+    ports:
+      - "9010:9010"
+    volumes:
+      - code:/app
+    extra_hosts:
+      - "host.docker.internal:172.17.0.1"
+  worker:
+    restart: unless-stopped
+    build:
+      context: docker
+      dockerfile: docker/kidashi/Dockerfile
+    entrypoint: /app/docker/kidashi/worker-entrypoint.sh
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    restart: unless-stopped
+    image: redis:7.0.5-alpine
+    expose:
+      - 6379
+
+volumes:
+  code: {}
