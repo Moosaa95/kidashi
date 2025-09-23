@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    image: "${WEB_IMAGE}"
+
+  always_on_task:
+    image: "${TASK_IMAGE}"
+
+  schedule_task:
+    image: "${CRON_IMAGE}"
+
+  redis:
+    restart: unless-stopped
+    image: redis:7.0.5-alpine
+    expose:
+      - 6379
+
+  nginx:
+    image: "${NGINX_IMAGE}"
+    depends_on:
+      - web
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    env_file:
+      - ./envs/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - acme:/etc/acme.sh
+    depends_on:
+      - nginx
+
+volumes:
+  static_volume: {}
+  media_volume: {}
+  certs:
+  html:
+  vhost:
+  acme:

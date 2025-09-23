@@ -1,0 +1,85 @@
+image:
+  name: docker/compose:1.29.1
+  entrypoint: [""]
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
+
+build:
+  stage: build
+  before_script:
+    - export IMAGE=$DH_REGISTRY
+    - export WEB_IMAGE=$IMAGE:web
+    - export NGINX_IMAGE=$IMAGE:nginx
+    - export TASK_IMAGE=$IMAGE:always_on_task
+    - export CRON_IMAGE=$IMAGE:schedule_task
+  script:
+    - apk add --no-cache bash
+    - chmod +x ./setup_env.sh
+    - bash ./setup_env.sh
+    - docker login registry.hub.docker.com -u $DH_REGISTRY_USER -p $DH_REGISTRY_PASSWORD
+    - docker pull $WEB_IMAGE || true
+    - docker pull $NGINX_IMAGE || true
+    - docker pull $TASK_IMAGE || true
+    - docker pull $CRON_IMAGE || true
+    - docker-compose -f docker-compose.ci.yml build
+    - docker push $WEB_IMAGE
+    - docker push $NGINX_IMAGE
+    - docker push $TASK_IMAGE
+    - docker push $CRON_IMAGE
+
+deploy_dev:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$DEV_SERVER_KEY" | base64 -d | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H 'gitlab.com' >> ~/.ssh/known_hosts
+    - chmod +x ./deploy.sh
+    - scp -o StrictHostKeyChecking=no -r ./envs/.env ./docker-compose.prod.yml root@$DEV_SERVER_IP:/app
+    - bash ./deploy.sh
+
+deploy_staging:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+  script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$STAGING_SERVER_KEY" | base64 -d | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H 'gitlab.com' >> ~/.ssh/known_hosts
+    - chmod +x ./deploy.sh
+    - scp -o StrictHostKeyChecking=no -r ./envs/.env ./docker-compose.prod.yml root@$STAGING_SERVER_IP:/app
+    - bash ./deploy.sh
+
+deploy_prod:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$PROD_SERVER_KEY" | base64 -d | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H 'gitlab.com' >> ~/.ssh/known_hosts
+    - chmod +x ./deploy.sh
+    - scp -o StrictHostKeyChecking=no -r ./envs/.env ./docker-compose.prod.yml root@$PROD_SERVER_IP:/app
+    - bash ./deploy.sh

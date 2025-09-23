@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  web:
+    restart: unless-stopped
+    build:
+      context: docker
+      dockerfile: docker/kidashi/Dockerfile.prod
+      cache_from:
+        - "${WEB_IMAGE}"
+    image: "${WEB_IMAGE}"
+    entrypoint: /app/docker/kidashi/server-entrypoint.prod.sh
+    env_file:
+      - ./envs/.env
+    volumes:
+      - static_volume:/app/frontend/static
+      - media_volume:/app/frontend/media
+    expose:
+      - 8000
+
+  always_on_task:
+    restart: unless-stopped
+    build:
+      context: docker
+      dockerfile: docker/kidashi/Dockerfile.prod
+      cache_from:
+        - "${TASK_IMAGE}"
+    image: "${TASK_IMAGE}"
+    entrypoint: /app/docker/kidashi/worker-entrypoint.sh
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    depends_on:
+      - web
+      - redis
+  schedule_task:
+    restart: unless-stopped
+    build:
+      context: docker
+      dockerfile: docker/kidashi/Dockerfile.prod
+      cache_from:
+        - "${CRON_IMAGE}"
+    image: "${CRON_IMAGE}"
+    entrypoint: /app/docker/kidashi/scheduler-entrypoint.sh
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    restart: unless-stopped
+    image: redis:7.0.5-alpine
+    expose:
+      - 6379
+
+  nginx:
+    restart: always
+    container_name: nginx-proxy
+    build: docker/nginx
+    #      context: .
+    #      dockerfile: ./docker/nginx/Dockerfile
+    #image: nginx:1.23-alpine
+    image: "${NGINX_IMAGE}"
+    ports:
+      - 443:443
+      - 80:80
+      #- 1337:80
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d
+      - static_volume:/app/frontend/static
+      - media_volume:/app/frontend/media
+      - certs:/etc/nginx/certs
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    depends_on:
+      - web
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    env_file:
+      - ./envs/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - html:/usr/share/nginx/html
+      - vhost:/etc/nginx/vhost.d
+      - acme:/etc/acme.sh
+    depends_on:
+      - nginx
+
+volumes:
+  static_volume: {}
+  media_volume: {}
+  certs:
+  html:
+  vhost:
+  acme:
