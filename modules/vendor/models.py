@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.db import models, transaction
+from django.db import models
 from django.db.utils import IntegrityError
 from typing import TYPE_CHECKING
 from common.functions import json_list_default
@@ -124,14 +124,13 @@ class Guarantor(ModelMixin):
         return f"{full_name} - {self.relationship} of {self.vendor.first_name} {self.vendor.surname}"
 
     @classmethod
-    def create_guarantors(cls, cba_customer_id, guarantors_data):
-        vendor = Vendor.get_vendor(cba_customer_id=cba_customer_id)
-        if not vendor:
-            return dict(status=False, message="Vendor not found")
+    def create_guarantors(cls, vendor_id, guarantors_data):
+        if not vendor_id:
+            return dict(status=False, message="Vendor id not found")
 
         guarantor_objs = [
             cls(
-                vendor=vendor,
+                vendor_id=vendor_id,
                 first_name=g.get("first_name"),
                 surname=g.get("surname"),
                 other_name=g.get("other_name"),
@@ -142,12 +141,8 @@ class Guarantor(ModelMixin):
         ]
 
         try:
-            with transaction.atomic():
-                cls.objects.bulk_create(guarantor_objs)
-                return dict(
-                    status=True,
-                    message="Guarantors created successfully",
-                )
+            cls.objects.bulk_create(guarantor_objs)
+            return dict(status=True, message="Guarantors created successfully")
         except IntegrityError as e:
             return dict(status=False, message=f"Failed to create guarantors: {str(e)}")
 

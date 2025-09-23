@@ -61,15 +61,16 @@ class CreateVendorBusinessOnboarding(APIView):
 
         with transaction.atomic():
             try:
-                gurantor_result = Guarantor.create_guarantors(cba_customer_id, guarantors_data)
-                if not gurantor_result["status"]:
-                    transaction.set_rollback(True)
-                    return Response(data=gurantor_result, status=status.HTTP_400_BAD_REQUEST)
                 result = Vendor.create_vendor(**data)
 
                 if not result["status"]:
                     transaction.set_rollback(True)
                     return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
+
+                gurantor_result = Guarantor.create_guarantors(vendor_id=result.get("vendor_id"), guarantors_data=guarantors_data)
+                if not gurantor_result["status"]:
+                    transaction.set_rollback(True)
+                    return Response(data=gurantor_result, status=status.HTTP_400_BAD_REQUEST)
 
                 OnboardingActivityLogs.update_log(
                     log_id=log.id,
@@ -79,5 +80,4 @@ class CreateVendorBusinessOnboarding(APIView):
                 return Response(status=status.HTTP_201_CREATED, data=result)
 
             except Exception:
-                transaction.set_rollback(True)
                 return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
