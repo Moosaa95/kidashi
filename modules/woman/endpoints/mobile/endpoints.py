@@ -12,6 +12,7 @@ from modules.vendor.models import Vendor
 from modules.woman.models import Woman
 from modules.woman.serializers import (
     FetchWomenFilterSerializer,
+    GetWomanBasicDetailsRequestSerializer,
     WomanAttestationSerializer,
     WomanEmailVerifySerializer,
     WomanEmailRegisterSerializer,
@@ -447,6 +448,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             email=customer.get("email"),
             mobile_number=customer.get("mobile_number"),
             vendor=vendor,
+            next_of_kin=customer.get("next_of_kin", ""),
         )
 
         result = Woman.create_woman(**data)
@@ -456,7 +458,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=result, status=status.HTTP_201_CREATED)
 
 
-class FetchWomanDetails(IsPayrepAuthenticatedMixin, APIView):
+class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Kidashi Woman Details"],
         description="Fetch details of a woman",
@@ -481,5 +483,33 @@ class FetchWomanDetails(IsPayrepAuthenticatedMixin, APIView):
             condition.add(Q(**{key: value}), Q.AND)
 
         woman = Woman.fetch_women(conditions=condition)
+
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
+
+
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
+    @extend_schema(
+        tags=["Kidashi Woman Details"],
+        description="Fetch basic details of a woman",
+        request=GetWomanBasicDetailsRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="GetWomanBasicDetailsResponse",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                    data=WomanSerializer(),
+                ),
+            ),
+        },
+    )
+    def post(self, request):
+        serializer = GetWomanBasicDetailsRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        cba_customer_id = serializer.validated_data.get("cba_customer_id")
+
+        woman = Woman.get_woman(cba_customer_id=cba_customer_id)
+        if not woman:
+            return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
 
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)

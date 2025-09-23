@@ -17,6 +17,7 @@ from .endpoints import (
     WomanSourceOfIncome,
     VerifyWomanEmailAddress,
     VerifyWomanMobileNumber,
+    GetWomanBasicDetails,
 )
 
 urlpatterns = (
@@ -36,4 +37,5 @@ urlpatterns = (
     path("manual_customer_details", WomanManualCustomerDetails.as_view()),
     path("facial_capture", WomanFacialCapture.as_view()),
     path("onboarding/create", CreateWomanOnboarding.as_view()),
+    path("basic_details", GetWomanBasicDetails.as_view()),
 )
