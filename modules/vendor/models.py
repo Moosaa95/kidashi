@@ -111,7 +111,7 @@ class Guarantor(ModelMixin):
     phone = models.CharField(max_length=20)
     relationship = models.CharField(max_length=100)
     verification_status = models.CharField(max_length=20, choices=GurantorVerificationStatus.choices, default=GurantorVerificationStatus.PENDING)
-    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="guarantors", db_index=True)
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="guarantors", db_index=True, null=True, blank=True)
 
     class Meta:
         db_table = "guarantors"
@@ -155,7 +155,7 @@ class Guarantor(ModelMixin):
 
 
 class OnboardingActivityLogs(ModelMixin):
-    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities")
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities", null=True, blank=True)
     action = models.CharField(max_length=255)
     description = models.TextField()
     status = models.BooleanField(default=False)

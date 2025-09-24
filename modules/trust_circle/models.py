@@ -18,7 +18,7 @@ class TrustCircle(ModelMixin):
     status = models.CharField(max_length=20, choices=TrustCircleStatus.choices, default=TrustCircleStatus.FORMING)
 
     # Foreign key to vendor who created this trust circle
-    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="trust_circles")
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="trust_circles", null=True, blank=True)
 
     max_members = models.PositiveIntegerField(
         default=10,
@@ -137,14 +137,14 @@ class CircleMembershipVote(ModelMixin):
     Model to track voting for new trust circle members when circle has 3+ members
     """
 
-    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="membership_votes")
-    candidate_member = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="membership_votes")
-    initiating_vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True)
+    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
+    candidate_member = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
+    initiating_vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True, null=True, blank=True)
 
     # Voting participants
-    voter_one = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_one")
-    voter_two = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_two")
-    voter_three = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_three")
+    voter_one = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_one", null=True, blank=True)
+    voter_two = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_two", null=True, blank=True)
+    voter_three = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_three", null=True, blank=True)
 
     # OTP codes for verification
     voter_one_otp = models.CharField(max_length=10, blank=True, null=True)
@@ -335,10 +335,10 @@ class CircleActivity(ModelMixin):
     Model to track activities within trust circles for audit purposes
     """
 
-    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE)
+    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, null=True, blank=True)
     activity_type = models.CharField(max_length=20, choices=TrustCircleActivityType.choices)
     description = models.TextField()
-    performed_by = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True)
+    performed_by = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True, null=True, blank=True)
     affected_woman = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, blank=True, null=True)
 
     metadata = models.JSONField(blank=True, null=True, help_text="Additional context data for the activity")

@@ -37,7 +37,7 @@ class GeoRegion(ModelMixin):
 class State(ModelMixin):
     name = models.CharField(max_length=255, unique=True)
     code = models.CharField(max_length=10, unique=True)
-    region = models.ForeignKey(GeoRegion, on_delete=models.CASCADE)
+    region = models.ForeignKey(GeoRegion, on_delete=models.CASCADE, null=True, blank=True)
 
     objects = models.Manager()
 
@@ -55,7 +55,7 @@ class State(ModelMixin):
 class LocalGovernment(ModelMixin):
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=10, unique=True)
-    state = models.ForeignKey(State, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, on_delete=models.CASCADE, null=True, blank=True)
 
     objects = models.Manager()
 
