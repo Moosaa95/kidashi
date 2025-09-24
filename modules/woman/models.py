@@ -3,10 +3,12 @@ from django.db import models
 from django.db.utils import IntegrityError
 from common.functions import gen_random_key
 from common.mixins import ModelMixin
+from modules.asset.enums import AssetStatus
 from modules.general.enums import CustomerStage
 from modules.general.models import GeoRegion, State, LocalGovernment, Country
 from modules.woman.enums import RepaymentStatus, WomanStatus
 from django.core.validators import RegexValidator
+from datetime import date
 
 
 class Woman(ModelMixin):
@@ -94,13 +96,13 @@ class Woman(ModelMixin):
 
     @property
     def has_active_loan(self):
-        return self.loan_amount > 0 and self.repayment_status in [RepaymentStatus.ONGOING, RepaymentStatus.ON_TIME, RepaymentStatus.LATE]
+        active_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED, AssetStatus.QUERIED]
+        return self.assets_requested.filter(status__in=active_statuses).exists()
 
     @property
     def age(self):
         if not self.dob:
             return None
-        from datetime import date
 
         today = date.today()
         return today.year - self.dob.year - ((today.month, today.day) < (self.dob.month, self.dob.day))
