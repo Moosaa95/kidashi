@@ -24,3 +24,4 @@ repos:
     hooks:
       - id: djlint-reformat-django
       - id: djlint-django
+        exclude: ^frontend/kidashi_ui/dist/
