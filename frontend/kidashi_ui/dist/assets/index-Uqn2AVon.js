@@ -8290,23 +8290,23 @@ Please change the parent <Route path="${L}"> to <Route path="${L==="/"?"*":`${L}
     margin-right: `).concat(u,"px ").concat(a,`;
     `),n==="padding"&&"padding-right: ".concat(u,"px ").concat(a,";")].filter(Boolean).join(""),`
   }
-  
+
   .`).concat(RR,` {
     right: `).concat(u,"px ").concat(a,`;
   }
-  
+
   .`).concat(ER,` {
     margin-right: `).concat(u,"px ").concat(a,`;
   }
-  
+
   .`).concat(RR," .").concat(RR,` {
     right: 0 `).concat(a,`;
   }
-  
+
   .`).concat(ER," .").concat(ER,` {
     margin-right: 0 `).concat(a,`;
   }
-  
+
   body[`).concat(Od,`] {
     `).concat(vTe,": ").concat(u,`px;
   }

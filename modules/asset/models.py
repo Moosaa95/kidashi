@@ -22,7 +22,7 @@ class Asset(ModelMixin):
         default=list,
         blank=True,
     )
-    
+
     def get_fields(cls):
         return [
             "id",
@@ -87,7 +87,6 @@ class Asset(ModelMixin):
             return cls.objects.filter(id=asset_id).update(**kwargs)
         except cls.DoesNotExist:
             return None
-
 
 
 class AssetActivity(ModelMixin):
