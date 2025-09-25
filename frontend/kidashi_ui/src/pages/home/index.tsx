@@ -58,14 +58,14 @@ export default function DashboardOverview() {
 
 
   const recentApplications = vendors
-    .filter((v) => v.status === "pending" || v.status === "approved")
+    .filter((v) => v.status === "PENDING" || v.status === "APPROVED")
     .slice(0, 3)
     .map((vendor) => ({
       id: vendor.id,
-      vendorName: vendor.name,
+      vendorName: vendor.first_name,
       location: vendor.location,
       status: vendor.status,
-      submittedAt: new Date(vendor.applicationDate).toLocaleDateString(),
+      submittedAt: new Date(vendor.application_date).toLocaleDateString(),
       guarantors: 2,
     }))
 

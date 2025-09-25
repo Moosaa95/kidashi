@@ -22,7 +22,6 @@ class PayrepCba(BaseCbaClient):
                 "method": "post",
                 "required_fields": ["mobile_number", "otp", "type"],
             },
-            # add the /mobile to the rest of the endpoints
             "verify_email": {
                 "endpoint": "customer/mobile/verify_email_address",
                 "method": "post",
@@ -102,6 +101,34 @@ class PayrepCba(BaseCbaClient):
 
         url = f"{self.base_url}/customer/{cba_customer_id}"
         return self.send_request(url, method="get", token=token)
+
+    def create_loan_asset(self, token, payload):
+        url = f"{self.base_url}/loan/mobile/book_loan"
+        response = self.send_request(url, data=payload, method="post", token=token)
+        if not response.get("req_status"):
+            return dict(
+                req_status=False,
+                status=response.get("status", 400),
+                message=response.get("message", "Request to PayRep failed"),
+            )
+
+        loan_id = response.get("loan_id") or (response.get("data") or {}).get("loan_id") or ((response.get("data") or {}).get("loan") or {}).get("id")
+
+        if not loan_id:
+            return dict(
+                req_status=True,
+                status=False,
+                message="Loan creation response did not include loan_id",
+                raw=response,
+            )
+
+        return dict(
+            req_status=True,
+            status=True,
+            message="Loan created successfully",
+            loan_id=loan_id,
+            raw=response,
+        )
 
     def customer_action(self, action, payload, token=None, path_params=None):
         """

@@ -7,7 +7,7 @@ interface Application {
     id: string
     vendorName: string
     location: string
-    status: "pending" | "approved" | "under_review" | "rejected" | "suspended"
+    status: "APPROVED" | "APPROVED" | "REJECTED" | "SUSPENDED" | "PENDING"
     submittedAt: string
     guarantors: number
 }
@@ -44,12 +44,12 @@ export default function RecentApplications({ applications, onReview, onViewAll }
                         <div className="flex items-center gap-2">
                             <Badge
                                 variant={
-                                    app.status === "approved" ? "default" : app.status === "pending" ? "secondary" : "outline"
+                                    app.status === "APPROVED" ? "default" : app.status === "PENDING" ? "secondary" : "outline"
                                 }
                             >
-                                {app.status === "approved" && <CheckCircle className="h-3 w-3 mr-1" />}
-                                {app.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
-                                {app.status === "under_review" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                {app.status === "APPROVED" && <CheckCircle className="h-3 w-3 mr-1" />}
+                                {app.status === "PENDING" && <Clock className="h-3 w-3 mr-1" />}
+                                {app.status === "REJECTED" && <AlertTriangle className="h-3 w-3 mr-1" />}
                                 {app.status.replace("_", " ")}
                             </Badge>
                             <Button size="sm" variant="outline" onClick={() => onReview(app.id, app.vendorName)}>
