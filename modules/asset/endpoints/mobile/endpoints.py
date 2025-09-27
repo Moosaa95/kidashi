@@ -1,6 +1,7 @@
 from django.db.models import Q
 from modules.asset.enums import AssetActivityType
 from modules.asset.tasks import create_loan_in_payrep
+from modules.security.enums import OtpPurpose
 from modules.security.models import OTP
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -42,7 +43,7 @@ class CreateAsset(APIView):
         vendor_id = validated_data.get("vendor_id")
         otp = validated_data.get("otp")
 
-        otp_result = OTP.check_otp(vendor_id, otp)
+        otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp)
         if not otp_result.get("status"):
             return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
 

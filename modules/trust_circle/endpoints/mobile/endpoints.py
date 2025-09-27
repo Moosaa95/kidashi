@@ -10,6 +10,7 @@ import secrets
 import string
 
 from drf_spectacular.utils import extend_schema, inline_serializer
+from modules.notification.functions import queue_notification
 from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption, TrustCircleStatus
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
 from modules.trust_circle.serializers import (
@@ -39,6 +40,7 @@ def send_otp_to_woman(woman, otp):
     mobile_number = woman.mobile_number
     # TODO: Send OTP to woman's mobile_number
     print(f"Sending OTP {otp} to mobile number {mobile_number}")
+    queue_notification(recipient=mobile_number, message="")
 
 
 def get_request_ip(request):

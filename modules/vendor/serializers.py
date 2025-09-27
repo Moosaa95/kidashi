@@ -9,7 +9,14 @@ class GuarantorDetailSerializer(serializers.Serializer):
     surname = serializers.CharField(max_length=255)
     other_name = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
     phone = serializers.CharField(max_length=20, validators=[validate_mobile_number])
-    relationship = serializers.CharField(max_length=100)
+    relationship = serializers.CharField(required=False, max_length=100)
+    nin = serializers.CharField(required=False, max_length=11)
+    email = serializers.EmailField(required=False, max_length=50)
+    state_id = serializers.UUIDField(required=False)
+    lga_id = serializers.UUIDField(required=False)
+    gender = serializers.CharField(required=False, max_length=100)
+    dob = serializers.CharField(required=False, max_length=20)
+    nationality = serializers.CharField(required=False, max_length=100)
 
 
 class VendorBusinessOnboardingSerializer(serializers.Serializer):
@@ -17,7 +24,8 @@ class VendorBusinessOnboardingSerializer(serializers.Serializer):
     business_type = serializers.ChoiceField(choices=BusinessTypes.choices, help_text="Type of business", required=False)
     community = serializers.CharField(max_length=255, required=False, help_text="Community where the vendor operates")
     guarantors = GuarantorDetailSerializer(many=True, min_length=2, max_length=2, help_text="List of 2 guarantors")
-    items_sold = serializers.ListField(child=serializers.CharField(max_length=100), required=False, allow_empty=True, help_text="List of items the vendor sells")
+    # items_sold = serializers.ListField(child=serializers.CharField(max_length=100), required=False, allow_empty=True, help_text="List of items the vendor sells")
+    business_description = serializers.CharField(max_length=255, required=False, help_text="Filter by customer's other name.")
 
 
 class VendorSerializer(serializers.Serializer):

@@ -28,7 +28,8 @@ API_URLS = [
     path("api/v1/vendor/", include("modules.vendor.urls")),
     path("api/v1/trust_circle/", include("modules.trust_circle.urls")),
     path("api/v1/woman/", include("modules.woman.urls")),
-    # path("api/v1/asset/", include("modules.asset.urls")),
+    path("api/v1/security/", include("modules.security.urls")),
+    path("api/v1/asset/", include("modules.asset.urls")),
 ]
 
 api_docs_url = [

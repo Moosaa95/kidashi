@@ -10,7 +10,7 @@ from modules.vendor.serializers import FetchVendorFilterSerializer, VendorSerial
 
 class FetchVendorsFilter(APIView):
     @extend_schema(
-        tags=["Vendors"],
+        tags=["Vendor"],
         summary="Fetch Vendors with Filters",
         request=FetchVendorFilterSerializer,
     )
@@ -43,7 +43,7 @@ class FetchVendorsFilter(APIView):
 
 class GetVendorDetail(APIView):
     @extend_schema(
-        tags=["Vendors"],
+        tags=["Vendor"],
         summary="Get Vendor Detail",
         request=VendorSerializer,
     )
@@ -62,7 +62,7 @@ class GetVendorDetail(APIView):
 
 class UpdateVendorApplicationStatus(APIView):
     @extend_schema(
-        tags=["Vendors"],
+        tags=["Vendor"],
         summary="Update Vendor Application Status",
         request=VendorSerializer,
     )
