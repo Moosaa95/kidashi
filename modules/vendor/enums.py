@@ -30,3 +30,8 @@ class GurantorVerificationStatus(models.TextChoices):
     VERIFIED = "VERIFIED"
     REJECTED = "REJECTED"
     EXPIRED = "EXPIRED"
+
+
+class Gender(models.TextChoices):
+    MALE = "MALE"
+    FEMALE = "FEMALE"

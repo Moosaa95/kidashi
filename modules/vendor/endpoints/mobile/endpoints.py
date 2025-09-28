@@ -12,18 +12,18 @@ from modules.vendor.serializers import VendorBusinessOnboardingSerializer
 
 class CreateVendorBusinessOnboarding(APIView):
     @extend_schema(
-        tags=["Kidashi Vendor Onboarding"],
+        tags=["Vendor"],
         description="Onboard vendor to Kidashi (must already exist in Payrep MFB)",
         request=VendorBusinessOnboardingSerializer,
         responses={
-            200: inline_serializer(
+            201: inline_serializer(
                 name="VendorBusinessOnboardingResponse",
                 fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
                     vendor_id=serializers.UUIDField(),
                     cba_customer_id=serializers.UUIDField(),
-                    items_sold=serializers.ListField(child=serializers.CharField()),
+                    # items_sold=serializers.ListField(child=serializers.CharField()),
                     guarantors=serializers.ListField(child=serializers.DictField()),
                 ),
             ),
@@ -55,8 +55,9 @@ class CreateVendorBusinessOnboarding(APIView):
             email=customer.get("email"),
             phone=customer.get("mobile_number"),
             business_type=serializer.validated_data.get("business_type"),
+            business_description=serializer.validated_data.get("business_description"),
             community=serializer.validated_data.get("community"),
-            items=serializer.validated_data.get("items_sold", []),
+            # items=serializer.validated_data.get("items_sold", []),
         )
 
         with transaction.atomic():

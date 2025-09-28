@@ -6,10 +6,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import serializers
 from django.utils import timezone
-import secrets
-import string
 
 from drf_spectacular.utils import extend_schema, inline_serializer
+from common.functions import generate_otp
+from modules.notification.tasks import send_sms
 from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption, TrustCircleStatus
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
 from modules.trust_circle.serializers import (
@@ -29,16 +29,10 @@ from modules.woman.models import Woman
 from modules.woman.enums import WomanStatus
 
 
-def generate_otp(length=6):
-    """Generate a random OTP"""
-    digits = string.digits
-    return "".join(secrets.choice(digits) for _ in range(length))
-
-
 def send_otp_to_woman(woman, otp):
     mobile_number = woman.mobile_number
     # TODO: Send OTP to woman's mobile_number
-    print(f"Sending OTP {otp} to mobile number {mobile_number}")
+    send_sms(message=f"this is your otp {otp}", recipient=mobile_number)
 
 
 def get_request_ip(request):

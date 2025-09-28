@@ -6,6 +6,7 @@ from json import JSONDecodeError
 import datetime
 import hmac
 import math
+import secrets
 import time
 import hashlib
 import binascii
@@ -300,3 +301,9 @@ class UUIDEncoder(json.JSONEncoder):
 
 def json_list_default():
     return []
+
+
+def generate_otp(length=6):
+    """Generate a random OTP"""
+    digits = string.digits
+    return "".join(secrets.choice(digits) for _ in range(length))
