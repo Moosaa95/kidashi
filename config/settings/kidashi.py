@@ -49,6 +49,8 @@ MODULES = [
     "woman",
     "security",
     "asset",
+    "service",
+    "notification",
 ]
 
 

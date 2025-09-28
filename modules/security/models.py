@@ -4,8 +4,10 @@ from datetime import timedelta
 from django.core.cache import cache
 
 from common.functions import generate_otp
-from modules.notification.enums import NotificationChannel, NotificationType
-from modules.notification.functions import queue_notification
+
+# from modules.notification.enums import NotificationChannel, NotificationType
+# from modules.notification.functions import queue_notification
+from modules.notification.tasks import send_sms
 from modules.security.enums import OtpPurpose
 
 
@@ -32,7 +34,7 @@ class OTP(models.Model):
         return f"OTP({self.purpose}, {self.otp})"
 
     @classmethod
-    def create_otp(cls, purpose, length=4, validity=None, log_to_db=False, recipient=None, channel=None):
+    def create_otp(cls, purpose=OtpPurpose.OTHER, length=4, validity=None, log_to_db=False, recipient=None):
         otp = generate_otp(length)
         validity_period = validity or cls.DEFAULT_VALIDITY.get(purpose, timedelta(minutes=30))
         expires_at = timezone.now() + validity_period
@@ -47,18 +49,19 @@ class OTP(models.Model):
                 otp=otp,
                 expires_at=expires_at,
             )
-
+        print("===========CREATE OTP", recipient, otp, purpose)
         if recipient:
+            print("REEE", recipient)
             message = f"Your Kidashi OTP for {purpose.replace('_', ' ').title()} is {otp}. It expires in {validity_period}."
-
-            queue_notification(
-                recipient=recipient,
-                message=message,
-                subject="Kidashi OTP Verification" if channel == NotificationChannel.EMAIL else None,
-                channel=channel or NotificationChannel.SMS,
-                notification_type=NotificationType.OTP,
-                metadata={"purpose": purpose, "otp_id": str(record.id) if record else None},
-            )
+            send_sms(message=message, recipient=recipient)
+            # queue_notification(
+            #     recipient=recipient,
+            #     message=message,
+            #     subject="Kidashi OTP Verification" if channel == NotificationChannel.EMAIL else None,
+            #     channel=channel or NotificationChannel.SMS,
+            #     notification_type=NotificationType.OTP,
+            #     metadata={"purpose": purpose, "otp_id": str(record.id) if record else None},
+            # )
 
         return record or otp
 

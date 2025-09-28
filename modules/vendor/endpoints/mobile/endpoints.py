@@ -16,7 +16,7 @@ class CreateVendorBusinessOnboarding(APIView):
         description="Onboard vendor to Kidashi (must already exist in Payrep MFB)",
         request=VendorBusinessOnboardingSerializer,
         responses={
-            200: inline_serializer(
+            201: inline_serializer(
                 name="VendorBusinessOnboardingResponse",
                 fields=dict(
                     status=serializers.BooleanField(),

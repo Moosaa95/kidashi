@@ -27,7 +27,8 @@ class GenerateOtp(APIView):
     def post(self, request):
         serializer = OtpGenerateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        purpose = serializer.validated_data["purpose"]
+        purpose = serializer.validated_data.get("purpose")
+        recipient = serializer.validated_data.get("recipient")
 
         # Rate-limit resend
         rate_key = f"otp:gen:rate:{purpose}"
@@ -37,7 +38,7 @@ class GenerateOtp(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        otp_record = OTP.create_otp(purpose=purpose, log_to_db=True)
+        otp_record = OTP.create_otp(purpose=purpose, log_to_db=True, recipient=recipient)
         cache.set(rate_key, True, timeout=60)
 
         return Response(

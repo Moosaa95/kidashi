@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.db.utils import IntegrityError
 
 from common.mixins import ModelMixin
 from modules.notification.enums import NotificationChannel, NotificationStatus, NotificationType
@@ -49,6 +50,24 @@ class Notification(ModelMixin):
         self.status = NotificationStatus.FAILED
         self.error = error_message
         self.save(update_fields=["status", "error", "updated_at"])
+
+    @classmethod
+    def create_notification(cls, **kwargs):
+        try:
+            return cls.objects.create(**kwargs)
+        except IntegrityError:
+            return None
+
+    @classmethod
+    def get_notification(cls, **kwargs):
+        try:
+            return cls.objects.get(**kwargs)
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def update_notification(cls, log_id, **kwargs):
+        return cls.objects.filter(id=log_id).update(**kwargs)
 
 
 class EmailTracker(ModelMixin):

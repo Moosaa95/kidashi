@@ -5,6 +5,7 @@ from modules.security.enums import OtpPurpose
 
 class OtpGenerateSerializer(serializers.Serializer):
     purpose = serializers.ChoiceField(choices=OtpPurpose.choices)
+    recipient = serializers.CharField(required=True)
 
 
 class OtpVerifySerializer(serializers.Serializer):
