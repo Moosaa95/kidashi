@@ -85,6 +85,7 @@ class FetchAssets(APIView):
 
         validated = serializer.validated_data
         filters = validated.get("filters", {}) or {}
+        # wants_summaries = validated.get("wants_summaries", False)
 
         condition = Q()
         for key, value in filters.items():

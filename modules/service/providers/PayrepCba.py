@@ -6,7 +6,7 @@ class PayrepCba(BaseCbaClient):
 
     def __init__(self, base_url=None, mode=None):
         super().__init__(
-            base_url=base_url or os.getenv("PAYREP_CBA_BASE_URL", "http://192.168.0.193:8009/api/v1"),
+            base_url=(base_url or os.getenv("CBA_BASE_URL", "https://dev.payrepmfb.com")).rstrip("/") + "/api/v1/",
             fi="payrepcba",
             mode=mode,
         )
@@ -99,7 +99,7 @@ class PayrepCba(BaseCbaClient):
 
     def get_cba_customer_details(self, cba_customer_id, token):
 
-        url = f"{self.base_url}/customer/{cba_customer_id}"
+        url = f"{self.base_url}/customer/mobile/customer_basic/{cba_customer_id}"
         return self.send_request(url, method="get", token=token)
 
     def create_loan_asset(self, token, payload):

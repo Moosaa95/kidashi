@@ -29,16 +29,24 @@ class GenerateOtp(APIView):
         serializer.is_valid(raise_exception=True)
         purpose = serializer.validated_data.get("purpose")
         recipient = serializer.validated_data.get("recipient")
+        subject_id = serializer.validated_data.get("subject_id")
+        channel = serializer.validated_data.get("channel", "SMS")
 
         # Rate-limit resend
-        rate_key = f"otp:gen:rate:{purpose}"
+        rate_key = f"otp:gen:rate:{purpose}:{subject_id}"
         if cache.get(rate_key):
             return Response(
                 {"status": False, "message": "OTP recently sent. Please wait before requesting again."},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        otp_record = OTP.create_otp(purpose=purpose, log_to_db=True, recipient=recipient)
+        otp_record = OTP.create_otp(
+            purpose=purpose,
+            subject_id=subject_id,
+            channel=channel,
+            log_to_db=True,
+            recipient=recipient,
+        )
         cache.set(rate_key, True, timeout=60)
 
         return Response(
@@ -65,10 +73,15 @@ class VerifyOtp(APIView):
     def post(self, request):
         serializer = OtpVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        purpose = serializer.validated_data["purpose"]
-        otp = serializer.validated_data["otp"]
+        purpose = serializer.validated_data.get("purpose")
+        subject_id = serializer.validated_data.get("subject_id")
+        otp = serializer.validated_data.get("otp")
 
-        result = OTP.validate(purpose=purpose, input_otp=otp)
+        result = OTP.validate(
+            purpose=purpose,
+            input_otp=otp,
+            subject_id=subject_id,
+        )
 
         return Response(result, status=status.HTTP_200_OK if result["status"] else status.HTTP_400_BAD_REQUEST)
 
@@ -92,7 +105,10 @@ class ResendOtp(APIView):
     def post(self, request):
         serializer = OtpResendSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        purpose = serializer.validated_data["purpose"]
+        purpose = serializer.validated_data.get("purpose")
+        subject_id = serializer.validated_data.get("subject_id")
+        recipient = serializer.validated_data.get("recipient")
+        channel = serializer.validated_data.get("channel", "SMS")
 
         # Throttle resend to max 3 per hour
         throttle_key = f"otp:resend:count:{purpose}"
@@ -103,7 +119,13 @@ class ResendOtp(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        otp_record = OTP.create_otp(purpose=purpose, log_to_db=True)
+        otp_record = OTP.create_otp(
+            purpose=purpose,
+            subject_id=subject_id,
+            recipient=recipient,
+            channel=channel,
+            log_to_db=True,
+        )
         cache.set(throttle_key, count + 1, timeout=3600)
 
         return Response(

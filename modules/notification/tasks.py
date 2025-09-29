@@ -1,7 +1,9 @@
-# import os
+import os
+
 # from typing import Optional
 
-# import requests
+import requests
+from django.template.loader import render_to_string
 from celery import shared_task
 
 from modules.notification.enums import NotificationChannel, NotificationStatus
@@ -98,7 +100,44 @@ from modules.service.models import Service
 #         notification.mark_failed(str(exc))
 #         raise self.retry(exc=exc)
 
+
 #     return str(notification.id)
+@shared_task
+def send_email(**kwargs):
+    print("======sending email========")
+    text_message = kwargs.get("message", None)
+    template_name = kwargs.get("template_name", None)
+    template_context = kwargs.get("template_context", None)
+    subject = kwargs.get("subject", None)
+    recipient = kwargs.get("recipient")
+    html_message = kwargs.get("html_message", None)
+    attachment_path = kwargs.get("attachment_path", None)
+
+    if template_name and template_context:
+        html_message = render_to_string(template_name, template_context)
+
+    mail_data = {
+        "from": "PayRep(KIDASHI) Team<admin@mypayrep.com>",
+        "to": ", ".join(recipient) if isinstance(recipient, list) else recipient,
+        "subject": subject,
+    }
+
+    if text_message:
+        mail_data.update(text=text_message)
+
+    if html_message:
+        mail_data.update(html=html_message)
+
+    files = None
+    if attachment_path and os.path.exists(attachment_path):
+        filename = os.path.basename(attachment_path)
+        files = [("attachment", (filename, open(attachment_path, "rb"), "application/octet-stream"))]
+
+    response = requests.post("https://api.mailgun.net/v3/mypayrep.com/messages", auth=("api", os.getenv("MAILGUN_API_KEY")), data=mail_data, files=files)
+    print("========email sent===========")
+    print(response.content)
+    status = NotificationStatus.SUCCESS if response.status_code == 200 else NotificationStatus.FAILED
+    Notification.create_notification(recipient=kwargs.get("recipient"), notification_type=NotificationChannel.EMAIL, message=kwargs.get("message", ""), status=status)
 
 
 @shared_task
