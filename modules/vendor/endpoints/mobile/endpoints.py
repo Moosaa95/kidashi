@@ -34,37 +34,41 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
         serializer = VendorBusinessOnboardingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        cba_customer_id = serializer.validated_data.get("cba_customer_id")
-        guarantors_data = serializer.validated_data["guarantors"]
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        log = OnboardingActivityLogs.create_log(action="Vendor Onboarding", description="Onboarding vendor to Kidashi")
-        if not token:
-            return Response({"status": False, "message": "Authorization token required"}, status=status.HTTP_401_UNAUTHORIZED)
-        provider = None
-        service = Service.get_service(code="cba01")
-        integration = service.active_integrations(channel="API").first()
-        provider = integration.get_client()
+        try:
+            cba_customer_id = serializer.validated_data.get("cba_customer_id")
+            guarantors_data = serializer.validated_data["guarantors"]
+            token = request.headers.get("Authorization", "").replace("Bearer ", "")
+            print("TOKEN=======", token)
+            log = OnboardingActivityLogs.create_log(action="Vendor Onboarding", description="Onboarding vendor to Kidashi")
+            if not token:
+                return Response({"status": False, "message": "Authorization token required"}, status=status.HTTP_401_UNAUTHORIZED)
+            provider = None
+            service = Service.get_service(code="cba01")
+            print("SERVICE====", service)
+            integration = service.active_integrations(channel="API").first()
+            print("INTEGRATION====", integration)
+            provider = integration.get_client()
+            print("PROVIDER====", provider)
+            cba_customer_data = provider.get_cba_customer_details(cba_customer_id, token)
+            if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
+                OnboardingActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
+                return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
 
-        cba_customer_data = provider.get_cba_customer_details(cba_customer_id, token)
-        if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
-            OnboardingActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
-            return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
+            customer = cba_customer_data.get("data", {})
 
-        customer = cba_customer_data.get("data", {})
+            data = dict(
+                cba_customer_id=str(cba_customer_id),
+                first_name=customer.get("first_name"),
+                surname=customer.get("surname"),
+                email=customer.get("email"),
+                phone=customer.get("mobile_number"),
+                business_type=serializer.validated_data.get("business_type"),
+                business_description=serializer.validated_data.get("business_description"),
+                community=serializer.validated_data.get("community"),
+            )
 
-        data = dict(
-            cba_customer_id=str(cba_customer_id),
-            first_name=customer.get("first_name"),
-            surname=customer.get("surname"),
-            email=customer.get("email"),
-            phone=customer.get("mobile_number"),
-            business_type=serializer.validated_data.get("business_type"),
-            business_description=serializer.validated_data.get("business_description"),
-            community=serializer.validated_data.get("community"),
-        )
-
-        with transaction.atomic():
-            try:
+            with transaction.atomic():
+                # try:
                 result = Vendor.create_vendor(**data)
                 if not result["status"]:
                     transaction.set_rollback(True)
@@ -82,8 +86,11 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 )
                 return Response(status=status.HTTP_201_CREATED, data=result)
 
-            except Exception:
-                return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # except Exception:
+            #     return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            print("EXCEPTION", e)
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class GetVendorDetail(APIView):
