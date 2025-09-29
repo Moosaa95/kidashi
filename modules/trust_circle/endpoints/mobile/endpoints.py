@@ -10,7 +10,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema, inline_serializer
 from common.functions import generate_otp
 from modules.notification.tasks import send_sms
-from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption, TrustCircleStatus
+from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
 from modules.trust_circle.serializers import (
     CreateTrustCircleRequestSerializer,
@@ -270,14 +270,17 @@ class FetchTrustCircles(APIView):
         serializer.is_valid(raise_exception=True)
 
         vendor_id = serializer.validated_data["vendor_id"]
-        circle_status_filter = serializer.validated_data.get("status_filter", TrustCircleStatus.ACTIVE)
+        circle_status_filter = serializer.validated_data.get("status_filter")
 
         vendor = Vendor.get_vendor(id=vendor_id)
         if not vendor:
             return Response({"status": False, "message": "Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Build query
-        queryset = TrustCircle.objects.filter(vendor=vendor, status=circle_status_filter)
+        if not circle_status_filter:
+            queryset = TrustCircle.objects.filter(vendor=vendor)
+        else:
+            queryset = TrustCircle.objects.filter(vendor=vendor, status=circle_status_filter)
 
         circles = queryset.values(*TrustCircle.get_fields())
 
