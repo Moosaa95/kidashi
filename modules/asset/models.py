@@ -1,7 +1,8 @@
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.db.models import Count, Sum, Q
 from django.db.utils import IntegrityError
-
+from django.utils import timezone
 from common.mixins import ModelMixin
 from modules.asset.enums import AssetStatus, AssetActivityType
 
@@ -49,8 +50,14 @@ class Asset(ModelMixin):
             return None
 
     @classmethod
-    def fetch_assets(cls, conditions):
-        return cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+    def fetch_assets(cls, conditions=None, count=None):
+        queryset = None
+        if conditions:
+            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+
+        if count:
+            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
+        return list(queryset)
 
     @classmethod
     def get_asset(cls, **filters):
@@ -87,6 +94,50 @@ class Asset(ModelMixin):
             return cls.objects.filter(id=asset_id).update(**kwargs)
         except cls.DoesNotExist:
             return None
+
+    @classmethod
+    def fetch_asset_summaries(cls, member_id=None, conditions=None):
+        today = timezone.now().date()
+        queryset = cls.objects.all()
+
+        if conditions:
+            queryset = queryset.filter(conditions)
+
+        ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
+        completed_statuses = [AssetStatus.REJECTED, AssetStatus.FAILED]
+
+        count_filters = {
+            "total_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_assets": Count("id", filter=Q(status__in=completed_statuses)),
+            "total_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_value": Sum("value", filter=Q(status__in=completed_statuses)),
+            "total_ongoing_markup": Sum("markup", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_markup": Sum("markup", filter=Q(status__in=completed_statuses)),
+        }
+
+        if member_id:
+            count_filters.update(
+                member_ongoing_assets=Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                member_completed_assets=Count(
+                    "id",
+                    filter=Q(
+                        status__in=completed_statuses,
+                        woman_id=member_id,
+                        created_at__date=today,
+                    ),
+                ),
+                member_ongoing_value=Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                member_completed_value=Sum(
+                    "value",
+                    filter=Q(
+                        status__in=completed_statuses,
+                        woman_id=member_id,
+                        created_at__date=today,
+                    ),
+                ),
+            )
+
+        return queryset.aggregate(**count_filters)
 
 
 class AssetActivity(ModelMixin):

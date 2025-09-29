@@ -417,7 +417,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
 
         vendor_cba_customer_id = serializer.validated_data["vendor_cba_customer_id"]
-        woman_cba_customer_id = serializer.validated_data["cba_customer_id"]
+        woman_cba_customer_id = serializer.validated_data["woman_cba_customer_id"]
 
         vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
         if not vendor:

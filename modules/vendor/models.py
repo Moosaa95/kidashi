@@ -1,12 +1,13 @@
 from django.utils import timezone
 from django.db import models
 from django.db.utils import IntegrityError
+from django.core.validators import RegexValidator
 from typing import TYPE_CHECKING
 from common.functions import json_list_default
 from common.mixins import ModelMixin
 from modules.general.models import Country, GeoRegion, LocalGovernment, State
 from modules.trust_circle.enums import TrustCircleStatus
-from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus, VendorStatus
+from modules.vendor.enums import BusinessTypes, Gender, GurantorVerificationStatus, VendorStatus
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -75,7 +76,7 @@ class Vendor(ModelMixin):
     def create_vendor(cls, **kwargs):
         try:
             new_vendor = cls.objects.create(**kwargs)
-            return dict(status=True, message="Vendor registered successfully", vendor_id=new_vendor.id, cba_customer_id=new_vendor.cba_customer_id)
+            return dict(status=True, message="Vendor registered successfully", vendor_id=str(new_vendor.id), cba_customer_id=str(new_vendor.cba_customer_id))
         except IntegrityError as e:
             return dict(status=False, message=e.args[0])
 
@@ -93,9 +94,9 @@ class Vendor(ModelMixin):
     @classmethod
     def get_vendor(cls, **filters):
         try:
-            return cls.objects.get(**filters)
+            return cls.objects.select_related("geo_region", "state", "lga", "country").prefetch_related("guarantors").get(**filters)
         except cls.DoesNotExist:
-            return False
+            return None
 
     @classmethod
     def update_vendor(cls, filters=None, params=None):
@@ -108,10 +109,26 @@ class Guarantor(ModelMixin):
     first_name = models.CharField(max_length=255)
     surname = models.CharField(max_length=255)
     other_name = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     relationship = models.CharField(max_length=100, blank=True, null=True)
+    geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
+    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
+    lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
     verification_status = models.CharField(max_length=20, choices=GurantorVerificationStatus.choices, default=GurantorVerificationStatus.PENDING)
+    gender = models.CharField(max_length=20, choices=Gender.choices, null=True, blank=True)
+    dob = models.DateField(null=True, blank=True)
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="guarantors", db_index=True, null=True, blank=True)
+    nin = models.CharField(
+        max_length=11,  # NIN is 11 digits
+        blank=True,
+        null=True,
+        help_text="National Identification Number",
+        unique=True,
+        validators=[RegexValidator(regex=r"^\d{11}$", message="NIN must be exactly 11 digits")],
+        db_index=True,
+    )
 
     class Meta:
         db_table = "guarantors"
@@ -163,6 +180,9 @@ class OnboardingActivityLogs(ModelMixin):
 
     @classmethod
     def create_log(cls, **kwargs):
+        print("KWWWWARGS", kwargs)
+        if "vendor_cba_customer_id" in kwargs:
+            kwargs["vendor__cba_customer_id"] = kwargs.pop("vendor_cba_customer_id")
         return cls.objects.create(**kwargs)
 
     @classmethod
