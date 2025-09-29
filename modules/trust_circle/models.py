@@ -46,20 +46,20 @@ class TrustCircle(ModelMixin):
     def current_member_count(self):
         return self.women.count()
 
-    # @property
-    # def can_add_more_members(self):
-    #     return self.current_member_count < self.max_members
-    #
-    # @property
-    # def is_full(self):
-    #     return self.current_member_count >= self.max_members
-    #
-    # @property
-    # def can_accept_new_members_by_voting(self):
-    #     """
-    #     Returns True if circle has 3+ members and voting is required for new additions
-    #     """
-    #     return self.current_member_count >= 3
+    @property
+    def can_add_more_members(self):
+        return self.current_member_count < self.max_members
+
+    @property
+    def is_full(self):
+        return self.current_member_count >= self.max_members
+
+    @property
+    def can_accept_new_members_by_voting(self):
+        """
+        Returns True if circle has 3+ members and voting is required for new additions
+        """
+        return self.current_member_count >= 3
 
     def get_active_members(self):
         """Get all active members of the trust circle"""

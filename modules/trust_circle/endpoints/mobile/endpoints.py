@@ -288,10 +288,10 @@ class FetchTrustCircles(APIView):
         circles_data = []
         for circle in circles:
             circle_obj = TrustCircle.objects.get(id=circle["id"])
-            circle["current_member_count"] = circle_obj.current_member_count()
-            # circle["can_add_more_members"] = circle_obj.can_add_more_members
-            # circle["is_full"] = circle_obj.is_full
-            # circle["can_accept_new_members_by_voting"] = circle_obj.can_accept_new_members_by_voting
+            circle["current_member_count"] = circle_obj.current_member_count
+            circle["can_add_more_members"] = circle_obj.can_add_more_members
+            circle["is_full"] = circle_obj.is_full
+            circle["can_accept_new_members_by_voting"] = circle_obj.can_accept_new_members_by_voting
             circles_data.append(circle)
 
         return Response(
