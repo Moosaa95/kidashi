@@ -38,12 +38,12 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["nationality"],
             },
             "nin_lookup": {
-                "endpoint": "customer/mobile/nin_lookup",
+                "endpoint": "compliance/mobile/nin_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "nin"],
             },
             "bvn_lookup": {
-                "endpoint": "customer/mobile/bvn_lookup",
+                "endpoint": "compliance/mobile/bvn_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "bvn"],
             },
@@ -68,13 +68,13 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["document_type", "document_class", "file"],
             },
             "pep": {
-                "endpoint": "compliance/mobile/pep/{cba_customer_id}",
-                "method": "post",
+                "endpoint": "customer/mobile/pep/{cba_customer_id}",
+                "method": "put",
                 "required_fields": ["is_pep"],
             },
             "source_of_income": {
                 "endpoint": "customer/mobile/income/{cba_customer_id}",
-                "method": "post",
+                "method": "put",
                 "required_fields": ["employment_type", "occupation", "annual_income"],
             },
             "manual_customer_details": {
@@ -88,7 +88,7 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["file"],
             },
             "attestation": {
-                "endpoint": "compliance/mobile/attestation/{cba_customer_id}",
+                "endpoint": "customer/mobile/attestation/{cba_customer_id}",
                 "method": "post",
                 "required_fields": [],
             },

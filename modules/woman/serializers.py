@@ -34,12 +34,12 @@ class WomanNationalitySerializer(serializers.Serializer):
 
 
 class WomanNinLookupSerializer(serializers.Serializer):
-    cba_customer_id = serializers.UUIDField()
+    cba_customer_id = serializers.CharField()
     nin = serializers.CharField(max_length=11)
 
 
 class WomanBvnLookupSerializer(serializers.Serializer):
-    cba_customer_id = serializers.UUIDField()
+    cba_customer_id = serializers.CharField()
     bvn = serializers.CharField(max_length=11)
 
 
