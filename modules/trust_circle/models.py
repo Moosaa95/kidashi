@@ -81,10 +81,10 @@ class TrustCircle(ModelMixin):
             "loan_eligibility",
             "status",
             "max_members",
-            # "current_member_count",
-            # "can_add_more_members",
-            # "is_full",
-            # "can_accept_new_members_by_voting",
+            "current_member_count",
+            "can_add_more_members",
+            "is_full",
+            "can_accept_new_members_by_voting",
             "activation_date",
             "description",
             "created_at",
@@ -128,8 +128,8 @@ class TrustCircle(ModelMixin):
 
     def clean(self):
         super().clean()
-        # if self.pk and self.current_member_count > self.max_members:
-        #     raise ValidationError(f"Trust circle cannot have more than {self.max_members} members")
+        if self.pk and self.current_member_count > self.max_members:
+            raise ValidationError(f"Trust circle cannot have more than {self.max_members} members")
 
 
 class CircleMembershipVote(ModelMixin):
