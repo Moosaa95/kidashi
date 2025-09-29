@@ -42,9 +42,9 @@ class TrustCircle(ModelMixin):
     def __str__(self):
         return f"{self.circle_name} - {self.vendor}"
 
-    @classmethod
-    def current_member_count(cls):
-        return cls.objects.filter().count()
+    @property
+    def current_member_count(self):
+        return self.women.count()
 
     # @property
     # def can_add_more_members(self):
