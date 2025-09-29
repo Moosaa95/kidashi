@@ -240,9 +240,9 @@ class FetchTrustCircles(APIView):
                                         "circle_name": serializers.CharField(),
                                         "description": serializers.CharField(allow_blank=True),
                                         "max_members": serializers.IntegerField(),
-                                        "current_member_count": serializers.IntegerField(),
-                                        "can_add_more_members": serializers.BooleanField(),
-                                        "is_full": serializers.BooleanField(),
+                                        # "current_member_count": serializers.IntegerField(),
+                                        # "can_add_more_members": serializers.BooleanField(),
+                                        # "is_full": serializers.BooleanField(),
                                         "status": serializers.CharField(),
                                         "loan_eligibility": serializers.CharField(),
                                         "activation_date": serializers.DateTimeField(allow_null=True),
@@ -282,22 +282,22 @@ class FetchTrustCircles(APIView):
         circles = queryset.values(*TrustCircle.get_fields())
 
         # Add computed properties to each circle
-        circles_data = []
-        for circle in circles:
-            circle_obj = TrustCircle.objects.get(id=circle["id"])
-            circle["current_member_count"] = circle_obj.current_member_count
-            circle["can_add_more_members"] = circle_obj.can_add_more_members
-            circle["is_full"] = circle_obj.is_full
-            circle["can_accept_new_members_by_voting"] = circle_obj.can_accept_new_members_by_voting
-            circles_data.append(circle)
+        # circles_data = []
+        # for circle in circles:
+        # circle_obj = TrustCircle.objects.get(id=circle["id"])
+        # circle["current_member_count"] = circle_obj.current_member_count
+        # circle["can_add_more_members"] = circle_obj.can_add_more_members
+        # circle["is_full"] = circle_obj.is_full
+        # circle["can_accept_new_members_by_voting"] = circle_obj.can_accept_new_members_by_voting
+        # circles_data.append(circle)
 
         return Response(
             {
                 "status": True,
                 "message": "Trust Circles fetched successfully",
                 "data": {
-                    "circles": circles_data,
-                    "total_count": len(circles_data),
+                    "circles": circles,
+                    "total_count": len(circles),
                 },
             },
             status=status.HTTP_200_OK,
