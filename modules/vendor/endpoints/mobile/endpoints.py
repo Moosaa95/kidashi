@@ -1,4 +1,3 @@
-import json
 from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
@@ -54,7 +53,7 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
         customer = cba_customer_data.get("data", {})
 
         data = dict(
-            cba_customer_id=cba_customer_id,
+            cba_customer_id=str(cba_customer_id),
             first_name=customer.get("first_name"),
             surname=customer.get("surname"),
             email=customer.get("email"),
@@ -67,7 +66,6 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
         with transaction.atomic():
             try:
                 result = Vendor.create_vendor(**data)
-
                 if not result["status"]:
                     transaction.set_rollback(True)
                     return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
@@ -80,7 +78,7 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 OnboardingActivityLogs.update_log(
                     log_id=log.id,
                     status=True,
-                    data=json.dumps({"vendor": data, "guarantors": guarantors_data}),
+                    data={"vendor": data, "guarantors": guarantors_data},
                 )
                 return Response(status=status.HTTP_201_CREATED, data=result)
 
