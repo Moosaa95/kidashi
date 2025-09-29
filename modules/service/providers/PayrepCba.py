@@ -23,12 +23,12 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["mobile_number", "otp", "type"],
             },
             "verify_email": {
-                "endpoint": "customer/mobile/verify_email_address",
+                "endpoint": "customer/mobile/verify_email",
                 "method": "post",
                 "required_fields": ["email"],
             },
             "register_email": {
-                "endpoint": "customer/mobile/register_email_address",
+                "endpoint": "customer/mobile/register_email",
                 "method": "post",
                 "required_fields": ["email", "mobile_number", "otp"],
             },
