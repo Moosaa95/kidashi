@@ -44,7 +44,7 @@ class TrustCircle(ModelMixin):
 
     @classmethod
     def current_member_count(cls):
-        return cls.women.filter().count()
+        return cls.objects.filter().count()
 
     # @property
     # def can_add_more_members(self):
