@@ -79,11 +79,11 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
                     transaction.set_rollback(True)
                     return Response(data=gurantor_result, status=status.HTTP_400_BAD_REQUEST)
 
-                OnboardingActivityLogs.update_log(
-                    log_id=log.id,
-                    status=True,
-                    data={"vendor": data, "guarantors": guarantors_data},
-                )
+                # OnboardingActivityLogs.update_log(
+                #     log_id=log.id,
+                #     status=True,
+                #     data={"vendor": data, "guarantors": guarantors_data},
+                # )
                 return Response(status=status.HTTP_201_CREATED, data=result)
 
                 # except Exception:
