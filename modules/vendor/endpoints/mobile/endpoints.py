@@ -38,17 +38,13 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
             cba_customer_id = serializer.validated_data.get("cba_customer_id")
             guarantors_data = serializer.validated_data["guarantors"]
             token = request.headers.get("Authorization", "").replace("Bearer ", "")
-            print("TOKEN=======", token)
             log = OnboardingActivityLogs.create_log(action="Vendor Onboarding", description="Onboarding vendor to Kidashi")
             if not token:
                 return Response({"status": False, "message": "Authorization token required"}, status=status.HTTP_401_UNAUTHORIZED)
             provider = None
             service = Service.get_service(code="cba01")
-            print("SERVICE====", service)
             integration = service.active_integrations(channel="API").first()
-            print("INTEGRATION====", integration)
             provider = integration.get_client()
-            print("PROVIDER====", provider)
             cba_customer_data = provider.get_cba_customer_details(cba_customer_id, token)
             if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
                 OnboardingActivityLogs.update_log(log_id=log.id, data={"error": "Unable to fetch customer from Payrep"})
@@ -93,7 +89,7 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
             return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetVendorDetail(APIView):
+class GetVendorDetail(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Vendor"],
         description="Get detailed information for a vendor",

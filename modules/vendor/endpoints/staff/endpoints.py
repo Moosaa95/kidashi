@@ -15,10 +15,11 @@ class FetchVendorsFilter(APIView):
         request=FetchVendorFilterSerializer,
     )
     def post(self, request):
+        print("VENDORS")
         serializer = FetchVendorFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         and_condition = Q()
-
+        print("INTERNAL=======REQUEST", request)
         filters = serializer.validated_data.get("filters", {})
         if not filters:
             filtered = Vendor.fetch_vendors(count=50)

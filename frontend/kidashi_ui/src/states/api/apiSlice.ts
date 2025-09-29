@@ -13,6 +13,23 @@ import { config } from "@/config";
 
 const mutex = new Mutex();
 
+function getCookie(name: string) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie("csrftoken");
+
 
 const baseQuery = fetchBaseQuery({
     baseUrl: config.apiUrl,
@@ -24,6 +41,7 @@ const baseQuery = fetchBaseQuery({
 
         headers.set("Content-Type", "application/json");
         headers.set("Accept", "application/json");
+        headers.set("X-CSRFToken", `${csrftoken}`)
     }
 })
 

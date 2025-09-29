@@ -18,7 +18,9 @@ export default function VendorManagement() {
     const dispatch = useAppDispatch()
     // const [searchParams] = useSearchParams()
 
-    const { data: _vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery();
+    const { data: vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery();
+
+    console.log("VENDEOEOEOE", vendorsData);
 
 
     const isLoading = isLoadingVendors;
@@ -62,7 +64,7 @@ export default function VendorManagement() {
         },
     ]
 
-    const filtered = vendors.filter((vendor) => {
+    const filtered = vendorsData?.data.filter((vendor) => {
         const matchesSearch =
             (vendor.first_name + " " + vendor.surname).toLowerCase().includes(searchQuery.toLowerCase()) ||
             vendor.location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -137,7 +139,7 @@ export default function VendorManagement() {
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="rejected">Rejected</TabsTrigger>
                         </TabsList>
                         <TabsContent value={filter}>
-                            <DataTable columns={vendorColumns} data={filtered} searchColumn="name" searchPlaceholder="search vendors" />
+                            <DataTable columns={vendorColumns} data={filtered || []} searchColumn="name" searchPlaceholder="search vendors" />
                         </TabsContent>
                     </>
                 )}
