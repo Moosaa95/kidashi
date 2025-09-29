@@ -193,27 +193,27 @@ class CircleMembershipVote(ModelMixin):
         super().clean()
 
         # Ensure all voters belong to the trust circle
-        # active_members = self.trust_circle.get_active_members()
+        active_members = self.trust_circle.get_active_members()
 
-        # if self.voter_one not in active_members:
-        #     raise ValidationError("Voter one must be an active member of the trust circle")
-        # if self.voter_two not in active_members:
-        #     raise ValidationError("Voter two must be an active member of the trust circle")
-        # if self.voter_three not in active_members:
-        #     raise ValidationError("Voter three must be an active member of the trust circle")
+        if self.voter_one not in active_members:
+            raise ValidationError("Voter one must be an active member of the trust circle")
+        if self.voter_two not in active_members:
+            raise ValidationError("Voter two must be an active member of the trust circle")
+        if self.voter_three not in active_members:
+            raise ValidationError("Voter three must be an active member of the trust circle")
 
         # Ensure all voters are unique
-        # voters = [self.voter_one, self.voter_two, self.voter_three]
-        # if len(set(voters)) != 3:
-        #     raise ValidationError("All three voters must be different members")
-        #
+        voters = [self.voter_one, self.voter_two, self.voter_three]
+        if len(set(voters)) != 3:
+            raise ValidationError("All three voters must be different members")
+
         # # Ensure candidate is not already a member
-        # if self.candidate_member in active_members:
-        #     raise ValidationError("Candidate member is already an active member of the trust circle")
-        #
+        if self.candidate_member in active_members:
+            raise ValidationError("Candidate member is already an active member of the trust circle")
+
         # # Ensure trust circle has exactly 3 or more members
-        # if active_members.count() < 3:
-        #     raise ValidationError("Trust circle must have at least 3 members to initiate voting")
+        if active_members.count() < 3:
+            raise ValidationError("Trust circle must have at least 3 members to initiate voting")
 
     @property
     def is_expired(self):
