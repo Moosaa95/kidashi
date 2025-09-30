@@ -12,7 +12,7 @@ class AssetCreateRequestSerializer(serializers.Serializer):
     vendor_id = serializers.UUIDField(required=True, help_text="Vendor's customer ID")
     woman_id = serializers.UUIDField(required=True, help_text="Woman's customer ID")
     loan_product_id = serializers.UUIDField(required=True, help_text="Loan product id from payrep")
-    name = serializers.CharField(max_length=255)
+    name = serializers.CharField(max_length=255, required=False)
     value = serializers.DecimalField(max_digits=12, decimal_places=2)
     markup = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     loan_id = serializers.UUIDField(required=False, help_text="Loan ID from bank system")
