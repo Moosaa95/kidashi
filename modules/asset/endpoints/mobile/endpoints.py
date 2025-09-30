@@ -39,7 +39,7 @@ class CreateAsset(APIView):
         serializer = AssetCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        product_id = validated_data.get("product_id", "9c9628ed-bdb1-40f2-a216-ea6b871f7d75")
+        product_id = validated_data.get("product_id")
         vendor_id = validated_data.get("vendor_id")
         otp = validated_data.get("otp")
 
