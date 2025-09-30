@@ -474,7 +474,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             occupation=customer.get("occupation", ""),
             annual_income=customer.get("annual_income", ""),
             employment_type=customer.get("employment_type", ""),
-            account_number=customer.get("account_number", ""),
+            account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
             nin=customer.get("nin", ""),
             bvn=customer.get("bvn", ""),
             image=customer.get("image", ""),
