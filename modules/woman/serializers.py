@@ -131,6 +131,7 @@ class WomanSerializer(serializers.Serializer):
     country_id = serializers.UUIDField(required=False, help_text="Filter by country ID")
     repayment_status = serializers.CharField(max_length=20, required=False, help_text="Filter by repayment status")
     status = serializers.CharField(max_length=20, required=False, help_text="Filter by status")
+    cba_customer_id = serializers.UUIDField(required=False)
 
 
 class FetchWomenFilterSerializer(serializers.Serializer):

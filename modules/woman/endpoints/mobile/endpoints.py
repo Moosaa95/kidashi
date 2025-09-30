@@ -551,5 +551,4 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanSerializer(woman).data), status=status.HTTP_200_OK)
