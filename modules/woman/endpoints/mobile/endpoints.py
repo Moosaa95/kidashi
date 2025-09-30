@@ -482,7 +482,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             email=customer.get("email"),
             mobile_number=customer.get("mobile_number"),
             vendor=vendor,
-            next_of_kin=customer.get("next_of_kin", ""),
+            # next_of_kin=customer.get("next_of_kin", ""),
         )
 
         result = Woman.create_woman(**data)

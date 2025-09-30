@@ -1,7 +1,3 @@
-# from rest_framework.response import Response
-# from rest_framework import status, exceptions
-
-
 class IsPayrepAuthenticatedMixin:
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
