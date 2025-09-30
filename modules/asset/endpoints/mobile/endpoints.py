@@ -42,25 +42,29 @@ class CreateAsset(APIView):
         product_id = validated_data.get("product_id")
         vendor_id = validated_data.get("vendor_id")
         otp = validated_data.get("otp")
+        try:
 
-        otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
-        if not otp_result.get("status"):
-            return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
+            otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
+            if not otp_result.get("status"):
+                return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
 
-        asset = Asset.create_asset(**validated_data)
-        if not asset:
+            asset = Asset.create_asset(**validated_data)
+            if not asset:
+                return Response(
+                    data=dict(status=False, message="Failed to create asset"),
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            log = AssetActivity.create_activity(asset_id=asset.id, activity_type=AssetActivityType.ASSET_REQUEST, description="Asset requested on kidashi", performed_by_id=vendor_id)
+            create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_id=product_id, log_id=log.id)
+
             return Response(
-                data=dict(status=False, message="Failed to create asset"),
-                status=status.HTTP_400_BAD_REQUEST,
+                data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=str(asset.id)),
+                status=status.HTTP_201_CREATED,
             )
-
-        log = AssetActivity.create_activity(asset_id=asset.id, activity_type=AssetActivityType.ASSET_REQUEST, description="Asset requested on kidashi", performed_by_id=vendor_id)
-        create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_id=product_id, log_id=log.id)
-
-        return Response(
-            data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=str(asset.id)),
-            status=status.HTTP_201_CREATED,
-        )
+        except Exception as e:
+            print("========season", e)
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FetchAssets(APIView):

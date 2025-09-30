@@ -451,41 +451,40 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
 
         vendor_cba_customer_id = serializer.validated_data["vendor_cba_customer_id"]
         woman_cba_customer_id = serializer.validated_data["woman_cba_customer_id"]
-
-        vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
-        if not vendor:
-            return Response(dict(status=False, message="Vendor not found"), status=status.HTTP_404_NOT_FOUND)
-
-        service = Service.get_service(code="cba01")
-        integration = service.active_integrations(channel="API").first()
-        provider = integration.get_client()
-        cba_customer_data = provider.get_cba_customer_details(woman_cba_customer_id, token=request.payrep_token)
-        if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
-            return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
-
-        customer = cba_customer_data.get("data", {})
-
-        data = dict(
-            cba_customer_id=woman_cba_customer_id,
-            first_name=customer.get("first_name"),
-            surname=customer.get("surname"),
-            other_name=customer.get("other_names", ""),
-            dob=customer.get("dob", ""),
-            nationality=customer.get("nationality", ""),
-            occupation=customer.get("occupation", ""),
-            annual_income=customer.get("annual_income", ""),
-            employment_type=customer.get("employment_type", ""),
-            account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
-            nin=customer.get("nin", ""),
-            bvn=customer.get("bvn", ""),
-            image=customer.get("image", ""),
-            residential_address=customer.get("residential_address", ""),
-            email=customer.get("email"),
-            mobile_number=customer.get("mobile_number"),
-            vendor=vendor,
-            # next_of_kin=customer.get("next_of_kin", ""),
-        )
         try:
+            vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
+            if not vendor:
+                return Response(dict(status=False, message="Vendor not found"), status=status.HTTP_404_NOT_FOUND)
+
+            service = Service.get_service(code="cba01")
+            integration = service.active_integrations(channel="API").first()
+            provider = integration.get_client()
+            cba_customer_data = provider.get_cba_customer_details(woman_cba_customer_id, token=request.payrep_token)
+            if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
+                return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
+
+            customer = cba_customer_data.get("data", {})
+
+            data = dict(
+                cba_customer_id=woman_cba_customer_id,
+                first_name=customer.get("first_name"),
+                surname=customer.get("surname"),
+                other_name=customer.get("other_names", ""),
+                dob=customer.get("dob", ""),
+                nationality=customer.get("nationality", ""),
+                occupation=customer.get("occupation", ""),
+                annual_income=customer.get("annual_income", ""),
+                employment_type=customer.get("employment_type", ""),
+                account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
+                nin=customer.get("nin", ""),
+                bvn=customer.get("bvn", ""),
+                image=customer.get("image", ""),
+                residential_address=customer.get("residential_address", ""),
+                email=customer.get("email"),
+                mobile_number=customer.get("mobile_number"),
+                vendor=vendor,
+                # next_of_kin=customer.get("next_of_kin", ""),
+            )
             with transaction.atomic():
                 woman = Woman.create_woman(**data)
                 if not woman:
@@ -494,7 +493,8 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
 
                 return Response(data=dict(status=True, woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id), message="woman created successfully"), status=status.HTTP_201_CREATED)
 
-        except Exception:
+        except Exception as e:
+            print("==========WomenOboarding", e)
             return Response(data=dict(status=False, message="An unexpected error has occured, please contact support"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
