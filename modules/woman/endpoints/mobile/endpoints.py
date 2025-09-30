@@ -469,7 +469,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             first_name=customer.get("first_name"),
             surname=customer.get("surname"),
             other_name=customer.get("other_names", ""),
-            dob=customer.get("dob", None),
+            dob=customer.get("dob", ""),
             nationality=customer.get("nationality", ""),
             occupation=customer.get("occupation", ""),
             annual_income=customer.get("annual_income", ""),
