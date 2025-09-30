@@ -487,12 +487,12 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
         )
         try:
             with transaction.atomic():
-                result = Woman.create_woman(**data)
-                if not result.get("status"):
+                woman = Woman.create_woman(**data)
+                if not woman:
                     transaction.set_rollback(True)
-                    return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(data=woman, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(data=result, status=status.HTTP_201_CREATED)
+                return Response(data=woman, status=status.HTTP_201_CREATED)
 
         except Exception:
             return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
