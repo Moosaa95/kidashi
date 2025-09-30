@@ -20,7 +20,7 @@ class Woman(ModelMixin):
     maximum_balance = models.DecimalField(default=0, max_digits=19, decimal_places=2)
     tier = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    dob = models.DateField(null=True, blank=True)
+    dob = models.DateTimeField(null=True, blank=True)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
     annual_income = models.CharField(max_length=100, blank=True, null=True)
