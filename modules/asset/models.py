@@ -8,7 +8,7 @@ from modules.asset.enums import AssetStatus, AssetActivityType
 
 
 class Asset(ModelMixin):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True, null=True)
     value = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     markup = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=20, choices=AssetStatus.choices, default=AssetStatus.REQUESTED, db_index=True)

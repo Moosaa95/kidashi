@@ -490,12 +490,12 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 woman = Woman.create_woman(**data)
                 if not woman:
                     transaction.set_rollback(True)
-                    return Response(data=woman, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(data=woman, status=status.HTTP_201_CREATED)
+                return Response(data=dict(status=True, woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id), message="woman created successfully"), status=status.HTTP_201_CREATED)
 
         except Exception:
-            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
