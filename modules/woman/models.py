@@ -131,9 +131,9 @@ class Woman(ModelMixin):
     def create_woman(cls, **kwargs):
         try:
             woman = cls.objects.create(**kwargs)
-            return dict(status=True, message="Woman created successfully", woman=woman)
+            return dict(status=True, message="Woman created successfully", woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id))
         except IntegrityError as e:
-            return dict(status=False, message=e.args[0])
+            return dict(status=False, message=str(e.args[0]))
 
     @classmethod
     def fetch_women(cls, conditions):
