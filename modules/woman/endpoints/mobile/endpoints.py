@@ -91,7 +91,7 @@ class RegisterWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=result, status=http_status)
 
 
-class VerifyWomanEmailAddress(APIView):
+class VerifyWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Verify woman's email address with Payrep",
