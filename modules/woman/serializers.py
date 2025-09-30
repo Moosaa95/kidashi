@@ -19,7 +19,7 @@ class WomanEmailVerifySerializer(serializers.Serializer):
 
 class WomanOnboardingRequestSerializer(serializers.Serializer):
     vendor_cba_customer_id = serializers.UUIDField(required=True, help_text="Vendor's CBA customer ID")
-    trust_circle_id = serializers.UUIDField(required=True, help_text="Trust circle to assign the woman to")
+    trust_circle_id = serializers.UUIDField(required=False, help_text="Trust circle to assign the woman to")
     woman_cba_customer_id = serializers.UUIDField(required=True, help_text="Woman's CBA customer ID (from Payrep)")
 
 
