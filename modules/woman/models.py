@@ -141,10 +141,7 @@ class Woman(ModelMixin):
 
     @classmethod
     def get_woman(cls, **filters):
-        try:
-            return cls.objects.get(**filters)
-        except cls.DoesNotExist:
-            return False
+        return cls.objects.filter(**filters).first()
 
 
 class NextOfKin(ModelMixin):
