@@ -43,7 +43,7 @@ class CreateAsset(APIView):
         vendor_id = validated_data.get("vendor_id")
         otp = validated_data.get("otp")
 
-        otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp)
+        otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
         if not otp_result.get("status"):
             return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
 
@@ -58,7 +58,7 @@ class CreateAsset(APIView):
         create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_id=product_id, log_id=log.id)
 
         return Response(
-            data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=asset.id),
+            data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=str(asset.id)),
             status=status.HTTP_201_CREATED,
         )
 

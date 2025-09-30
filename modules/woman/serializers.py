@@ -113,7 +113,7 @@ class WomanAttestationSerializer(serializers.Serializer):
 
 
 class WomanSerializer(serializers.Serializer):
-    woman_id = serializers.UUIDField(required=False, help_text="ID of the woman")
+    id = serializers.UUIDField(required=False, help_text="ID of the woman")
     first_name = serializers.CharField(max_length=255, required=False, help_text="Filter by first name")
     other_name = serializers.CharField(max_length=255, required=False, help_text="Filter by other name")
     surname = serializers.CharField(max_length=255, required=False, help_text="Filter by surname")
