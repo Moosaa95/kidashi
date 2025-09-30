@@ -2,7 +2,7 @@ from celery import shared_task
 from decimal import Decimal
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
-from modules.service.providers import PayrepCba
+from modules.service.models import Service
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=60)
@@ -16,7 +16,9 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_
 
     activity_data = dict()
 
-    payrep = PayrepCba()
+    service = Service.get_service(code="cba01")
+    integration = service.active_integrations(channel="API").first()
+    provider = integration.get_client()
 
     total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
@@ -26,7 +28,7 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_
     }
 
     try:
-        response = payrep.create_loan_asset(token=token, **payload)
+        response = provider.create_loan_asset(token=token, **payload)
 
     except Exception as e:
         try:

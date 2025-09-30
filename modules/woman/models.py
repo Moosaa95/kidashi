@@ -77,7 +77,7 @@ class Woman(ModelMixin):
 
     def __str__(self):
         full_name = f"{self.first_name} {self.other_name} {self.surname}"
-        return f"{full_name} - {self.trust_circle.circle_name}"
+        return f"{full_name}"
 
     @classmethod
     def get_fields(cls):

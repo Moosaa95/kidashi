@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.db import transaction
 from modules.security.mixins import IsPayrepAuthenticatedMixin
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -484,12 +485,17 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             vendor=vendor,
             # next_of_kin=customer.get("next_of_kin", ""),
         )
+        try:
+            with transaction.atomic():
+                result = Woman.create_woman(**data)
+                if not result.get("status"):
+                    transaction.set_rollback(True)
+                    return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
 
-        result = Woman.create_woman(**data)
-        if not result.get("status"):
-            return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
+                return Response(data=result, status=status.HTTP_201_CREATED)
 
-        return Response(data=result, status=status.HTTP_201_CREATED)
+        except Exception:
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support", data=None), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
