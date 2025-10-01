@@ -132,11 +132,20 @@ class WomanSerializer(serializers.Serializer):
     repayment_status = serializers.CharField(max_length=20, required=False, help_text="Filter by repayment status")
     status = serializers.CharField(max_length=20, required=False, help_text="Filter by status")
     cba_customer_id = serializers.UUIDField(required=False)
+    nin = serializers.CharField(max_length=20, required=False)
+    bvn = serializers.CharField(max_length=20, required=False)
+
+
+# class FetchWomenFilterSerializer(serializers.Serializer):
+#     filters = WomanSerializer(required=False)
+#     count = serializers.IntegerField(required=False, help_text="Number of records to fetch")
 
 
 class FetchWomenFilterSerializer(serializers.Serializer):
-    filters = WomanSerializer(required=False)
-    count = serializers.IntegerField(required=False, help_text="Number of records to fetch")
+    search = serializers.CharField(required=False, help_text="Search by mobile number, NIN, BVN, or account number")
+    status = serializers.CharField(required=False, help_text="Filter by status")
+    vendor_id = serializers.UUIDField(required=False, help_text="Filter by vendor ID")
+    trust_circle_id = serializers.UUIDField(required=False, help_text="Filter by trust circle ID")
 
 
 class GetWomanBasicDetailsRequestSerializer(serializers.Serializer):

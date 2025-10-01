@@ -6,8 +6,8 @@ from modules.service.models import Service
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=60)
-def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_id=None):
-    if not asset_id or not token or not product_id or not log_id:
+def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, log_id=None):
+    if not asset_id or not token or not product_code or not log_id:
         return
 
     asset = Asset.get_asset(id=asset_id, obj=True)
@@ -23,7 +23,7 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_
     total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
         "account_number": asset.woman.account_number,
-        "loan_product_id": str(product_id),
+        "loan_product_code": str(product_code),
         "amount": float(total_amount),
     }
 

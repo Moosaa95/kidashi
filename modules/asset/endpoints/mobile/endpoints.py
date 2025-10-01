@@ -39,7 +39,7 @@ class CreateAsset(APIView):
         serializer = AssetCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        product_id = validated_data.get("product_id")
+        product_code = validated_data.get("product_code")
         vendor_id = validated_data.get("vendor_id")
         otp = validated_data.get("otp")
         try:
@@ -56,7 +56,7 @@ class CreateAsset(APIView):
                 )
 
             log = AssetActivity.create_activity(asset_id=asset.id, activity_type=AssetActivityType.ASSET_REQUEST, description="Asset requested on kidashi", performed_by_id=vendor_id)
-            create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_id=product_id, log_id=log.id)
+            create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_code=product_code, log_id=log.id)
 
             return Response(
                 data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=str(asset.id)),

@@ -520,17 +520,21 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
     def post(self, request):
         serializer = FetchWomenFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        filtered_data = serializer.validated_data or {}
+
         condition = Q()
-        for key, value in validated_data.items():
-            condition.add(Q(**{key: value}), Q.AND)
+        search_value = filtered_data.get("search")
+        if search_value:
+            condition |= Q(mobile_number__icontains=search_value)
+            condition |= Q(nin__iexact=search_value)
+            condition |= Q(bvn__iexact=search_value)
+            condition |= Q(account_number__iexact=search_value)
 
         woman = Woman.fetch_women(conditions=condition)
-
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(APIView):
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
