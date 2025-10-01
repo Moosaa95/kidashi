@@ -204,6 +204,7 @@ class GetTrustCircle(APIView):
                         "surname": woman.surname,
                         "mobile_number": woman.mobile_number,
                         "account_number": woman.account_number,
+                        "cba_customer_id": woman.cba_customer_id,
                         "loan_amount": woman.loan_amount,
                         "occupation": woman.occupation,
                         "employment_type": woman.employment_type,

@@ -5,7 +5,7 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
 from modules.vendor.models import Vendor
-from modules.vendor.serializers import FetchVendorFilterSerializer, VendorSerializer
+from modules.vendor.serializers import FetchVendorFilterSerializer, VendorDetailSerializer, VendorSerializer
 
 
 class FetchVendorsFilter(APIView):
@@ -22,6 +22,7 @@ class FetchVendorsFilter(APIView):
         print("INTERNAL=======REQUEST", request)
         filters = serializer.validated_data.get("filters", {})
         if not filters:
+            print("not filter")
             filtered = Vendor.fetch_vendors(count=50)
             return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
 
@@ -57,7 +58,8 @@ class GetVendorDetail(APIView):
             response_dict.update(message="vendor id is required")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
         vendor = Vendor.get_vendor(id=vendor_id)
-        response_dict.update(status=True, data=vendor)
+        response_serializer = VendorDetailSerializer(vendor).data
+        response_dict.update(status=True, data=response_serializer)
         return Response(response_dict, status=status.HTTP_200_OK)
 
 
