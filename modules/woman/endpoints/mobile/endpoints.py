@@ -15,6 +15,7 @@ from modules.woman.serializers import (
     FetchWomenFilterSerializer,
     GetWomanBasicDetailsRequestSerializer,
     WomanAttestationSerializer,
+    WomanDetailSerializer,
     WomanEmailVerifySerializer,
     WomanEmailRegisterSerializer,
     WomanFacialCaptureSerializer,
@@ -476,8 +477,8 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 annual_income=customer.get("annual_income", ""),
                 employment_type=customer.get("employment_type", ""),
                 account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
-                nin=customer.get("nin", ""),
-                bvn=customer.get("bvn", ""),
+                nin=(customer.get("kyc", {}).get("nin", "") if customer.get("kyc") else ""),
+                bvn=(customer.get("kyc", {}).get("bvn", "") if customer.get("kyc") else ""),
                 image=customer.get("image", ""),
                 state=customer.get("state__name", ""),
                 lga=customer.get("lga__name", ""),
@@ -529,7 +530,7 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
+class GetWomanBasicDetails(APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
@@ -553,4 +554,4 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanSerializer(woman).data), status=status.HTTP_200_OK)
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanDetailSerializer(woman).data), status=status.HTTP_200_OK)

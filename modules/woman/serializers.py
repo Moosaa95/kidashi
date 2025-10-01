@@ -141,3 +141,36 @@ class FetchWomenFilterSerializer(serializers.Serializer):
 
 class GetWomanBasicDetailsRequestSerializer(serializers.Serializer):
     cba_customer_id = serializers.UUIDField(required=True, help_text="CBA customer ID of the woman")
+
+
+class WomanDetailSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    surname = serializers.CharField(read_only=True)
+    other_name = serializers.CharField(read_only=True)
+    mobile_number = serializers.CharField(read_only=True)
+    account_number = serializers.CharField(read_only=True)
+    maximum_balance = serializers.DecimalField(max_digits=19, decimal_places=2, read_only=True)
+    tier = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    dob = serializers.DateTimeField(read_only=True)
+    nationality = serializers.CharField(read_only=True)
+    occupation = serializers.CharField(read_only=True)
+    annual_income = serializers.CharField(read_only=True)
+    employment_type = serializers.CharField(read_only=True)
+    image = serializers.CharField(read_only=True)
+    residential_address = serializers.CharField(read_only=True)
+    stage = serializers.CharField(read_only=True)
+
+    nin = serializers.CharField(read_only=True)
+    bvn = serializers.CharField(read_only=True)
+    cba_customer_id = serializers.UUIDField(read_only=True)
+    repayment_status = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+
+    vendor_id = serializers.UUIDField(read_only=True)
+    trust_circle_id = serializers.UUIDField(read_only=True)
+    geo_region = serializers.UUIDField(read_only=True)
+    state = serializers.CharField(read_only=True)
+    lga = serializers.CharField(read_only=True)
+    country = serializers.CharField(read_only=True)
