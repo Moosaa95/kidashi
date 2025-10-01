@@ -120,8 +120,8 @@ class Woman(ModelMixin):
             if self.trust_circle.is_full:
                 raise ValidationError(f"Trust circle '{self.trust_circle.circle_name}' is full")
 
-        if self.repayment_status != RepaymentStatus.NOT_APPLICABLE and self.loan_amount == 0:
-            raise ValidationError("Loan amount must be greater than 0 when repayment status is not 'Not Applicable'")
+    #         if self.repayment_status != RepaymentStatus.NOT_APPLICABLE and self.loan_amount == 0:
+    #             raise ValidationError("Loan amount must be greater than 0 when repayment status is not 'Not Applicable'")
 
     def save(self, *args, **kwargs):
         self.full_clean()
