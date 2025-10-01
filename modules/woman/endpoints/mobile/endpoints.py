@@ -1,5 +1,4 @@
 from django.db.models import Q
-from django.db import transaction
 from modules.security.mixins import IsPayrepAuthenticatedMixin
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -488,13 +487,11 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 vendor=vendor,
                 # next_of_kin=customer.get("next_of_kin", ""),
             )
-            with transaction.atomic():
-                woman = Woman.create_woman(**data)
-                if not woman:
-                    transaction.set_rollback(True)
-                    return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
+            woman = Woman.create_woman(**data)
+            if not woman:
+                return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(data=dict(status=True, woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id), message="woman created successfully"), status=status.HTTP_201_CREATED)
+            return Response(data=dict(status=True, woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id), message="woman created successfully"), status=status.HTTP_201_CREATED)
 
         except Exception as e:
             print("==========WomenOboarding", e)
@@ -520,17 +517,21 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
     def post(self, request):
         serializer = FetchWomenFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        filtered_data = serializer.validated_data or {}
+
         condition = Q()
-        for key, value in validated_data.items():
-            condition.add(Q(**{key: value}), Q.AND)
+        search_value = filtered_data.get("search")
+        if search_value:
+            condition |= Q(mobile_number__icontains=search_value)
+            condition |= Q(nin__iexact=search_value)
+            condition |= Q(bvn__iexact=search_value)
+            condition |= Q(account_number__iexact=search_value)
 
         woman = Woman.fetch_women(conditions=condition)
-
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(APIView):
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
