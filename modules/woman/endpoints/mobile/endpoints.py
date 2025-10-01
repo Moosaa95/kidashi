@@ -478,7 +478,6 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
                 nin=customer.get("nin", ""),
                 bvn=customer.get("bvn", ""),
-                dob=customer.get("dob", ""),
                 image=customer.get("image", ""),
                 state=customer.get("state__name", ""),
                 lga=customer.get("lga__name", ""),
