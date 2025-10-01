@@ -1,4 +1,4 @@
-import type { Vendor } from "@/types/global";
+import type { Vendor, VendorDetail, VendorStatus } from "@/types/global";
 import { apiSlice } from "../../apiSlice";
 
 
@@ -10,15 +10,21 @@ export interface VendorResponse {
 }
 
 
+export interface VendorDetailResponse {
+    status: boolean;
+    message: string;
+    data: VendorDetail | null;
+}
+
 
 
 const vendorApiSlice = apiSlice.injectEndpoints({
     endpoints: builder => ({
-        getVendorDetail: builder.mutation({
+        getVendorDetail: builder.mutation<VendorDetailResponse, { vendor_id: string }>({
             query: ({ vendor_id }) => ({
                 url: 'vendor/staff/get_vendor_details',
                 method: 'POST',
-                body: { id: vendor_id }
+                body: { vendor_id }
             }),
         }),
         fetchVendors: builder.query<VendorResponse, Record<string, unknown> | void>({
@@ -35,11 +41,11 @@ const vendorApiSlice = apiSlice.injectEndpoints({
         //         body: { ...filters }
         //     }),
         // }),
-        updateVendorApplicationStatus: builder.mutation<{ status: boolean; message: string }, { vendor_id: string }>({
-            query: ({ vendor_id }) => ({
+        updateVendorApplicationStatus: builder.mutation<{ status: boolean; message: string }, { vendor_id: string; status: VendorStatus | string }>({
+            query: ({ vendor_id, status }) => ({
                 url: 'vendor/staff/update_vendor_application_status',
                 method: 'POST',
-                body: { id: vendor_id }
+                body: { vendor_id, status }
             }),
         }),
     }),

@@ -1,5 +1,5 @@
-from django.utils import timezone
 from django.db import models
+from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.core.validators import RegexValidator
 from typing import TYPE_CHECKING
@@ -19,6 +19,7 @@ class Vendor(ModelMixin):
     other_name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=20, unique=True)
     email = models.EmailField(blank=True, null=True)
+    business_name = models.CharField(max_length=255, blank=True, null=True)
     business_type = models.CharField(max_length=20, choices=BusinessTypes.choices)
     business_description = models.TextField(blank=True, null=True)
     address = models.CharField(max_length=255, db_index=True)
@@ -82,12 +83,18 @@ class Vendor(ModelMixin):
 
     @classmethod
     def fetch_vendors(cls, conditions=None, count=None):
-        queryset = None
+        queryset = cls.objects.all()
+
         if conditions:
-            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+            if isinstance(conditions, Q):
+                queryset = queryset.filter(conditions)
+            elif isinstance(conditions, dict):
+                queryset = queryset.filter(**conditions)
+
+        queryset = queryset.order_by("-created_at").values(*cls.get_fields())
 
         if count:
-            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
+            queryset = queryset[: int(count)]
 
         return list(queryset)
 

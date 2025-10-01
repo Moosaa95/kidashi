@@ -30,6 +30,7 @@ function getCookie(name: string) {
 
 const csrftoken = getCookie("csrftoken");
 
+console.log("CSRF", csrftoken);
 
 const baseQuery = fetchBaseQuery({
     baseUrl: config.apiUrl,
