@@ -5,7 +5,7 @@ from common.functions import gen_random_key
 from common.mixins import ModelMixin
 from modules.asset.enums import AssetStatus
 from modules.general.enums import CustomerStage
-from modules.general.models import GeoRegion, State, LocalGovernment, Country
+from modules.general.models import GeoRegion
 from modules.woman.enums import RepaymentStatus, WomanStatus
 from django.core.validators import RegexValidator
 from datetime import date
@@ -63,9 +63,12 @@ class Woman(ModelMixin):
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
     trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="women", help_text="Trust circle this woman belongs to", null=True, blank=True)
     geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
-    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
-    lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
-    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    lga = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    # state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
+    # lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
+    # country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = "women"
