@@ -97,7 +97,7 @@ class Asset(ModelMixin):
 
     @classmethod
     def fetch_asset_summaries(cls, member_id=None, conditions=None):
-        queryset = cls.objects
+        queryset = cls.objects.all()
 
         if conditions:
             queryset = queryset.filter(conditions)
