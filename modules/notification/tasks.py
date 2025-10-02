@@ -8,6 +8,7 @@ from celery import shared_task
 
 from modules.notification.enums import NotificationChannel, NotificationStatus
 from modules.notification.models import Notification
+from modules.service.enums import ServiceCode
 from modules.service.models import Service
 
 # from django.conf import settings
@@ -146,7 +147,7 @@ def send_sms(message, recipient):
     print(message)
     print(recipient)
     provider = None
-    service = Service.get_service(code="sms01")
+    service = Service.get_service(code=ServiceCode.SMS_CODE)
     integration = service.active_integrations(channel="API").first()
 
     provider = integration.get_client()
