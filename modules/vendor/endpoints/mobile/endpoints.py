@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from modules.security.mixins import IsPayrepAuthenticatedMixin
+from modules.service.enums import ServiceCode
 from modules.service.models import Service
 from modules.vendor.models import Guarantor, OnboardingActivityLogs, Vendor
 from modules.vendor.serializers import GetVendorDetailRequestSerializer, VendorBusinessOnboardingSerializer, VendorDetailSerializer
@@ -42,7 +43,7 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
             if not token:
                 return Response({"status": False, "message": "Authorization token required"}, status=status.HTTP_401_UNAUTHORIZED)
             provider = None
-            service = Service.get_service(code="cba01")
+            service = Service.get_service(code=ServiceCode.CBA_CODE)
             integration = service.active_integrations(channel="API").first()
             provider = integration.get_client()
             cba_customer_data = provider.get_cba_customer_details(cba_customer_id, token)

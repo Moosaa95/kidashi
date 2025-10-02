@@ -2,6 +2,7 @@ from celery import shared_task
 from decimal import Decimal
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
+from modules.service.enums import ServiceCode
 from modules.service.models import Service
 
 
@@ -16,7 +17,7 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
 
     activity_data = dict()
 
-    service = Service.get_service(code="cba01")
+    service = Service.get_service(code=ServiceCode.CBA_CODE)
     integration = service.active_integrations(channel="API").first()
     provider = integration.get_client()
 
