@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
+from modules.service.enums import ServiceCode
 from modules.service.models import Service
 from modules.vendor.models import Vendor
 from modules.woman.models import Woman
@@ -60,7 +61,7 @@ class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
             type=serializer.validated_data.get("type", "INDIVIDUAL"),
         )
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("verify_mobile", payload=payload, token=request.payrep_token)
@@ -84,7 +85,7 @@ class RegisterWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
             type=serializer.validated_data.get("type", "INDIVIDUAL"),
         )
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("register_mobile", payload=payload, token=request.payrep_token)
@@ -103,7 +104,7 @@ class VerifyWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(email=serializer.validated_data["email"])
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("verify_email", payload=payload, token=request.payrep_token)
@@ -126,7 +127,7 @@ class RegisterWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
             otp=serializer.validated_data["otp"],
         )
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("register_email", payload=payload, token=request.payrep_token)
@@ -145,7 +146,7 @@ class UpdateWomanNationality(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(nationality=serializer.validated_data["nationality"])
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("nationality", payload=payload, token=request.payrep_token)
@@ -167,7 +168,7 @@ class WomanNinLookup(IsPayrepAuthenticatedMixin, APIView):
             nin=serializer.validated_data["nin"],
         )
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("nin_lookup", payload=payload, token=request.payrep_token)
@@ -189,7 +190,7 @@ class WomanBvnLookup(IsPayrepAuthenticatedMixin, APIView):
             bvn=serializer.validated_data["bvn"],
         )
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("bvn_lookup", payload=payload, token=request.payrep_token)
@@ -208,7 +209,7 @@ class WomanVerificationCheck(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(verification=serializer.validated_data["verification"])
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("verification_check", payload=payload, token=request.payrep_token)
@@ -234,7 +235,7 @@ class WomanLocationSetup(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -258,7 +259,7 @@ class WomanNextOfKin(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("next_of_kin", payload=payload, token=request.payrep_token)
@@ -282,7 +283,7 @@ class WomanIdentificationCheck(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -307,7 +308,7 @@ class WomanPep(IsPayrepAuthenticatedMixin, APIView):
         payload = dict(is_pep=serializer.validated_data["is_pep"])
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -336,7 +337,7 @@ class WomanSourceOfIncome(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -360,7 +361,7 @@ class WomanManualCustomerDetails(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action("manual_customer_details", payload=payload, token=request.payrep_token)
@@ -380,7 +381,7 @@ class WomanFacialCapture(IsPayrepAuthenticatedMixin, APIView):
         payload = dict(file=serializer.validated_data["file"])
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -414,7 +415,7 @@ class WomanAttestation(IsPayrepAuthenticatedMixin, APIView):
 
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        service = Service.get_service(code="cba01")
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
         result = provider.customer_action(
@@ -456,7 +457,7 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             if not vendor:
                 return Response(dict(status=False, message="Vendor not found"), status=status.HTTP_404_NOT_FOUND)
 
-            service = Service.get_service(code="cba01")
+            service = Service.get_service(code=ServiceCode.CBA_CODE)
             integration = service.active_integrations(channel="API").first()
             provider = integration.get_client()
             cba_customer_data = provider.get_cba_customer_details(woman_cba_customer_id, token=request.payrep_token)
@@ -485,9 +486,8 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
                 email=customer.get("email"),
                 mobile_number=customer.get("mobile_number"),
                 vendor=vendor,
-                # next_of_kin=customer.get("next_of_kin", ""),
-                # TODO: add tier to this
-                # TODO: tier maxiumum balance
+                tier=(customer.get("tier", {}).get("name") if customer.get("tier") else ""),
+                maximum_balance=(customer.get("tier", {}).get("maximum_balance") if customer.get("tier") else ""),
             )
             woman = Woman.create_woman(**data)
             if not woman:
