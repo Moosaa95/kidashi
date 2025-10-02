@@ -102,7 +102,7 @@ class PayrepCba(BaseCbaClient):
         url = f"{self.base_url}/customer/mobile/customer_basic/{cba_customer_id}"
         return self.send_request(url, method="get", token=token)
 
-    def create_loan_asset(self, token, payload):
+    def create_loan_asset(self, payload, token):
         url = f"{self.base_url}/loan/mobile/book_loan"
         response = self.send_request(url, data=payload, method="post", token=token)
         if not response.get("req_status"):

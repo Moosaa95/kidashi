@@ -17,7 +17,7 @@ class Asset(ModelMixin):
     # Foreign key to woman who requested the asset
     woman = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="assets_requested", null=True, blank=True)
     loan_id = models.UUIDField(blank=True, null=True, unique=True, help_text="Loan ID from the bank system for the asset financing", db_index=True)
-    loan_product_id = models.UUIDField(blank=True, null=True, help_text="Loan Product ID from the bank system for the asset financing", db_index=True)
+    product_code = models.CharField(blank=True, null=True, help_text="Loan Product Code from the bank system for the asset financing", db_index=True)
     items_requested = models.JSONField(
         help_text="List of items the woman wants to purchase",
         default=list,
@@ -33,6 +33,7 @@ class Asset(ModelMixin):
             "markup",
             "status",
             "loan_id",
+            "product_code",
             "created_at",
             "items_requested",
             "woman__id",
@@ -46,7 +47,8 @@ class Asset(ModelMixin):
     @classmethod
     def create_asset(cls, **kwargs):
         try:
-            return cls.objects.create(**kwargs)
+            obj = cls.objects.create(**kwargs)
+            return obj
         except IntegrityError:
             return None
 
@@ -78,12 +80,12 @@ class Asset(ModelMixin):
             with transaction.atomic():
                 asset = cls.objects.select_for_update().get(id=asset_id)
                 if asset.loan_id:
-                    return dict(status=False, message="Loan ID already assigned", loan_id=asset.loan_id)
+                    return dict(status=False, message="Loan ID already assigned", loan_id=str(asset.loan_id))
 
                 asset.loan_id = loan_id
                 asset.status = AssetStatus.REQUESTED
                 asset.save(update_fields=["loan_id", "status"])
-                return dict(status=True, message="Loan ID set", loan_id=asset.loan_id)
+                return dict(status=True, message="Loan ID set", loan_id=str(asset.loan_id))
 
         except cls.DoesNotExist:
             return dict(status=False, message="Asset not found")
@@ -116,18 +118,14 @@ class Asset(ModelMixin):
 
         if member_id:
             today = timezone.now().date()
-            count_filters.update({
-                "member_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                "member_completed_assets": Count(
-                    "id",
-                    filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)
-                ),
-                "member_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                "member_completed_value": Sum(
-                    "value",
-                    filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)
-                ),
-            })
+            count_filters.update(
+                {
+                    "member_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                    "member_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                    "member_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                    "member_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                }
+            )
 
         return queryset.aggregate(**count_filters)
 
