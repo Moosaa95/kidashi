@@ -24,6 +24,7 @@ class Asset(ModelMixin):
         blank=True,
     )
 
+    @classmethod
     def get_fields(cls):
         return [
             "id",
@@ -54,7 +55,6 @@ class Asset(ModelMixin):
         queryset = None
         if conditions:
             queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
-
         if count:
             queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
         return list(queryset)
@@ -67,7 +67,7 @@ class Asset(ModelMixin):
             if obj:
                 asset = query_set.get(**filters)
             else:
-                asset = query_set.filter(**filters).values(*cls.get_fields())[0]
+                asset = query_set.filter(**filters).values(*cls.get_fields()).first()
         except cls.DoesNotExist:
             asset = None
         return asset
@@ -97,8 +97,7 @@ class Asset(ModelMixin):
 
     @classmethod
     def fetch_asset_summaries(cls, member_id=None, conditions=None):
-        today = timezone.now().date()
-        queryset = cls.objects.all()
+        queryset = cls.objects
 
         if conditions:
             queryset = queryset.filter(conditions)
@@ -116,26 +115,19 @@ class Asset(ModelMixin):
         }
 
         if member_id:
-            count_filters.update(
-                member_ongoing_assets=Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                member_completed_assets=Count(
+            today = timezone.now().date()
+            count_filters.update({
+                "member_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                "member_completed_assets": Count(
                     "id",
-                    filter=Q(
-                        status__in=completed_statuses,
-                        woman_id=member_id,
-                        created_at__date=today,
-                    ),
+                    filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)
                 ),
-                member_ongoing_value=Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                member_completed_value=Sum(
+                "member_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                "member_completed_value": Sum(
                     "value",
-                    filter=Q(
-                        status__in=completed_statuses,
-                        woman_id=member_id,
-                        created_at__date=today,
-                    ),
+                    filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)
                 ),
-            )
+            })
 
         return queryset.aggregate(**count_filters)
 
