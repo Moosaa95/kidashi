@@ -493,7 +493,17 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             if not woman:
                 return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(data=dict(status=True, woman_id=str(woman.id), woman_cba_customer_id=str(woman.cba_customer_id), message="woman created successfully"), status=status.HTTP_201_CREATED)
+            return Response(
+                data=dict(
+                    status=True,
+                    woman_id=str(woman.id),
+                    woman_cba_customer_id=str(woman.cba_customer_id),
+                    account_number=str(woman.account_number),
+                    tier_type=woman.tier,
+                    message="woman created successfully",
+                ),
+                status=status.HTTP_201_CREATED,
+            )
 
         except Exception as e:
             print("==========WomenOboarding", e)
