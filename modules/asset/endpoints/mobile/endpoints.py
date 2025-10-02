@@ -2,6 +2,7 @@ from django.db.models import Q
 from modules.asset.enums import AssetActivityType
 from modules.asset.tasks import create_loan_in_payrep
 from modules.security.enums import OtpPurpose
+from modules.security.mixins import IsPayrepAuthenticatedMixin
 from modules.security.models import OTP
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -18,7 +19,7 @@ from modules.asset.serializers import (
 )
 
 
-class CreateAsset(APIView):
+class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Kidashi Assets"],
         description="Create a new asset request for a woman",

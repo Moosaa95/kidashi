@@ -16,7 +16,6 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
         return
 
     activity_data = dict()
-
     service = Service.get_service(code=ServiceCode.CBA_CODE)
     integration = service.active_integrations(channel="API").first()
     provider = integration.get_client()
@@ -24,12 +23,12 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
     total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
         "account_number": asset.woman.account_number,
-        "loan_product_code": str(product_code),
+        "product_code": str(product_code),
         "amount": float(total_amount),
     }
 
     try:
-        response = provider.create_loan_asset(token=token, **payload)
+        response = provider.create_loan_asset(payload, token=token)
 
     except Exception as e:
         try:
@@ -44,7 +43,6 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
             )
         return
     ok = bool(response.get("req_status") and response.get("status"))
-
     if ok and response.get("loan_id"):
         assign_result = Asset.assign_loan_id(asset_id=asset.id, loan_id=response["loan_id"])
         if assign_result.get("status"):
