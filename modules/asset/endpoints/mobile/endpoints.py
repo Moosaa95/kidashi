@@ -42,7 +42,7 @@ class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
         validated_data = serializer.validated_data
         product_code = validated_data.get("product_code")
         vendor_id = validated_data.get("vendor_id")
-        otp = validated_data.get("otp")
+        otp = validated_data.pop("otp")
         try:
 
             otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
