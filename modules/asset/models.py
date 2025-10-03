@@ -36,7 +36,7 @@ class Asset(ModelMixin):
             "product_code",
             "created_at",
             "items_requested",
-            "woman__id",
+            "woman_id",
             "woman__first_name",
             "woman__surname",
             "vendor__id",
@@ -104,12 +104,16 @@ class Asset(ModelMixin):
         if conditions:
             queryset = queryset.filter(conditions)
 
-        ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
-        completed_statuses = [AssetStatus.REJECTED, AssetStatus.FAILED]
+        pending_statuses = [AssetStatus.REQUESTED, AssetStatus.QUERIED]
+        ongoing_statuses = [AssetStatus.APPROVED]
+        completed_statuses = [AssetStatus.CLOSED]
+        failed_statuses = [AssetStatus.REJECTED, AssetStatus.FAILED]
 
         count_filters = {
+            "total_pending_assets": Count("id", filter=Q(status__in=pending_statuses)),
             "total_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses)),
             "total_completed_assets": Count("id", filter=Q(status__in=completed_statuses)),
+            "total_failed_assets": Count("id", filter=Q(status__in=failed_statuses)),
             "total_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses)),
             "total_completed_value": Sum("value", filter=Q(status__in=completed_statuses)),
             "total_ongoing_markup": Sum("markup", filter=Q(status__in=ongoing_statuses)),
@@ -121,9 +125,13 @@ class Asset(ModelMixin):
             count_filters.update(
                 {
                     "member_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                    "member_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                    "member_today_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                    "member_total_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id)),
+                    "member_pending_assets": Count("id", filter=Q(status__in=pending_statuses, woman_id=member_id)),
+                    "member_failed_assets": Count("id", filter=Q(status__in=failed_statuses, woman_id=member_id)),
                     "member_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
-                    "member_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                    "member_total_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id)),
+                    "member_today_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
                 }
             )
 

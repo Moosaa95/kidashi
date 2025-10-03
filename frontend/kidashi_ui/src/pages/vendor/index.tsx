@@ -20,16 +20,12 @@ export default function VendorManagement() {
 
     const { data: vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery();
 
-    console.log("VENDEOEOEOE", vendorsData);
-
-
     const isLoading = isLoadingVendors;
 
     const filter = useAppSelector((state) => state.vendors.filter);
     const stats = useAppSelector((state) => state.vendors.stats);
     const vendors = useAppSelector((state) => state.vendors.vendors)
 
-    console.log("FILTER:", filter);
 
     const statsData: StatProps[] = [
         {

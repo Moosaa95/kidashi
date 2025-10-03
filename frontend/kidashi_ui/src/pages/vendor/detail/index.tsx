@@ -163,28 +163,28 @@ export default function VendorDetailPage() {
         setErrorMessage(null)
         setActionFeedback(null)
 
-        ;(async () => {
-            try {
-                const response = await getVendorDetail({ vendor_id: id }).unwrap()
-                if (!isMounted) return
+            ; (async () => {
+                try {
+                    const response = await getVendorDetail({ vendor_id: id }).unwrap()
+                    if (!isMounted) return
 
-                if (!response.status || !response.data) {
+                    if (!response.status || !response.data) {
+                        setVendor(null)
+                        setErrorMessage(response.message || "Vendor not found")
+                        return
+                    }
+
+                    setVendor(response.data)
+                } catch (error) {
+                    if (!isMounted) return
                     setVendor(null)
-                    setErrorMessage(response.message || "Vendor not found")
-                    return
+                    setErrorMessage(getErrorMessage(error, "Unable to fetch vendor details"))
+                } finally {
+                    if (isMounted) {
+                        setIsFetchingVendor(false)
+                    }
                 }
-
-                setVendor(response.data)
-            } catch (error) {
-                if (!isMounted) return
-                setVendor(null)
-                setErrorMessage(getErrorMessage(error, "Unable to fetch vendor details"))
-            } finally {
-                if (isMounted) {
-                    setIsFetchingVendor(false)
-                }
-            }
-        })()
+            })()
 
         return () => {
             isMounted = false
@@ -209,7 +209,7 @@ export default function VendorDetailPage() {
         }
     }
 
-    const handleApprove = () => handleStatusChange("APPROVED")
+    const handleApprove = () => handleStatusChange("ACTIVE")
     const handleReject = () => handleStatusChange("REJECTED")
 
     if (isFetchingVendor) {
@@ -326,11 +326,10 @@ export default function VendorDetailPage() {
                                     </div>
                                     {actionFeedback && (
                                         <p
-                                            className={`text-sm ${
-                                                actionFeedback.type === "success"
+                                            className={`text-sm ${actionFeedback.type === "success"
                                                     ? "text-green-600"
                                                     : "text-destructive"
-                                            }`}
+                                                }`}
                                         >
                                             {actionFeedback.message}
                                         </p>
