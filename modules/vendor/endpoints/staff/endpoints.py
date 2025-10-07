@@ -13,6 +13,7 @@ from modules.vendor.serializers import (
     VendorDetailSerializer,
     VendorSerializer,
 )
+from modules.vendor.tasks import notify_vendor_status_change
 
 
 class FetchVendorsFilter(APIView):
@@ -98,6 +99,7 @@ class UpdateVendorApplicationStatus(APIView):
         if not updated_count:
             response_dict.update(message="Vendor status update failed")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        notify_vendor_status_change.delay(vendor_id, status_value)
         response_dict.update(status=True, message="Vendor status updated successfully")
         return Response(response_dict, status=status.HTTP_200_OK)
 
