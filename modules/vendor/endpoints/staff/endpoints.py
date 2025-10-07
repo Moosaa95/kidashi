@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
+from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
 from modules.vendor.serializers import FetchVendorFilterSerializer, VendorDetailSerializer, VendorSerializer
 
@@ -78,9 +79,18 @@ class UpdateVendorApplicationStatus(APIView):
         if not vendor_id or not status_value:
             response_dict.update(message="vendor id and status are required")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        vendor = Vendor.get_vendor(id=vendor_id)
+        if not vendor:
+            response_dict.update(message="vendor not found")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
+        if status_value == VendorStatus.ACTIVE and not Vendor.can_be_activated(vendor_id):
+            response_dict.update(message="Vendor cannot be activated — requires two verified guarantors.")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
         updated_count = Vendor.update_vendor(filters={"id": vendor_id}, params={"status": status_value})
         if not updated_count:
-            response_dict.update(message="No vendor found or update failed")
+            response_dict.update(message="Vendor status update failed")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
         response_dict.update(status=True, message="Vendor status updated successfully")
         return Response(response_dict, status=status.HTTP_200_OK)

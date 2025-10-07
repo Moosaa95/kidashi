@@ -75,7 +75,7 @@ export default function DashboardOverview() {
     dispatch(setFilter("pending"))
     console.log(name);
 
-    navigate(`/dashboard/vendors/${id}`)
+    navigate(`/vendors/${id}`)
   }
 
   const handleDismissAlert = (id: string) => {

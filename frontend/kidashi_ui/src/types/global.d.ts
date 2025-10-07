@@ -132,15 +132,73 @@ export interface TrustCircles {
 }
 
 
-export interface WomenMember {
+export interface WomanSummary {
     id: string
-    circleId: string
-    vendorId: string
-    name: string
-    phone: string
-    loanAmount: number
-    repaymentStatus: "current" | "repaid" | "overdue" | "defaulted"
-    joinDate: string
+    first_name: string
+    surname: string
+    other_name?: string | null
+    mobile_number: string
+    account_number?: string | null
+    maximum_balance?: string | number | null
+    tier?: string | null
+    email?: string | null
+    dob?: string | null
+    nationality?: string | null
+    occupation?: string | null
+    annual_income?: string | null
+    employment_type?: string | null
+    image?: string | null
+    residential_address?: string | null
+    stage?: string | null
+    nin?: string | null
+    bvn?: string | null
+    cba_customer_id?: string | null
+    repayment_status?: string | null
+    status?: string | null
+    vendor?: string | null
+    trust_circle?: string | null
+    geo_region?: string | null
+    state?: string | null
+    lga?: string | null
+    country?: string | null
+}
+
+export interface WomanDetail {
+    id: string
+    first_name: string
+    surname: string
+    other_name: string | null
+    mobile_number: string
+    account_number: string | null
+    maximum_balance: string | null
+    tier: string | null
+    email: string | null
+    dob: string | null
+    nationality: string | null
+    occupation: string | null
+    annual_income: string | null
+    employment_type: string | null
+    image: string | null
+    residential_address: string | null
+    stage: string | null
+    nin: string | null
+    bvn: string | null
+    cba_customer_id: string | null
+    repayment_status: string | null
+    status: string | null
+    vendor_id: string | null
+    trust_circle_id: string | null
+    geo_region: string | null
+    state: string | null
+    lga: string | null
+    country: string | null
+}
+
+export interface WomanFilters {
+    search?: string
+    status?: string
+    vendor_id?: string
+    trust_circle_id?: string
 }
 
 

@@ -111,6 +111,10 @@ class Vendor(ModelMixin):
             return False
         return cls.objects.filter(**filters).update(**params)
 
+    @classmethod
+    def can_be_activated(cls, vendor_id: str) -> bool:
+        return Guarantor.has_two_verified(vendor_id)
+
 
 class Guarantor(ModelMixin):
     first_name = models.CharField(max_length=255)
@@ -176,6 +180,14 @@ class Guarantor(ModelMixin):
             return cls.objects.get(**filters)
         except cls.DoesNotExist:
             return False
+
+    @classmethod
+    def has_two_verified(cls, vendor_id: str) -> bool:
+        gurantors = cls.objects.filter(vendor_id=vendor_id)
+        if gurantors.count() < 2:
+            return False
+
+        return gurantors.filter(verification_status=GurantorVerificationStatus.VERIFIED).count() >= 2
 
 
 class OnboardingActivityLogs(ModelMixin):

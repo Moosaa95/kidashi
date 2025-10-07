@@ -22,6 +22,7 @@ import {
     useGetVendorDetailMutation,
     useUpdateVendorApplicationStatusMutation,
 } from "@/states/api/endpoints/vendors/vendorApiSlice"
+import { toast } from "sonner"
 
 interface ActionFeedback {
     type: "success" | "error"
@@ -152,6 +153,7 @@ export default function VendorDetailPage() {
     const [getVendorDetail] = useGetVendorDetailMutation()
     const [updateVendorStatus, { isLoading: isUpdatingStatus }] = useUpdateVendorApplicationStatusMutation()
 
+
     useEffect(() => {
         if (!id) {
             setErrorMessage("Vendor id is required")
@@ -191,26 +193,51 @@ export default function VendorDetailPage() {
         }
     }, [id, getVendorDetail])
 
+    // const handleStatusChange = async (nextStatus: VendorStatus | string) => {
+    //     if (!vendor) return
+
+    //     setActionFeedback(null)
+    //     try {
+    //         const response = await updateVendorStatus({ vendor_id: vendor.id, status: nextStatus }).unwrap()
+    //         console.log("============RESPONSE");
+    //         console.log(response);
+
+
+    //         if (!response.status) {
+    //             setActionFeedback({ type: "error", message: response.message || "Unable to update vendor status" })
+    //             return
+    //         }
+
+    //         setVendor(prev => (prev ? { ...prev, status: nextStatus } : prev))
+    //         setActionFeedback({ type: "success", message: response.message || "Vendor status updated successfully" })
+    //     } catch (error) {
+    //         setActionFeedback({ type: "error", message: getErrorMessage(error, "Unable to update vendor status") })
+    //     }
+    // }
     const handleStatusChange = async (nextStatus: VendorStatus | string) => {
         if (!vendor) return
 
-        setActionFeedback(null)
         try {
-            const response = await updateVendorStatus({ vendor_id: vendor.id, status: nextStatus }).unwrap()
+            const response = await updateVendorStatus({
+                vendor_id: vendor.id,
+                status: nextStatus,
+            }).unwrap()
+
             if (!response.status) {
-                setActionFeedback({ type: "error", message: response.message || "Unable to update vendor status" })
+                toast.error(response.message || "Unable to update vendor status")
                 return
             }
 
-            setVendor(prev => (prev ? { ...prev, status: nextStatus } : prev))
-            setActionFeedback({ type: "success", message: response.message || "Vendor status updated successfully" })
+            setVendor((prev) => (prev ? { ...prev, status: nextStatus } : prev))
+            toast.success(response.message || "Vendor status updated successfully")
         } catch (error) {
-            setActionFeedback({ type: "error", message: getErrorMessage(error, "Unable to update vendor status") })
+            toast.error(getErrorMessage(error, "Unable to update vendor status"))
         }
     }
 
     const handleApprove = () => handleStatusChange("ACTIVE")
     const handleReject = () => handleStatusChange("REJECTED")
+    const handleSuspend = () => handleStatusChange("SUSPENDED")
 
     if (isFetchingVendor) {
         return (
@@ -267,8 +294,13 @@ export default function VendorDetailPage() {
             })
             : defaultDocuments
     const statusLabel = formatStatusLabel(vendor.status)
-    const canApprove = vendor.status ? vendor.status.toUpperCase() !== "APPROVED" : true
-    const canReject = vendor.status ? vendor.status.toUpperCase() !== "REJECTED" : true
+    const status = vendor.status?.toUpperCase()
+
+    const canApprove = ["PENDING", "REJECTED", "SUSPENDED"].includes(status)
+    const canReject = ["PENDING"].includes(status)
+    const canSuspend = status === "ACTIVE"
+    // const canApprove = vendor.status ? vendor.status.toUpperCase() !== "ACTIVE" : true
+    // const canReject = vendor.status ? vendor.status.toUpperCase() !== "REJECTED" : true
     const initialsSource = vendorName || vendor.business_name || "Vendor"
     const initials = initialsSource
         .split(" ")
@@ -299,43 +331,52 @@ export default function VendorDetailPage() {
                                     <Badge className={`mt-2 ${getStatusBadgeClass(vendor.status)}`}>{statusLabel}</Badge>
                                 </div>
                             </div>
-                            {(canApprove || canReject) && (
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex flex-wrap gap-2">
-                                        {canApprove && (
-                                            <Button
-                                                onClick={handleApprove}
-                                                disabled={isUpdatingStatus}
-                                                className="gap-1 bg-green-600 hover:bg-green-700 text-white"
-                                            >
-                                                <CheckCircle className="h-4 w-4" />
-                                                {isUpdatingStatus ? "Processing..." : "Approve"}
-                                            </Button>
-                                        )}
-                                        {canReject && (
-                                            <Button
-                                                onClick={handleReject}
-                                                disabled={isUpdatingStatus}
-                                                variant="destructive"
-                                                className="gap-1"
-                                            >
-                                                <XCircle className="h-4 w-4" />
-                                                {isUpdatingStatus ? "Processing..." : "Reject"}
-                                            </Button>
-                                        )}
-                                    </div>
-                                    {actionFeedback && (
-                                        <p
-                                            className={`text-sm ${actionFeedback.type === "success"
-                                                    ? "text-green-600"
-                                                    : "text-destructive"
-                                                }`}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-wrap gap-2">
+                                    {canApprove && (
+                                        <Button
+                                            onClick={handleApprove}
+                                            disabled={isUpdatingStatus}
+                                            className="gap-1 bg-green-600 hover:bg-green-700 text-white"
                                         >
-                                            {actionFeedback.message}
-                                        </p>
+                                            <CheckCircle className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Approve"}
+                                        </Button>
+                                    )}
+                                    {canReject && (
+                                        <Button
+                                            onClick={handleReject}
+                                            disabled={isUpdatingStatus}
+                                            variant="destructive"
+                                            className="gap-1"
+                                        >
+                                            <XCircle className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Reject"}
+                                        </Button>
+                                    )}
+                                    {canSuspend && (
+                                        <Button
+                                            onClick={handleSuspend}
+                                            disabled={isUpdatingStatus}
+                                            variant="secondary"
+                                            className="gap-1 bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                        >
+                                            <Shield className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Suspend"}
+                                        </Button>
                                     )}
                                 </div>
-                            )}
+                                {actionFeedback && (
+                                    <p
+                                        className={`text-sm ${actionFeedback.type === "success"
+                                            ? "text-green-600"
+                                            : "text-destructive"
+                                            }`}
+                                    >
+                                        {actionFeedback.message}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
