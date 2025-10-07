@@ -189,6 +189,16 @@ class Guarantor(ModelMixin):
 
         return gurantors.filter(verification_status=GurantorVerificationStatus.VERIFIED).count() >= 2
 
+    @classmethod
+    def update_guarantor(cls, guarantor_id, **kwargs):
+        try:
+            updated_count = cls.objects.filter(id=guarantor_id).update(**kwargs)
+            if not updated_count:
+                return None
+            return cls.objects.only(*kwargs.keys()).get(id=guarantor_id)
+        except cls.DoesNotExist:
+            return None
+
 
 class OnboardingActivityLogs(ModelMixin):
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities", null=True, blank=True)

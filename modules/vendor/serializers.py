@@ -1,10 +1,11 @@
 from common.functions import parse_and_format_date
 from common.validators import validate_mobile_number
-from modules.vendor.enums import BusinessTypes
+from modules.vendor.enums import BusinessTypes, GurantorVerificationStatus
 from rest_framework import serializers
 
 
 class GuarantorDetailSerializer(serializers.Serializer):
+    id = serializers.UUIDField(required=False)
     first_name = serializers.CharField(max_length=255)
     surname = serializers.CharField(max_length=255)
     other_name = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
@@ -18,6 +19,15 @@ class GuarantorDetailSerializer(serializers.Serializer):
     dob = serializers.CharField(required=False, max_length=20)
     nationality = serializers.CharField(required=False, max_length=100)
     verification_status = serializers.CharField(required=False)
+
+
+class GuarantorVerificationUpdateSerializer(serializers.Serializer):
+    guarantor_id = serializers.UUIDField()
+    verification_status = serializers.ChoiceField(
+        choices=GurantorVerificationStatus.choices,
+        required=False,
+        help_text="Desired guarantor verification status",
+    )
 
 
 class VendorBusinessOnboardingSerializer(serializers.Serializer):

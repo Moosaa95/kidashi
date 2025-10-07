@@ -72,6 +72,16 @@ export interface VendorGuarantor {
     relationship?: string | null
     email?: string | null
     verification_status?: string | null
+    nin?: string | null
+    gender?: string | null
+    dob?: string | null
+    nationality?: string | null
+    geo_region?: string | null
+    state?: string | null
+    state_id?: string | null
+    lga?: string | null
+    lga_id?: string | null
+    country?: string | null
 }
 
 export interface VendorDetail {
