@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "react-router"
 import {
     CheckCircle,
+    ChevronRight,
     FileText,
     Loader2,
     Shield,
@@ -17,11 +18,14 @@ import StatCard, { type StatProps } from "@/components/dashboard/StatCard"
 import { DataTable } from "@/components/datatable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
-import type { VendorDetail, VendorStatus } from "@/types/global"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import type { VendorDetail, VendorGuarantor, VendorStatus } from "@/types/global"
 import {
     useGetVendorDetailMutation,
+    useUpdateGuarantorVerificationStatusMutation,
     useUpdateVendorApplicationStatusMutation,
 } from "@/states/api/endpoints/vendors/vendorApiSlice"
+import { toast } from "sonner"
 
 interface ActionFeedback {
     type: "success" | "error"
@@ -107,6 +111,42 @@ const getErrorMessage = (error: unknown, fallback: string) => {
     return fallback
 }
 
+const guarantorStatusVariants: Record<string, string> = {
+    verified: "bg-green-100 text-green-800",
+    pending: "bg-yellow-100 text-yellow-800",
+    rejected: "bg-red-100 text-red-800",
+    failed: "bg-red-100 text-red-800",
+}
+
+const getVerificationBadgeClass = (status?: string | null) => {
+    if (!status) return "bg-yellow-100 text-yellow-800"
+    return guarantorStatusVariants[status.toLowerCase()] ?? "bg-muted text-muted-foreground"
+}
+
+const formatGuarantorStatus = (status?: string | null) => {
+    if (!status) return "Pending"
+    return status
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .replace(/(^|\s)\w/g, (char) => char.toUpperCase())
+}
+
+const formatDateValue = (dateString?: string | null) => {
+    if (!dateString) return "N/A"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) {
+        return dateString
+    }
+    return date.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    })
+}
+
+const buildGuarantorName = (guarantor: Pick<VendorGuarantor, "first_name" | "other_name" | "surname">) =>
+    [guarantor.first_name, guarantor.other_name, guarantor.surname].filter(Boolean).join(" ")
+
 const buildStatData = (
     vendor: VendorDetail,
     trustCirclesCount: number,
@@ -148,9 +188,14 @@ export default function VendorDetailPage() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null)
     const [isFetchingVendor, setIsFetchingVendor] = useState(false)
+    const [selectedGuarantor, setSelectedGuarantor] = useState<VendorGuarantor | null>(null)
+    const [isGuarantorModalOpen, setIsGuarantorModalOpen] = useState(false)
 
     const [getVendorDetail] = useGetVendorDetailMutation()
     const [updateVendorStatus, { isLoading: isUpdatingStatus }] = useUpdateVendorApplicationStatusMutation()
+    const [updateGuarantorVerificationStatus, { isLoading: isUpdatingGuarantor }] =
+        useUpdateGuarantorVerificationStatusMutation()
+
 
     useEffect(() => {
         if (!id) {
@@ -163,54 +208,131 @@ export default function VendorDetailPage() {
         setErrorMessage(null)
         setActionFeedback(null)
 
-        ;(async () => {
-            try {
-                const response = await getVendorDetail({ vendor_id: id }).unwrap()
-                if (!isMounted) return
+            ; (async () => {
+                try {
+                    const response = await getVendorDetail({ vendor_id: id }).unwrap()
+                    if (!isMounted) return
 
-                if (!response.status || !response.data) {
+                    if (!response.status || !response.data) {
+                        setVendor(null)
+                        setErrorMessage(response.message || "Vendor not found")
+                        return
+                    }
+
+                    setVendor(response.data)
+                } catch (error) {
+                    if (!isMounted) return
                     setVendor(null)
-                    setErrorMessage(response.message || "Vendor not found")
-                    return
+                    setErrorMessage(getErrorMessage(error, "Unable to fetch vendor details"))
+                } finally {
+                    if (isMounted) {
+                        setIsFetchingVendor(false)
+                    }
                 }
-
-                setVendor(response.data)
-            } catch (error) {
-                if (!isMounted) return
-                setVendor(null)
-                setErrorMessage(getErrorMessage(error, "Unable to fetch vendor details"))
-            } finally {
-                if (isMounted) {
-                    setIsFetchingVendor(false)
-                }
-            }
-        })()
+            })()
 
         return () => {
             isMounted = false
         }
     }, [id, getVendorDetail])
 
+    // const handleStatusChange = async (nextStatus: VendorStatus | string) => {
+    //     if (!vendor) return
+
+    //     setActionFeedback(null)
+    //     try {
+    //         const response = await updateVendorStatus({ vendor_id: vendor.id, status: nextStatus }).unwrap()
+    //         console.log("============RESPONSE");
+    //         console.log(response);
+
+
+    //         if (!response.status) {
+    //             setActionFeedback({ type: "error", message: response.message || "Unable to update vendor status" })
+    //             return
+    //         }
+
+    //         setVendor(prev => (prev ? { ...prev, status: nextStatus } : prev))
+    //         setActionFeedback({ type: "success", message: response.message || "Vendor status updated successfully" })
+    //     } catch (error) {
+    //         setActionFeedback({ type: "error", message: getErrorMessage(error, "Unable to update vendor status") })
+    //     }
+    // }
     const handleStatusChange = async (nextStatus: VendorStatus | string) => {
         if (!vendor) return
 
-        setActionFeedback(null)
         try {
-            const response = await updateVendorStatus({ vendor_id: vendor.id, status: nextStatus }).unwrap()
+            const response = await updateVendorStatus({
+                vendor_id: vendor.id,
+                status: nextStatus,
+            }).unwrap()
+
             if (!response.status) {
-                setActionFeedback({ type: "error", message: response.message || "Unable to update vendor status" })
+                toast.error(response.message || "Unable to update vendor status")
                 return
             }
 
-            setVendor(prev => (prev ? { ...prev, status: nextStatus } : prev))
-            setActionFeedback({ type: "success", message: response.message || "Vendor status updated successfully" })
+            setVendor((prev) => (prev ? { ...prev, status: nextStatus } : prev))
+            toast.success(response.message || "Vendor status updated successfully")
         } catch (error) {
-            setActionFeedback({ type: "error", message: getErrorMessage(error, "Unable to update vendor status") })
+            toast.error(getErrorMessage(error, "Unable to update vendor status"))
         }
     }
 
-    const handleApprove = () => handleStatusChange("APPROVED")
+    const handleApprove = () => handleStatusChange("ACTIVE")
     const handleReject = () => handleStatusChange("REJECTED")
+    const handleSuspend = () => handleStatusChange("SUSPENDED")
+
+    const handleGuarantorSelect = (guarantor: VendorGuarantor) => {
+        console.log("GURANTOR", guarantor)
+        setSelectedGuarantor(guarantor)
+        setIsGuarantorModalOpen(true)
+    }
+
+    const handleGuarantorDialogToggle = (open: boolean) => {
+        setIsGuarantorModalOpen(open)
+        if (!open) {
+            setSelectedGuarantor(null)
+        }
+    }
+
+    const handleVerifyGuarantor = async (guarantorId: string) => {
+        console.log("ID___SUG", guarantorId)
+        if (!vendor) return
+
+        try {
+            const response = await updateGuarantorVerificationStatus({
+                guarantor_id: guarantorId,
+                verification_status: "VERIFIED",
+            }).unwrap()
+
+            if (!response.status || !response.data) {
+                toast.error(response.message || "Unable to update guarantor status")
+                return
+            }
+
+            const updatedGuarantor = response.data
+
+            setVendor((prev) => {
+                if (!prev) return prev
+                const previousGuarantors = prev.guarantors ?? []
+                const hasExisting = previousGuarantors.some((item) => item.id === updatedGuarantor.id)
+                const nextGuarantors = hasExisting
+                    ? previousGuarantors.map((item) => (item.id === updatedGuarantor.id ? { ...item, ...updatedGuarantor } : item))
+                    : [...previousGuarantors, updatedGuarantor]
+
+                return {
+                    ...prev,
+                    guarantors: nextGuarantors,
+                }
+            })
+
+            setSelectedGuarantor((prev) => (prev && prev.id === updatedGuarantor.id ? { ...prev, ...updatedGuarantor } : prev))
+
+            toast.success(response.message || "Guarantor verified successfully")
+        } catch (error) {
+            toast.error(getErrorMessage(error, "Unable to update guarantor status"))
+        }
+    }
 
     if (isFetchingVendor) {
         return (
@@ -257,6 +379,7 @@ export default function VendorDetailPage() {
     const profileImage = vendor.profileImage || vendor.profile_image || ""
     const trustCircles = (vendor.trustCircles ?? vendor.trust_circles ?? []) as any[]
     const womenMembers = (vendor.womenMembers ?? vendor.women_members ?? []) as any[]
+    const guarantors = (vendor.guarantors ?? []) as VendorGuarantor[]
     const documents =
         vendor.documents && vendor.documents.length
             ? vendor.documents.map((doc, index) => {
@@ -267,8 +390,13 @@ export default function VendorDetailPage() {
             })
             : defaultDocuments
     const statusLabel = formatStatusLabel(vendor.status)
-    const canApprove = vendor.status ? vendor.status.toUpperCase() !== "APPROVED" : true
-    const canReject = vendor.status ? vendor.status.toUpperCase() !== "REJECTED" : true
+    const status = vendor.status?.toUpperCase()
+
+    const canApprove = ["PENDING", "REJECTED", "SUSPENDED"].includes(status)
+    const canReject = ["PENDING"].includes(status)
+    const canSuspend = status === "ACTIVE"
+    // const canApprove = vendor.status ? vendor.status.toUpperCase() !== "ACTIVE" : true
+    // const canReject = vendor.status ? vendor.status.toUpperCase() !== "REJECTED" : true
     const initialsSource = vendorName || vendor.business_name || "Vendor"
     const initials = initialsSource
         .split(" ")
@@ -279,6 +407,7 @@ export default function VendorDetailPage() {
         .toUpperCase() || "VN"
 
     const statData = buildStatData(vendor, trustCircles.length, womenMembers.length)
+    const selectedGuarantorName = selectedGuarantor ? buildGuarantorName(selectedGuarantor) : ""
 
     return (
         <div className="min-h-screen bg-muted/20 p-4 md:p-6">
@@ -299,44 +428,52 @@ export default function VendorDetailPage() {
                                     <Badge className={`mt-2 ${getStatusBadgeClass(vendor.status)}`}>{statusLabel}</Badge>
                                 </div>
                             </div>
-                            {(canApprove || canReject) && (
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex flex-wrap gap-2">
-                                        {canApprove && (
-                                            <Button
-                                                onClick={handleApprove}
-                                                disabled={isUpdatingStatus}
-                                                className="gap-1 bg-green-600 hover:bg-green-700 text-white"
-                                            >
-                                                <CheckCircle className="h-4 w-4" />
-                                                {isUpdatingStatus ? "Processing..." : "Approve"}
-                                            </Button>
-                                        )}
-                                        {canReject && (
-                                            <Button
-                                                onClick={handleReject}
-                                                disabled={isUpdatingStatus}
-                                                variant="destructive"
-                                                className="gap-1"
-                                            >
-                                                <XCircle className="h-4 w-4" />
-                                                {isUpdatingStatus ? "Processing..." : "Reject"}
-                                            </Button>
-                                        )}
-                                    </div>
-                                    {actionFeedback && (
-                                        <p
-                                            className={`text-sm ${
-                                                actionFeedback.type === "success"
-                                                    ? "text-green-600"
-                                                    : "text-destructive"
-                                            }`}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex flex-wrap gap-2">
+                                    {canApprove && (
+                                        <Button
+                                            onClick={handleApprove}
+                                            disabled={isUpdatingStatus}
+                                            className="gap-1 bg-green-600 hover:bg-green-700 text-white"
                                         >
-                                            {actionFeedback.message}
-                                        </p>
+                                            <CheckCircle className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Approve"}
+                                        </Button>
+                                    )}
+                                    {canReject && (
+                                        <Button
+                                            onClick={handleReject}
+                                            disabled={isUpdatingStatus}
+                                            variant="destructive"
+                                            className="gap-1"
+                                        >
+                                            <XCircle className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Reject"}
+                                        </Button>
+                                    )}
+                                    {canSuspend && (
+                                        <Button
+                                            onClick={handleSuspend}
+                                            disabled={isUpdatingStatus}
+                                            variant="secondary"
+                                            className="gap-1 bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                        >
+                                            <Shield className="h-4 w-4" />
+                                            {isUpdatingStatus ? "Processing..." : "Suspend"}
+                                        </Button>
                                     )}
                                 </div>
-                            )}
+                                {actionFeedback && (
+                                    <p
+                                        className={`text-sm ${actionFeedback.type === "success"
+                                            ? "text-green-600"
+                                            : "text-destructive"
+                                            }`}
+                                    >
+                                        {actionFeedback.message}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -410,28 +547,45 @@ export default function VendorDetailPage() {
                             <Card className="border shadow-sm">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Shield className="h-5 w-5 text-primary" /> Guarantors ({(vendor.guarantors ?? []).length})
+                                        <Shield className="h-5 w-5 text-primary" /> Guarantors ({guarantors.length})
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    {(vendor.guarantors ?? []).length ? (
-                                        (vendor.guarantors ?? []).map((guarantor, index) => {
-                                            const guarantorName = [
-                                                guarantor.first_name,
-                                                guarantor.other_name,
-                                                guarantor.surname,
-                                            ].filter(Boolean).join(" ")
+                                    {guarantors.length ? (
+                                        guarantors.map((guarantor, index) => {
+                                            const guarantorName = buildGuarantorName(guarantor)
+                                            const verificationStatus = formatGuarantorStatus(guarantor.verification_status)
                                             return (
-                                                <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                                                    <div>
+                                                <div
+                                                    key={`${guarantor.id || index}`}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => handleGuarantorSelect(guarantor)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter" || event.key === " ") {
+                                                            event.preventDefault()
+                                                            handleGuarantorSelect(guarantor)
+                                                        }
+                                                    }}
+                                                    className="flex items-center justify-between gap-4 rounded-lg border border-transparent bg-muted/30 p-3 transition-colors hover:border-primary/30 hover:bg-primary/5 focus-visible:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 cursor-pointer"
+                                                >
+                                                    <div className="flex flex-col">
                                                         <p className="font-medium">{guarantorName || "Guarantor"}</p>
-                                                        <p className="text-sm text-muted-foreground">{guarantor.relationship || "Relationship not provided"}</p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {guarantor.relationship || "Relationship not provided"}
+                                                        </p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <p className="text-sm">{guarantor.phone || "N/A"}</p>
-                                                        <Badge variant="outline" className="text-xs bg-green-100 text-green-800">
-                                                            {(guarantor.verification_status || "Pending").toLowerCase() === "verified" ? "Verified" : guarantor.verification_status || "Pending"}
-                                                        </Badge>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="text-right">
+                                                            <p className="text-sm">{guarantor.phone || "N/A"}</p>
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`text-xs ${getVerificationBadgeClass(guarantor.verification_status)}`}
+                                                            >
+                                                                {verificationStatus}
+                                                            </Badge>
+                                                        </div>
+                                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                                     </div>
                                                 </div>
                                             )
@@ -471,6 +625,104 @@ export default function VendorDetailPage() {
                         />
                     </TabsContent>
                 </Tabs>
+
+                <Dialog open={isGuarantorModalOpen} onOpenChange={handleGuarantorDialogToggle}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Guarantor Details</DialogTitle>
+                            <DialogDescription>
+                                {selectedGuarantorName
+                                    ? `Detailed profile for ${selectedGuarantorName}.`
+                                    : "Select a guarantor to view their detailed information."}
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {selectedGuarantor ? (
+                            <>
+                                <div className="space-y-6">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                        <Avatar className="h-14 w-14 text-base">
+                                            <AvatarFallback>
+                                                {(selectedGuarantorName || "Guarantor")
+                                                    .split(" ")
+                                                    .filter(Boolean)
+                                                    .map((word) => word[0])
+                                                    .join("")
+                                                    .slice(0, 2)
+                                                    .toUpperCase() || "GU"}
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        <div className="flex-1 space-y-1">
+                                            <h3 className="text-lg font-semibold text-foreground">
+                                                {selectedGuarantorName || "Guarantor"}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                {selectedGuarantor.relationship || "Relationship not provided"}
+                                            </p>
+                                        </div>
+
+                                        <Badge
+                                            variant="outline"
+                                            className={`self-start text-xs font-medium ${getVerificationBadgeClass(selectedGuarantor.verification_status)}`}
+                                        >
+                                            {formatGuarantorStatus(selectedGuarantor.verification_status)}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        {[{ label: "Phone", value: selectedGuarantor.phone || "N/A" },
+                                        { label: "Email", value: selectedGuarantor.email || "N/A" },
+                                        { label: "NIN", value: selectedGuarantor.nin || "N/A" },
+                                        { label: "Gender", value: selectedGuarantor.gender || "N/A" },
+                                        { label: "Date of Birth", value: formatDateValue(selectedGuarantor.dob) },
+                                        { label: "Nationality", value: selectedGuarantor.nationality || "N/A" },
+                                        {
+                                            label: "Geo Region",
+                                            value: selectedGuarantor.geo_region || "N/A",
+                                        },
+                                        {
+                                            label: "State",
+                                            value: selectedGuarantor.state || selectedGuarantor.state_id || "N/A",
+                                        },
+                                        {
+                                            label: "LGA",
+                                            value: selectedGuarantor.lga || selectedGuarantor.lga_id || "N/A",
+                                        },
+                                        {
+                                            label: "Country",
+                                            value: selectedGuarantor.country || "N/A",
+                                        }].map((item) => (
+                                            <div key={item.label} className="rounded-lg border bg-muted/30 p-3">
+                                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                                    {item.label}
+                                                </p>
+                                                <p className="mt-1 text-sm font-medium text-foreground break-words">
+                                                    {item.value || "N/A"}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {selectedGuarantor.verification_status?.toUpperCase() !== "VERIFIED" && (
+                                    <DialogFooter>
+                                        <Button
+                                            onClick={() => handleVerifyGuarantor(selectedGuarantor.id)}
+                                            disabled={isUpdatingGuarantor}
+                                        >
+                                            {isUpdatingGuarantor ? "Verifying..." : "Verify Guarantor"}
+                                        </Button>
+                                    </DialogFooter>
+                                )}
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                Select a guarantor to view their detailed information.
+                            </p>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     )

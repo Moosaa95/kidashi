@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q, Count
 from django.db.utils import IntegrityError
 from common.functions import gen_random_key
 from common.mixins import ModelMixin
@@ -164,7 +165,8 @@ class Woman(ModelMixin):
 
     @classmethod
     def get_woman(cls, **filters):
-        return cls.objects.filter(**filters).first()
+        ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
+        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).first()
 
 
 class NextOfKin(ModelMixin):

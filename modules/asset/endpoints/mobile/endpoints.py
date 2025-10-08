@@ -105,17 +105,44 @@ class FetchAssets(APIView):
 class GetAsset(APIView):
     @extend_schema(
         tags=["Kidashi Assets"],
-        description="Get a single asset by ID or loan_id",
+        summary="Fetch a single asset and portfolio summary",
+        description="""
+        This endpoint retrieves details of a single asset in the Kidashi system.
+
+        You can fetch an asset using either:
+        - **asset_id** (UUID of the asset in Kidashi)
+        - **loan_id** (UUID of the loan from PayRep bank system)
+
+        In addition to the asset details, the response also includes a **summary** of the
+        member's portfolio (ongoing, active, closed, unsuccessful assets and their values).
+        """,
         request=GetAssetRequestSerializer,
         responses={
             200: inline_serializer(
                 name="GetAssetResponse",
                 fields=dict(
+                    status=serializers.BooleanField(help_text="Indicates if the request was successful"),
+                    message=serializers.CharField(help_text="Human-readable message"),
+                    data=AssetSerializer(help_text="Detailed information about the asset"),
+                    summary=serializers.DictField(
+                        help_text="Portfolio statistics for the woman who owns this asset. " "Includes total pipeline, active, closed, and unsuccessful assets, " "with values and markups."
+                    ),
+                ),
+            ),
+            404: inline_serializer(
+                name="GetAssetNotFound",
+                fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
-                    data=AssetSerializer(),
                 ),
-            )
+            ),
+            400: inline_serializer(
+                name="GetAssetBadRequest",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                ),
+            ),
         },
     )
     def post(self, request):
@@ -129,5 +156,14 @@ class GetAsset(APIView):
         asset = Asset.get_asset(**filters)
         if not asset:
             return Response(dict(status=False, message="Asset not found"), status=status.HTTP_404_NOT_FOUND)
-
-        return Response(data=dict(status=True, message="Asset fetched successfully", data=asset), status=status.HTTP_200_OK)
+        member_id = asset["woman_id"] if isinstance(asset, dict) else getattr(asset.woman, "id", None)
+        summary = Asset.fetch_asset_summaries(member_id=member_id)
+        return Response(
+            {
+                "status": True,
+                "message": "Asset fetched successfully",
+                "data": asset,
+                "summary": summary,
+            },
+            status=status.HTTP_200_OK,
+        )

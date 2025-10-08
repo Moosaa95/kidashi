@@ -543,7 +543,7 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
+class GetWomanBasicDetails(APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",

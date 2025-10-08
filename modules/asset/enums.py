@@ -7,6 +7,7 @@ class AssetStatus(models.TextChoices):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     FAILED = "FAILED"
+    CLOSED = "CLOSED"
 
 
 class AssetActivityType(models.TextChoices):

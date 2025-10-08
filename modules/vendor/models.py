@@ -31,6 +31,8 @@ class Vendor(ModelMixin):
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
     lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, null=True, help_text="Reason vendor application was rejected")
+
     if TYPE_CHECKING:
         trust_circles: "QuerySet"
         women: "QuerySet"
@@ -111,6 +113,10 @@ class Vendor(ModelMixin):
             return False
         return cls.objects.filter(**filters).update(**params)
 
+    @classmethod
+    def can_be_activated(cls, vendor_id: str) -> bool:
+        return Guarantor.has_two_verified(vendor_id)
+
 
 class Guarantor(ModelMixin):
     first_name = models.CharField(max_length=255)
@@ -177,8 +183,26 @@ class Guarantor(ModelMixin):
         except cls.DoesNotExist:
             return False
 
+    @classmethod
+    def has_two_verified(cls, vendor_id: str) -> bool:
+        gurantors = cls.objects.filter(vendor_id=vendor_id)
+        if gurantors.count() < 2:
+            return False
 
-class OnboardingActivityLogs(ModelMixin):
+        return gurantors.filter(verification_status=GurantorVerificationStatus.VERIFIED).count() >= 2
+
+    @classmethod
+    def update_guarantor(cls, guarantor_id, **kwargs):
+        try:
+            updated_count = cls.objects.filter(id=guarantor_id).update(**kwargs)
+            if not updated_count:
+                return None
+            return cls.objects.only(*kwargs.keys()).get(id=guarantor_id)
+        except cls.DoesNotExist:
+            return None
+
+
+class OnboardingActivityLogs(ModelMixin):  # TODO: add staff so for every rejection of vendor it comes with a message
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities", null=True, blank=True)
     action = models.CharField(max_length=255)
     description = models.TextField()
@@ -187,7 +211,6 @@ class OnboardingActivityLogs(ModelMixin):
 
     @classmethod
     def create_log(cls, **kwargs):
-        print("KWWWWARGS", kwargs)
         if "vendor_cba_customer_id" in kwargs:
             kwargs["vendor__cba_customer_id"] = kwargs.pop("vendor_cba_customer_id")
         return cls.objects.create(**kwargs)

@@ -4,8 +4,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
-from modules.vendor.models import Vendor
-from modules.vendor.serializers import FetchVendorFilterSerializer, VendorDetailSerializer, VendorSerializer
+from modules.vendor.enums import GurantorVerificationStatus, VendorStatus
+from modules.vendor.models import Guarantor, Vendor
+from modules.vendor.serializers import (
+    FetchVendorFilterSerializer,
+    GuarantorDetailSerializer,
+    GuarantorVerificationUpdateSerializer,
+    VendorDetailSerializer,
+    VendorSerializer,
+)
+from modules.vendor.tasks import notify_vendor_status_change
 
 
 class FetchVendorsFilter(APIView):
@@ -78,9 +86,59 @@ class UpdateVendorApplicationStatus(APIView):
         if not vendor_id or not status_value:
             response_dict.update(message="vendor id and status are required")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        vendor = Vendor.get_vendor(id=vendor_id)
+        if not vendor:
+            response_dict.update(message="vendor not found")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
+        if status_value == VendorStatus.ACTIVE and not Vendor.can_be_activated(vendor_id):
+            response_dict.update(message="Vendor cannot be activated — requires two verified guarantors.")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
         updated_count = Vendor.update_vendor(filters={"id": vendor_id}, params={"status": status_value})
         if not updated_count:
-            response_dict.update(message="No vendor found or update failed")
+            response_dict.update(message="Vendor status update failed")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+        notify_vendor_status_change.delay(vendor_id, status_value)
         response_dict.update(status=True, message="Vendor status updated successfully")
+        return Response(response_dict, status=status.HTTP_200_OK)
+
+
+class UpdateGuarantorVerificationStatus(APIView):
+    @extend_schema(
+        tags=["Vendor"],
+        summary="Update Guarantor Verification Status",
+        request=GuarantorVerificationUpdateSerializer,
+    )
+    def post(self, request):
+        response_dict = dict(status=False)
+        serializer = GuarantorVerificationUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        guarantor_id = serializer.validated_data.get("guarantor_id")
+        verification_status = serializer.validated_data.get("verification_status") or GurantorVerificationStatus.VERIFIED
+
+        guarantor = Guarantor.get_guarantor(id=guarantor_id)
+        if not guarantor:
+            response_dict.update(message="Guarantor not found")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
+        if guarantor.verification_status == verification_status:
+            response_dict.update(
+                status=True,
+                message="Guarantor verification status is already up to date",
+                data=GuarantorDetailSerializer(guarantor).data,
+            )
+            return Response(response_dict, status=status.HTTP_200_OK)
+
+        updated_guarantor = Guarantor.update_guarantor(guarantor.id, verification_status=verification_status)
+        if not updated_guarantor:
+            response_dict.update(message="failed to update verification status")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
+        response_dict.update(
+            status=True,
+            message=f"Guarantor verification status updated to {verification_status}",
+            data=GuarantorDetailSerializer(updated_guarantor).data,
+        )
         return Response(response_dict, status=status.HTTP_200_OK)

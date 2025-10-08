@@ -183,3 +183,4 @@ class WomanDetailSerializer(serializers.Serializer):
     state = serializers.CharField(read_only=True)
     lga = serializers.CharField(read_only=True)
     country = serializers.CharField(read_only=True)
+    ongoing_asset_count = serializers.CharField(read_only=True)
