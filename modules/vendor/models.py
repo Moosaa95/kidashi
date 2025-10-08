@@ -31,6 +31,8 @@ class Vendor(ModelMixin):
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
     lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, null=True, help_text="Reason vendor application was rejected")
+
     if TYPE_CHECKING:
         trust_circles: "QuerySet"
         women: "QuerySet"
@@ -200,7 +202,7 @@ class Guarantor(ModelMixin):
             return None
 
 
-class OnboardingActivityLogs(ModelMixin):
+class OnboardingActivityLogs(ModelMixin):  # TODO: add staff so for every rejection of vendor it comes with a message
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="onboarding_activities", null=True, blank=True)
     action = models.CharField(max_length=255)
     description = models.TextField()
@@ -209,7 +211,6 @@ class OnboardingActivityLogs(ModelMixin):
 
     @classmethod
     def create_log(cls, **kwargs):
-        print("KWWWWARGS", kwargs)
         if "vendor_cba_customer_id" in kwargs:
             kwargs["vendor__cba_customer_id"] = kwargs.pop("vendor_cba_customer_id")
         return cls.objects.create(**kwargs)
