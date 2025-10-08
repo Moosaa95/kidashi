@@ -1,10 +1,11 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 from django.db.utils import IntegrityError
 
 from common.mixins import ModelMixin
-from modules.notification.enums import NotificationChannel, NotificationStatus, NotificationType
+from modules.notification.enums import InAppEventType, NotificationChannel, NotificationStatus, NotificationType
 
 
 class Notification(ModelMixin):
@@ -88,3 +89,68 @@ class EmailTracker(ModelMixin):
     @classmethod
     def create_record(cls, **kwargs):
         return cls.objects.create(**kwargs)
+
+
+class InAppNotification(ModelMixin):
+    # vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="in_app_notifications")
+    cba_customer_id = models.UUIDField(help_text="Customer ID from the bank system", db_index=True)
+    event_type = models.CharField(max_length=50, choices=InAppEventType.choices)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    metadata = models.JSONField(default=dict, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "cba_customer_id",
+            "event_type",
+            "title",
+            "message",
+            "metadata",
+            "is_read",
+            "created_at",
+            "updated_at",
+        ]
+
+    @classmethod
+    def create_notification(cls, **kwargs):
+        try:
+            return cls.objects.create(**kwargs)
+        except IntegrityError:
+            return None
+
+    @classmethod
+    def fetch_inappnotifications(cls, conditions=None, count=None):
+        queryset = cls.objects.all()
+
+        if isinstance(conditions, Q):
+            queryset = queryset.filter(conditions)
+        elif isinstance(conditions, dict) and conditions:
+            queryset = queryset.filter(**conditions)
+
+        queryset = queryset.order_by("-created_at").values(*cls.get_fields())
+
+        if count:
+            queryset = queryset[: int(count)]
+
+        return list(queryset)
+
+    @classmethod
+    def get_inapp_notification(cls, **kwargs):
+        try:
+            return cls.objects.get(**kwargs)
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def update_notification(cls, notification_id, **kwargs):
+        return cls.objects.filter(id=notification_id).update(**kwargs)

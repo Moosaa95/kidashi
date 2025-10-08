@@ -18,7 +18,7 @@ class TrustCircle(ModelMixin):
     status = models.CharField(max_length=20, choices=TrustCircleStatus.choices, default=TrustCircleStatus.FORMING)
 
     # Foreign key to vendor who created this trust circle
-    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="trust_circles", null=True, blank=True)
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.DO_NOTHING, related_name="trust_circles", null=True, blank=True)
 
     max_members = models.PositiveIntegerField(
         default=10,

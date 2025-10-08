@@ -1,4 +1,6 @@
 from django.db.models import Q
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.security.mixins import IsPayrepAuthenticatedMixin
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -493,6 +495,18 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             if not woman:
                 return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
+            InAppNotification.create_notification(
+                cba_customer_id=vendor.cba_customer_id,  # using the vendor that onboards the woman id
+                event_type=InAppEventType.WOMAN_ONBOARDED,
+                title="New Woman Onboarded",
+                message=f"{woman.first_name} {woman.surname} has been successfully onboarded.",
+                metadata=dict(
+                    woman_id=str(woman.id),
+                    woman_cba_customer_id=str(woman.cba_customer_id),
+                    account_number=woman.account_number,
+                    tier=woman.tier,
+                ),
+            )
             return Response(
                 data=dict(
                     status=True,
