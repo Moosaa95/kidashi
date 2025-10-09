@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from modules.trust_circle.enums import TrustCircleStatus, NewMembershipVoteOption
+from modules.trust_circle.enums import LoanEligibility, TrustCircleStatus, NewMembershipVoteOption
 
 
 class CreateTrustCircleRequestSerializer(serializers.Serializer):
@@ -23,14 +23,27 @@ class GetTrustCircleRequestSerializer(serializers.Serializer):
         return data
 
 
-class FetchTrustCirclesRequestSerializer(serializers.Serializer):
-    vendor_id = serializers.UUIDField(help_text="ID of the vendor whose trust circles to fetch")
-    status_filter = serializers.ChoiceField(choices=TrustCircleStatus.choices, required=False, help_text="Optional filter by trust circle status")
-
-
 class FetchTrustCircleWithFilterRequestSerializer(serializers.Serializer):
     filters = serializers.DictField(child=serializers.CharField(), required=False)
     count = serializers.IntegerField(required=False, min_value=1)
+
+
+class TrustCircleSerializer(serializers.Serializer):
+    id = serializers.UUIDField(required=False, help_text="Unique identifier of the trust circle")
+    vendor_id = serializers.UUIDField(required=False, help_text="Filter by vendor ID")
+    circle_name = serializers.CharField(max_length=255, required=False, help_text="Filter by trust circle name")
+    loan_eligibility = serializers.ChoiceField(choices=LoanEligibility.choices, required=False, help_text="Filter by loan eligibility status")
+    status = serializers.ChoiceField(choices=TrustCircleStatus.choices, required=False, help_text="Filter by trust circle status")
+    # activation_date = serializers.DateTimeField(required=False, allow_null=True, help_text="Activation date of the trust circle")
+    # date = serializers.CharField(required=False, help_text="Filter by a specific creation date (YYYY-MM-DD)")
+    # start_date = serializers.CharField(required=False, help_text="Filter by creation start date (YYYY-MM-DD)")
+    # end_date = serializers.CharField(required=False, help_text="Filter by creation end date (YYYY-MM-DD)")
+
+
+class FetchTrustCircleFilterSerializer(serializers.Serializer):
+    filters = TrustCircleSerializer(required=False, help_text="Optional filters for fetching trust circles")
+    search = serializers.CharField(required=False, allow_blank=True, help_text="Search trust circles by circle name")
+    count = serializers.IntegerField(required=False, min_value=1, help_text="Optional limit on the number of records to return")
 
 
 class ProposeWomanRequestSerializer(serializers.Serializer):
