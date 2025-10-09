@@ -3,8 +3,7 @@ from django.db import models
 
 from common.mixins import ModelMixin
 from modules.service.enums import ServiceCategoryType, ServiceChannel
-from modules.service.providers.registry import get_provider_client
-from modules.service.utils import normalise_channels
+from modules.service.utils import get_class_instance, normalise_channels
 
 
 class ServiceCategory(ModelMixin):
@@ -26,10 +25,9 @@ class ServiceProvider(ModelMixin):
     description = models.TextField(blank=True)
     module_path = models.CharField(
         max_length=255,
-        help_text="Dotted path to the provider client class e.g. modules.service.providers.PayrepCba:PayrepCba",
+        help_text="Dotted path to the provider client class e.g.PayrepCba",
     )
     supported_channels = models.JSONField(default=list, blank=True, help_text="List of supported service channels")
-    metadata = models.JSONField(default=dict, blank=True, help_text="Optional configuration passed to the provider class")
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -49,10 +47,15 @@ class ServiceProvider(ModelMixin):
     def supports_channel(self, channel):
         return channel in self.supported_channels
 
-    def get_client(self, **overrides):
-        """Instantiate the provider client using the configured module path."""
-        params = {**(self.metadata or {}), **overrides}
-        return get_provider_client(self.module_path, **params)
+    def get_client(self):
+        return get_class_instance(self.module_path)
+
+    @classmethod
+    def get_service_provider(cls, **kwargs):
+        try:
+            return cls.objects.get(**kwargs)
+        except cls.DoesNotExist:
+            return None
 
 
 class Service(ModelMixin):
@@ -68,6 +71,16 @@ class Service(ModelMixin):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def get_fields(cls):
+        return [
+            "name",
+            "code",
+            "category",
+            "description",
+            "supported_channels",
+        ]
 
     def clean(self):
         super().clean()
@@ -86,13 +99,24 @@ class Service(ModelMixin):
             integrations = integrations.filter(channel=channel)
         return integrations.order_by("priority")
 
+    @classmethod
+    def get_service(cls, **kwargs):
+        values = kwargs.pop("values", None)
+        try:
+            if values:
+                service = cls.objects.filter(**kwargs).values(*cls.get_fields())
+            else:
+                service = cls.objects.get(**kwargs)
+        except cls.DoesNotExist:
+            service = None
+        return service
+
 
 class ServiceIntegration(ModelMixin):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="integrations")
     provider = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, related_name="integrations")
     channel = models.CharField(max_length=20, choices=ServiceChannel.choices)
     priority = models.PositiveSmallIntegerField(default=1, help_text="Lower values are preferred when selecting a provider")
-    config = models.JSONField(default=dict, blank=True, help_text="Overrides passed when instantiating the provider client")
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -115,6 +139,5 @@ class ServiceIntegration(ModelMixin):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-    def get_client(self, **overrides):
-        params = {**(self.config or {}), **overrides}
-        return self.provider.get_client(**params)
+    def get_client(self):
+        return self.provider.get_client()

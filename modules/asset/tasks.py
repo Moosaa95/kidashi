@@ -2,12 +2,13 @@ from celery import shared_task
 from decimal import Decimal
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
-from modules.service.providers import PayrepCba
+from modules.service.enums import ServiceCode
+from modules.service.models import Service
 
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=60)
-def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_id=None):
-    if not asset_id or not token or not product_id or not log_id:
+def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, log_id=None):
+    if not asset_id or not token or not product_code or not log_id:
         return
 
     asset = Asset.get_asset(id=asset_id, obj=True)
@@ -15,18 +16,19 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_
         return
 
     activity_data = dict()
-
-    payrep = PayrepCba()
+    service = Service.get_service(code=ServiceCode.CBA_CODE)
+    integration = service.active_integrations(channel="API").first()
+    provider = integration.get_client()
 
     total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
         "account_number": asset.woman.account_number,
-        "loan_product_id": str(product_id),
+        "product_code": str(product_code),
         "amount": float(total_amount),
     }
 
     try:
-        response = payrep.create_loan_asset(token=token, **payload)
+        response = provider.create_loan_asset(payload, token=token)
 
     except Exception as e:
         try:
@@ -41,7 +43,6 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_id=None, log_
             )
         return
     ok = bool(response.get("req_status") and response.get("status"))
-
     if ok and response.get("loan_id"):
         assign_result = Asset.assign_loan_id(asset_id=asset.id, loan_id=response["loan_id"])
         if assign_result.get("status"):

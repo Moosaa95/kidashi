@@ -30,6 +30,7 @@ API_URLS = [
     path("api/v1/woman/", include("modules.woman.urls")),
     path("api/v1/security/", include("modules.security.urls")),
     path("api/v1/asset/", include("modules.asset.urls")),
+    # path("api/v1/service/", include("modules.service.urls")),
 ]
 
 api_docs_url = [

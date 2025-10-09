@@ -1,13 +1,14 @@
 from django.core.validators import MinValueValidator
 from django.db import models, transaction
+from django.db.models import Count, Sum, Q
 from django.db.utils import IntegrityError
-
+from django.utils import timezone
 from common.mixins import ModelMixin
 from modules.asset.enums import AssetStatus, AssetActivityType
 
 
 class Asset(ModelMixin):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True, null=True)
     value = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     markup = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=20, choices=AssetStatus.choices, default=AssetStatus.REQUESTED, db_index=True)
@@ -16,13 +17,14 @@ class Asset(ModelMixin):
     # Foreign key to woman who requested the asset
     woman = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="assets_requested", null=True, blank=True)
     loan_id = models.UUIDField(blank=True, null=True, unique=True, help_text="Loan ID from the bank system for the asset financing", db_index=True)
-    loan_product_id = models.UUIDField(blank=True, null=True, help_text="Loan Product ID from the bank system for the asset financing", db_index=True)
+    product_code = models.CharField(blank=True, null=True, help_text="Loan Product Code from the bank system for the asset financing", db_index=True)
     items_requested = models.JSONField(
         help_text="List of items the woman wants to purchase",
         default=list,
         blank=True,
     )
 
+    @classmethod
     def get_fields(cls):
         return [
             "id",
@@ -31,9 +33,10 @@ class Asset(ModelMixin):
             "markup",
             "status",
             "loan_id",
+            "product_code",
             "created_at",
             "items_requested",
-            "woman__id",
+            "woman_id",
             "woman__first_name",
             "woman__surname",
             "vendor__id",
@@ -44,13 +47,19 @@ class Asset(ModelMixin):
     @classmethod
     def create_asset(cls, **kwargs):
         try:
-            return cls.objects.create(**kwargs)
+            obj = cls.objects.create(**kwargs)
+            return obj
         except IntegrityError:
             return None
 
     @classmethod
-    def fetch_assets(cls, conditions):
-        return cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+    def fetch_assets(cls, conditions=None, count=None):
+        queryset = None
+        if conditions:
+            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+        if count:
+            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
+        return list(queryset)
 
     @classmethod
     def get_asset(cls, **filters):
@@ -60,7 +69,7 @@ class Asset(ModelMixin):
             if obj:
                 asset = query_set.get(**filters)
             else:
-                asset = query_set.filter(**filters).values(*cls.get_fields())[0]
+                asset = query_set.filter(**filters).values(*cls.get_fields()).first()
         except cls.DoesNotExist:
             asset = None
         return asset
@@ -71,12 +80,12 @@ class Asset(ModelMixin):
             with transaction.atomic():
                 asset = cls.objects.select_for_update().get(id=asset_id)
                 if asset.loan_id:
-                    return dict(status=False, message="Loan ID already assigned", loan_id=asset.loan_id)
+                    return dict(status=False, message="Loan ID already assigned", loan_id=str(asset.loan_id))
 
                 asset.loan_id = loan_id
                 asset.status = AssetStatus.REQUESTED
                 asset.save(update_fields=["loan_id", "status"])
-                return dict(status=True, message="Loan ID set", loan_id=asset.loan_id)
+                return dict(status=True, message="Loan ID set", loan_id=str(asset.loan_id))
 
         except cls.DoesNotExist:
             return dict(status=False, message="Asset not found")
@@ -87,6 +96,46 @@ class Asset(ModelMixin):
             return cls.objects.filter(id=asset_id).update(**kwargs)
         except cls.DoesNotExist:
             return None
+
+    @classmethod
+    def fetch_asset_summaries(cls, member_id=None, conditions=None):
+        queryset = cls.objects.all()
+
+        if conditions:
+            queryset = queryset.filter(conditions)
+
+        pending_statuses = [AssetStatus.REQUESTED, AssetStatus.QUERIED]
+        ongoing_statuses = [AssetStatus.APPROVED]
+        completed_statuses = [AssetStatus.CLOSED]
+        failed_statuses = [AssetStatus.REJECTED, AssetStatus.FAILED]
+
+        count_filters = {
+            "total_pending_assets": Count("id", filter=Q(status__in=pending_statuses)),
+            "total_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_assets": Count("id", filter=Q(status__in=completed_statuses)),
+            "total_failed_assets": Count("id", filter=Q(status__in=failed_statuses)),
+            "total_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_value": Sum("value", filter=Q(status__in=completed_statuses)),
+            "total_ongoing_markup": Sum("markup", filter=Q(status__in=ongoing_statuses)),
+            "total_completed_markup": Sum("markup", filter=Q(status__in=completed_statuses)),
+        }
+
+        if member_id:
+            today = timezone.now().date()
+            count_filters.update(
+                {
+                    "member_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                    "member_today_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                    "member_total_completed_assets": Count("id", filter=Q(status__in=completed_statuses, woman_id=member_id)),
+                    "member_pending_assets": Count("id", filter=Q(status__in=pending_statuses, woman_id=member_id)),
+                    "member_failed_assets": Count("id", filter=Q(status__in=failed_statuses, woman_id=member_id)),
+                    "member_ongoing_value": Sum("value", filter=Q(status__in=ongoing_statuses, woman_id=member_id)),
+                    "member_total_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id)),
+                    "member_today_completed_value": Sum("value", filter=Q(status__in=completed_statuses, woman_id=member_id, created_at__date=today)),
+                }
+            )
+
+        return queryset.aggregate(**count_filters)
 
 
 class AssetActivity(ModelMixin):

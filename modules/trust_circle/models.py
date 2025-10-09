@@ -44,7 +44,7 @@ class TrustCircle(ModelMixin):
 
     @property
     def current_member_count(self):
-        return self.women.filter(status=WomanStatus.ACTIVE).count()
+        return self.women.count()
 
     @property
     def can_add_more_members(self):
@@ -81,10 +81,6 @@ class TrustCircle(ModelMixin):
             "loan_eligibility",
             "status",
             "max_members",
-            "current_member_count",
-            "can_add_more_members",
-            "is_full",
-            "can_accept_new_members_by_voting",
             "activation_date",
             "description",
             "created_at",
@@ -224,11 +220,11 @@ class CircleMembershipVote(ModelMixin):
         if len(set(voters)) != 3:
             raise ValidationError("All three voters must be different members")
 
-        # Ensure candidate is not already a member
+        # # Ensure candidate is not already a member
         if self.candidate_member in active_members:
             raise ValidationError("Candidate member is already an active member of the trust circle")
 
-        # Ensure trust circle has exactly 3 or more members
+        # # Ensure trust circle has exactly 3 or more members
         if active_members.count() < 3:
             raise ValidationError("Trust circle must have at least 3 members to initiate voting")
 

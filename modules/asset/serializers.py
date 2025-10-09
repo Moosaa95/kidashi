@@ -1,24 +1,23 @@
 from rest_framework import serializers
 from modules.asset.enums import AssetStatus
-from django.core.validators import MinValueValidator
 
 
 class AssetItemSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
-    price = serializers.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+    price = serializers.CharField(max_length=255)
 
 
 class AssetCreateRequestSerializer(serializers.Serializer):
     vendor_id = serializers.UUIDField(required=True, help_text="Vendor's customer ID")
     woman_id = serializers.UUIDField(required=True, help_text="Woman's customer ID")
-    loan_product_id = serializers.UUIDField(required=True, help_text="Loan product id from payrep")
-    name = serializers.CharField(max_length=255)
+    product_code = serializers.CharField(required=True, help_text="Loan product code from payrep")
+    name = serializers.CharField(max_length=255, required=False)
     value = serializers.DecimalField(max_digits=12, decimal_places=2)
     markup = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     loan_id = serializers.UUIDField(required=False, help_text="Loan ID from bank system")
     items_requested = serializers.ListField(child=AssetItemSerializer(), min_length=1)
     status = serializers.ChoiceField(choices=AssetStatus.choices, required=False, default=AssetStatus.REQUESTED)
-    otp = serializers.CharField(max_length=10, required=False)
+    otp = serializers.CharField(max_length=10, required=True)
 
 
 class AssetSerializer(serializers.Serializer):

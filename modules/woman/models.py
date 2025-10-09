@@ -1,11 +1,12 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q, Count
 from django.db.utils import IntegrityError
 from common.functions import gen_random_key
 from common.mixins import ModelMixin
 from modules.asset.enums import AssetStatus
 from modules.general.enums import CustomerStage
-from modules.general.models import GeoRegion, State, LocalGovernment, Country
+from modules.general.models import GeoRegion
 from modules.woman.enums import RepaymentStatus, WomanStatus
 from django.core.validators import RegexValidator
 from datetime import date
@@ -20,7 +21,7 @@ class Woman(ModelMixin):
     maximum_balance = models.DecimalField(default=0, max_digits=19, decimal_places=2)
     tier = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    dob = models.DateField(null=True, blank=True)
+    dob = models.DateTimeField(null=True, blank=True)
     nationality = models.CharField(max_length=100, blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
     annual_income = models.CharField(max_length=100, blank=True, null=True)
@@ -63,9 +64,12 @@ class Woman(ModelMixin):
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
     trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="women", help_text="Trust circle this woman belongs to", null=True, blank=True)
     geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
-    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
-    lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
-    country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    lga = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    # state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
+    # lga = models.ForeignKey(LocalGovernment, on_delete=models.SET_NULL, null=True, blank=True)
+    # country = models.ForeignKey(Country, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = "women"
@@ -77,7 +81,7 @@ class Woman(ModelMixin):
 
     def __str__(self):
         full_name = f"{self.first_name} {self.other_name} {self.surname}"
-        return f"{full_name} - {self.trust_circle.circle_name}"
+        return f"{full_name}"
 
     @classmethod
     def get_fields(cls):
@@ -86,12 +90,32 @@ class Woman(ModelMixin):
             "first_name",
             "surname",
             "other_name",
-            "phone",
+            "mobile_number",
+            "account_number",
+            "maximum_balance",
+            "tier",
             "email",
             "dob",
-            "mobile_number",
             "nationality",
             "occupation",
+            "annual_income",
+            "employment_type",
+            "image",
+            "residential_address",
+            "stage",
+            "private_key",
+            "nin",
+            "bvn",
+            "next_of_kin",
+            "cba_customer_id",
+            "repayment_status",
+            "status",
+            "vendor",
+            "trust_circle",
+            "geo_region",
+            "state",
+            "lga",
+            "country",
         ]
 
     @property
@@ -120,8 +144,8 @@ class Woman(ModelMixin):
             if self.trust_circle.is_full:
                 raise ValidationError(f"Trust circle '{self.trust_circle.circle_name}' is full")
 
-        if self.repayment_status != RepaymentStatus.NOT_APPLICABLE and self.loan_amount == 0:
-            raise ValidationError("Loan amount must be greater than 0 when repayment status is not 'Not Applicable'")
+    #         if self.repayment_status != RepaymentStatus.NOT_APPLICABLE and self.loan_amount == 0:
+    #             raise ValidationError("Loan amount must be greater than 0 when repayment status is not 'Not Applicable'")
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -130,10 +154,9 @@ class Woman(ModelMixin):
     @classmethod
     def create_woman(cls, **kwargs):
         try:
-            woman = cls.objects.create(**kwargs)
-            return dict(status=True, message="Woman created successfully", woman=woman)
-        except IntegrityError as e:
-            return dict(status=False, message=e.args[0])
+            return cls.objects.create(**kwargs)
+        except IntegrityError:
+            return None
 
     @classmethod
     def fetch_women(cls, conditions):
@@ -142,10 +165,8 @@ class Woman(ModelMixin):
 
     @classmethod
     def get_woman(cls, **filters):
-        try:
-            return cls.objects.get(**filters)
-        except cls.DoesNotExist:
-            return False
+        ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
+        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).first()
 
 
 class NextOfKin(ModelMixin):

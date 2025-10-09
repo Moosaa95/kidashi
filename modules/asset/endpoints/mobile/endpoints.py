@@ -2,6 +2,7 @@ from django.db.models import Q
 from modules.asset.enums import AssetActivityType
 from modules.asset.tasks import create_loan_in_payrep
 from modules.security.enums import OtpPurpose
+from modules.security.mixins import IsPayrepAuthenticatedMixin
 from modules.security.models import OTP
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -18,7 +19,7 @@ from modules.asset.serializers import (
 )
 
 
-class CreateAsset(APIView):
+class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Kidashi Assets"],
         description="Create a new asset request for a woman",
@@ -39,28 +40,32 @@ class CreateAsset(APIView):
         serializer = AssetCreateRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-        product_id = validated_data.get("product_id")
+        product_code = validated_data.get("product_code")
         vendor_id = validated_data.get("vendor_id")
-        otp = validated_data.get("otp")
+        otp = validated_data.pop("otp")
+        try:
 
-        otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp)
-        if not otp_result.get("status"):
-            return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
+            otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
+            if not otp_result.get("status"):
+                return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
 
-        asset = Asset.create_asset(**validated_data)
-        if not asset:
+            asset = Asset.create_asset(**validated_data)
+            if not asset:
+                return Response(
+                    data=dict(status=False, message="Failed to create asset"),
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            log = AssetActivity.create_activity(asset_id=asset.id, activity_type=AssetActivityType.ASSET_REQUEST, description="Asset requested on kidashi", performed_by_id=vendor_id)
+            create_loan_in_payrep(asset_id=str(asset.id), token=request.payrep_token, product_code=product_code, log_id=log.id)
+
             return Response(
-                data=dict(status=False, message="Failed to create asset"),
-                status=status.HTTP_400_BAD_REQUEST,
+                data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=str(asset.id)),
+                status=status.HTTP_201_CREATED,
             )
-
-        log = AssetActivity.create_activity(asset_id=asset.id, activity_type=AssetActivityType.ASSET_REQUEST, description="Asset requested on kidashi", performed_by_id=vendor_id)
-        create_loan_in_payrep.delay(asset_id=str(asset.id), token=request.payrep_token, product_id=product_id, log_id=log.id)
-
-        return Response(
-            data=dict(status=True, message="Asset created in Kidashi, syncing with PayRep", asset_id=asset.id),
-            status=status.HTTP_201_CREATED,
-        )
+        except Exception as e:
+            print("========season", e)
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FetchAssets(APIView):
@@ -85,6 +90,7 @@ class FetchAssets(APIView):
 
         validated = serializer.validated_data
         filters = validated.get("filters", {}) or {}
+        # wants_summaries = validated.get("wants_summaries", False)
 
         condition = Q()
         for key, value in filters.items():
@@ -99,17 +105,44 @@ class FetchAssets(APIView):
 class GetAsset(APIView):
     @extend_schema(
         tags=["Kidashi Assets"],
-        description="Get a single asset by ID or loan_id",
+        summary="Fetch a single asset and portfolio summary",
+        description="""
+        This endpoint retrieves details of a single asset in the Kidashi system.
+
+        You can fetch an asset using either:
+        - **asset_id** (UUID of the asset in Kidashi)
+        - **loan_id** (UUID of the loan from PayRep bank system)
+
+        In addition to the asset details, the response also includes a **summary** of the
+        member's portfolio (ongoing, active, closed, unsuccessful assets and their values).
+        """,
         request=GetAssetRequestSerializer,
         responses={
             200: inline_serializer(
                 name="GetAssetResponse",
                 fields=dict(
+                    status=serializers.BooleanField(help_text="Indicates if the request was successful"),
+                    message=serializers.CharField(help_text="Human-readable message"),
+                    data=AssetSerializer(help_text="Detailed information about the asset"),
+                    summary=serializers.DictField(
+                        help_text="Portfolio statistics for the woman who owns this asset. " "Includes total pipeline, active, closed, and unsuccessful assets, " "with values and markups."
+                    ),
+                ),
+            ),
+            404: inline_serializer(
+                name="GetAssetNotFound",
+                fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
-                    data=AssetSerializer(),
                 ),
-            )
+            ),
+            400: inline_serializer(
+                name="GetAssetBadRequest",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                ),
+            ),
         },
     )
     def post(self, request):
@@ -123,5 +156,14 @@ class GetAsset(APIView):
         asset = Asset.get_asset(**filters)
         if not asset:
             return Response(dict(status=False, message="Asset not found"), status=status.HTTP_404_NOT_FOUND)
-
-        return Response(data=dict(status=True, message="Asset fetched successfully", data=asset), status=status.HTTP_200_OK)
+        member_id = asset["woman_id"] if isinstance(asset, dict) else getattr(asset.woman, "id", None)
+        summary = Asset.fetch_asset_summaries(member_id=member_id)
+        return Response(
+            {
+                "status": True,
+                "message": "Asset fetched successfully",
+                "data": asset,
+                "summary": summary,
+            },
+            status=status.HTTP_200_OK,
+        )

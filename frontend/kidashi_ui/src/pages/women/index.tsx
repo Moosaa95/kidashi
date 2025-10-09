@@ -1,4 +1,4 @@
-// import { useState } from "react"
+import { useMemo } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAppDispatch, useAppSelector } from "@/states/app/hooks"
 import { setFilter } from "@/states/features/dashboard/womenSlice"
@@ -8,64 +8,86 @@ import { womenColumns } from "@/components/women/womenColumn"
 import { useFetchWomenQuery } from "@/states/api/endpoints/women/womenApiSlice"
 import { DataTableSkeleton } from "@/components/loaders/skeletons/DataTableSkeleton"
 import { Skeleton } from "@/components/ui/skeleton"
+import { StatCardSkeleton } from "@/components/loaders/skeletons/StatSkeleton"
+import type { WomanSummary } from "@/types/global"
 
 export default function WomenManagement() {
-    // const [searchQuery, setSearchQuery] = useState("")
-    const searchQuery = ""
     const dispatch = useAppDispatch()
 
-    const { filter, stats } = useAppSelector((state) => state.women)
-    const { data: womenData, isLoading: womenLoading } = useFetchWomenQuery()
-    const women = womenData?.data || []
+    const { filter } = useAppSelector((state) => state.women)
+    const {
+        data: womenData,
+        isLoading: womenLoading,
+        isFetching: womenFetching,
+        error: womenError,
+    } = useFetchWomenQuery()
+    const women: WomanSummary[] = womenData?.data ?? []
+
+    const totalWomen = women.length
+    const activeWomen = women.filter((woman) => woman.status === "ACTIVE").length
+    const ongoingLoans = women.filter((woman) => {
+        const status = woman.repayment_status ?? ""
+        return status && !["NOT_APPLICABLE", "PAID_OFF"].includes(status)
+    }).length
+    const atRisk = women.filter((woman) => {
+        const status = woman.repayment_status ?? ""
+        return ["LATE", "DEFAULTED"].includes(status)
+    }).length
 
     const statsData: StatProps[] = [
         {
             name: "Total Women",
-            value: stats.total_women.toString(),
-            change: "+2.1%",
-            changeType: "positive" as const,
+            value: totalWomen.toString(),
+            change: "",
+            changeType: "positive",
             icon: "Users",
-            description: "Registered across all vendors",
+            description: "Registered across the program",
         },
         {
-            name: "Active Loans",
-            value: stats.active_loans.toString(),
-            change: "+0.5%",
-            changeType: "positive" as const,
+            name: "Active Women",
+            value: activeWomen.toString(),
+            change: "",
+            changeType: "positive",
+            icon: "UserCheck",
+            description: "Currently engaged",
+        },
+        {
+            name: "Ongoing Loans",
+            value: ongoingLoans.toString(),
+            change: "",
+            changeType: "positive",
             icon: "CreditCard",
-            description: "Currently being repaid",
+            description: "Loans in progress",
         },
         {
-            name: "Overdue Loans",
-            value: stats.defaulted_loans.toString(),
-            change: "-1.4%",
-            changeType: "negative" as const,
+            name: "At Risk",
+            value: atRisk.toString(),
+            change: "",
+            changeType: atRisk > 0 ? "negative" : "positive",
             icon: "AlertTriangle",
-            description: "Past due repayment",
-        },
-        {
-            name: "Repaid Loans",
-            value: stats.repaid_loans.toLocaleString(),
-            change: "+0.8%",
-            changeType: "positive" as const,
-            icon: "TrendingUp",
-            description: "Across all women",
+            description: "Late or defaulted loans",
         },
     ]
 
-    const filtered = women.filter((woman: any) => {
-        const matchesSearch =
-            woman.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            woman.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            woman.vendorName.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesFilter =
-            filter === "all" ||
-            (filter === "current" && woman.loanAmount > 0) ||
-            (filter === "current" && woman.loanAmount === 0) ||
-            (filter === "overdue" && woman.repaymentStatus === "overdue")
+    const filteredWomen = useMemo(() => {
+        if (!filter || filter === "all") {
+            return women
+        }
 
-        return matchesSearch && matchesFilter
-    })
+        return women.filter((woman) => {
+            const repaymentStatus = woman.repayment_status ?? ""
+            if (filter === "withLoans") {
+                return repaymentStatus && repaymentStatus !== "NOT_APPLICABLE"
+            }
+            if (filter === "noLoans") {
+                return !repaymentStatus || repaymentStatus === "NOT_APPLICABLE"
+            }
+            if (filter === "overdue") {
+                return ["LATE", "DEFAULTED"].includes(repaymentStatus)
+            }
+            return true
+        })
+    }, [filter, women])
 
     return (
         <div className="space-y-8">
@@ -81,10 +103,22 @@ export default function WomenManagement() {
 
             {/* Stats */}
             <div className="grid gap-6 lg:grid-cols-4">
-                {statsData.map((stat) => (
-                    <StatCard key={stat.name} {...stat} />
-                ))}
+                {(womenLoading || womenFetching) ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                        <StatCardSkeleton key={index} />
+                    ))
+                ) : (
+                    statsData.map((stat) => (
+                        <StatCard key={stat.name} {...stat} />
+                    ))
+                )}
             </div>
+
+            {womenError ? (
+                <div className="rounded-md border border-destructive bg-destructive/10 p-4 text-destructive">
+                    Unable to load women. Please try again later.
+                </div>
+            ) : null}
 
             {/* Tabs + Table */}
             <Tabs
@@ -108,13 +142,13 @@ export default function WomenManagement() {
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="withLoans">With Loans</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="noLoans">No Loans</TabsTrigger>
-                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overdue">Overdue</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="overdue">At Risk</TabsTrigger>
                         </TabsList>
                         <TabsContent value={filter}>
                             <DataTable
                                 columns={womenColumns}
-                                data={filtered}
-                                searchColumn="name"
+                                data={filteredWomen}
+                                searchColumn="full_name"
                                 searchPlaceholder="search women members"
                             />
                         </TabsContent>

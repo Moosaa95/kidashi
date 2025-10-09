@@ -6,7 +6,7 @@ class PayrepCba(BaseCbaClient):
 
     def __init__(self, base_url=None, mode=None):
         super().__init__(
-            base_url=base_url or os.getenv("PAYREP_CBA_BASE_URL", "http://192.168.0.193:8009/api/v1"),
+            base_url=(base_url or os.getenv("CBA_BASE_URL", "https://dev.payrepmfb.com")).rstrip("/") + "/api/v1/",
             fi="payrepcba",
             mode=mode,
         )
@@ -23,12 +23,12 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["mobile_number", "otp", "type"],
             },
             "verify_email": {
-                "endpoint": "customer/mobile/verify_email_address",
+                "endpoint": "customer/mobile/verify_email",
                 "method": "post",
                 "required_fields": ["email"],
             },
             "register_email": {
-                "endpoint": "customer/mobile/register_email_address",
+                "endpoint": "customer/mobile/register_email",
                 "method": "post",
                 "required_fields": ["email", "mobile_number", "otp"],
             },
@@ -38,12 +38,12 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["nationality"],
             },
             "nin_lookup": {
-                "endpoint": "customer/mobile/nin_lookup",
+                "endpoint": "compliance/mobile/nin_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "nin"],
             },
             "bvn_lookup": {
-                "endpoint": "customer/mobile/bvn_lookup",
+                "endpoint": "compliance/mobile/bvn_lookup",
                 "method": "post",
                 "required_fields": ["cba_customer_id", "bvn"],
             },
@@ -68,13 +68,13 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["document_type", "document_class", "file"],
             },
             "pep": {
-                "endpoint": "compliance/mobile/pep/{cba_customer_id}",
-                "method": "post",
+                "endpoint": "customer/mobile/pep/{cba_customer_id}",
+                "method": "put",
                 "required_fields": ["is_pep"],
             },
             "source_of_income": {
                 "endpoint": "customer/mobile/income/{cba_customer_id}",
-                "method": "post",
+                "method": "put",
                 "required_fields": ["employment_type", "occupation", "annual_income"],
             },
             "manual_customer_details": {
@@ -88,7 +88,7 @@ class PayrepCba(BaseCbaClient):
                 "required_fields": ["file"],
             },
             "attestation": {
-                "endpoint": "compliance/mobile/attestation/{cba_customer_id}",
+                "endpoint": "customer/mobile/attestation/{cba_customer_id}",
                 "method": "post",
                 "required_fields": [],
             },
@@ -99,10 +99,10 @@ class PayrepCba(BaseCbaClient):
 
     def get_cba_customer_details(self, cba_customer_id, token):
 
-        url = f"{self.base_url}/customer/{cba_customer_id}"
+        url = f"{self.base_url}/customer/mobile/customer_basic/{cba_customer_id}"
         return self.send_request(url, method="get", token=token)
 
-    def create_loan_asset(self, token, payload):
+    def create_loan_asset(self, payload, token):
         url = f"{self.base_url}/loan/mobile/book_loan"
         response = self.send_request(url, data=payload, method="post", token=token)
         if not response.get("req_status"):

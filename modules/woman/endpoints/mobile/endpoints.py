@@ -7,13 +7,15 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, inline_serializer
 from drf_spectacular.types import OpenApiTypes
 
-from modules.service.providers.PayrepCba import PayrepCba
+from modules.service.enums import ServiceCode
+from modules.service.models import Service
 from modules.vendor.models import Vendor
 from modules.woman.models import Woman
 from modules.woman.serializers import (
     FetchWomenFilterSerializer,
     GetWomanBasicDetailsRequestSerializer,
     WomanAttestationSerializer,
+    WomanDetailSerializer,
     WomanEmailVerifySerializer,
     WomanEmailRegisterSerializer,
     WomanFacialCaptureSerializer,
@@ -36,7 +38,7 @@ from modules.woman.serializers import (
 
 class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Verify woman's mobile number with Payrep",
         request=WomanMobileVerifySerializer,
         responses={
@@ -59,15 +61,17 @@ class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
             type=serializer.validated_data.get("type", "INDIVIDUAL"),
         )
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("verify_mobile", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("verify_mobile", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class RegisterWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Register woman's mobile number with Payrep",
         request=WomanMobileRegisterSerializer,
     )
@@ -81,15 +85,17 @@ class RegisterWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
             type=serializer.validated_data.get("type", "INDIVIDUAL"),
         )
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("register_mobile", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("register_mobile", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class VerifyWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Verify woman's email address with Payrep",
         request=WomanEmailVerifySerializer,
     )
@@ -98,15 +104,17 @@ class VerifyWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(email=serializer.validated_data["email"])
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("verify_email", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("verify_email", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class RegisterWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Register woman's email address with Payrep",
         request=WomanEmailRegisterSerializer,
     )
@@ -119,15 +127,17 @@ class RegisterWomanEmailAddress(IsPayrepAuthenticatedMixin, APIView):
             otp=serializer.validated_data["otp"],
         )
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("register_email", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("register_email", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class UpdateWomanNationality(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Update woman's nationality with Payrep",
         request=WomanNationalitySerializer,
     )
@@ -136,15 +146,17 @@ class UpdateWomanNationality(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(nationality=serializer.validated_data["nationality"])
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("nationality", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("nationality", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanNinLookup(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Run NIN lookup for a woman in Payrep",
         request=WomanNinLookupSerializer,
     )
@@ -156,15 +168,17 @@ class WomanNinLookup(IsPayrepAuthenticatedMixin, APIView):
             nin=serializer.validated_data["nin"],
         )
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("nin_lookup", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("nin_lookup", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanBvnLookup(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Run BVN lookup for a woman in Payrep",
         request=WomanBvnLookupSerializer,
     )
@@ -176,15 +190,17 @@ class WomanBvnLookup(IsPayrepAuthenticatedMixin, APIView):
             bvn=serializer.validated_data["bvn"],
         )
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("bvn_lookup", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("bvn_lookup", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanVerificationCheck(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Submit verification check payload",
         request=WomanVerificationCheckSerializer,
     )
@@ -193,15 +209,17 @@ class WomanVerificationCheck(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = dict(verification=serializer.validated_data["verification"])
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("verification_check", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("verification_check", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanLocationSetup(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Set personal and location details",
         request=WomanLocationSetupSerializer,
     )
@@ -217,8 +235,10 @@ class WomanLocationSetup(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "personal_and_location_setup",
             payload=payload,
             token=request.payrep_token,
@@ -230,7 +250,7 @@ class WomanLocationSetup(IsPayrepAuthenticatedMixin, APIView):
 
 class WomanNextOfKin(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Submit next of kin details",
         request=WomanNextOfKinSerializer,
     )
@@ -239,15 +259,17 @@ class WomanNextOfKin(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("next_of_kin", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("next_of_kin", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanIdentificationCheck(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Upload identification document",
         request=WomanIdentificationCheckSerializer,
     )
@@ -261,8 +283,10 @@ class WomanIdentificationCheck(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "identification_check",
             payload=payload,
             token=request.payrep_token,
@@ -274,7 +298,7 @@ class WomanIdentificationCheck(IsPayrepAuthenticatedMixin, APIView):
 
 class WomanPep(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="PEP declaration",
         request=WomanPepSerializer,
     )
@@ -284,8 +308,10 @@ class WomanPep(IsPayrepAuthenticatedMixin, APIView):
         payload = dict(is_pep=serializer.validated_data["is_pep"])
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "pep",
             payload=payload,
             token=request.payrep_token,
@@ -297,7 +323,7 @@ class WomanPep(IsPayrepAuthenticatedMixin, APIView):
 
 class WomanSourceOfIncome(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Source of income submission",
         request=WomanSourceOfIncomeSerializer,
     )
@@ -311,8 +337,10 @@ class WomanSourceOfIncome(IsPayrepAuthenticatedMixin, APIView):
         )
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "source_of_income",
             payload=payload,
             token=request.payrep_token,
@@ -324,7 +352,7 @@ class WomanSourceOfIncome(IsPayrepAuthenticatedMixin, APIView):
 
 class WomanManualCustomerDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Create customer manually in Payrep",
         request=WomanManualCustomerDetailsSerializer,
     )
@@ -333,15 +361,17 @@ class WomanManualCustomerDetails(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        payrep = PayrepCba()
-        result = payrep.customer_action("manual_customer_details", payload=payload, token=request.payrep_token)
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action("manual_customer_details", payload=payload, token=request.payrep_token)
         http_status = status.HTTP_200_OK if result.get("req_status") else status.HTTP_400_BAD_REQUEST
         return Response(data=result, status=http_status)
 
 
 class WomanFacialCapture(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Submit facial capture image",
         request=WomanFacialCaptureSerializer,
     )
@@ -351,8 +381,10 @@ class WomanFacialCapture(IsPayrepAuthenticatedMixin, APIView):
         payload = dict(file=serializer.validated_data["file"])
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "facial_capture",
             payload=payload,
             token=request.payrep_token,
@@ -364,7 +396,7 @@ class WomanFacialCapture(IsPayrepAuthenticatedMixin, APIView):
 
 class WomanAttestation(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Submit woman attestation affirmation",
         request=WomanAttestationSerializer,
         responses={
@@ -383,8 +415,10 @@ class WomanAttestation(IsPayrepAuthenticatedMixin, APIView):
 
         cba_customer_id = serializer.validated_data["cba_customer_id"]
 
-        payrep = PayrepCba()
-        result = payrep.customer_action(
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        result = provider.customer_action(
             "attestation",
             payload={},
             token=request.payrep_token,
@@ -397,7 +431,7 @@ class WomanAttestation(IsPayrepAuthenticatedMixin, APIView):
 
 class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Onboarding"],
+        tags=["Woman"],
         description="Onboard woman to Kidashi (must already exist in Payrep MFB)",
         request=WomanOnboardingRequestSerializer,
         responses={
@@ -417,50 +451,68 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
         serializer.is_valid(raise_exception=True)
 
         vendor_cba_customer_id = serializer.validated_data["vendor_cba_customer_id"]
-        woman_cba_customer_id = serializer.validated_data["cba_customer_id"]
+        woman_cba_customer_id = serializer.validated_data["woman_cba_customer_id"]
+        try:
+            vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
+            if not vendor:
+                return Response(dict(status=False, message="Vendor not found"), status=status.HTTP_404_NOT_FOUND)
 
-        vendor = Vendor.get_vendor(cba_customer_id=vendor_cba_customer_id)
-        if not vendor:
-            return Response(dict(status=False, message="Vendor not found"), status=status.HTTP_404_NOT_FOUND)
+            service = Service.get_service(code=ServiceCode.CBA_CODE)
+            integration = service.active_integrations(channel="API").first()
+            provider = integration.get_client()
+            cba_customer_data = provider.get_cba_customer_details(woman_cba_customer_id, token=request.payrep_token)
+            if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
+                return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
 
-        payrep = PayrepCba()
-        cba_customer_data = payrep.get_cba_customer_details(woman_cba_customer_id, token=request.payrep_token)
-        if not cba_customer_data.get("req_status") or not cba_customer_data.get("status"):
-            return Response(dict(status=False, message="Unable to fetch customer from Payrep"), status=status.HTTP_400_BAD_REQUEST)
+            customer = cba_customer_data.get("data", {})
 
-        customer = cba_customer_data.get("data", {})
+            data = dict(
+                cba_customer_id=woman_cba_customer_id,
+                first_name=customer.get("first_name"),
+                surname=customer.get("surname"),
+                other_name=customer.get("other_names", ""),
+                dob=customer.get("dob", ""),
+                nationality=customer.get("nationality", ""),
+                occupation=customer.get("occupation", ""),
+                annual_income=customer.get("annual_income", ""),
+                employment_type=customer.get("employment_type", ""),
+                account_number=(customer.get("primary_account", {}).get("account_number", "") if customer.get("primary_account") else ""),
+                nin=(customer.get("kyc", {}).get("nin", "") if customer.get("kyc") else ""),
+                bvn=(customer.get("kyc", {}).get("bvn", "") if customer.get("kyc") else ""),
+                image=customer.get("image", ""),
+                state=customer.get("state__name", ""),
+                lga=customer.get("lga__name", ""),
+                residential_address=customer.get("residential_address", ""),
+                email=customer.get("email"),
+                mobile_number=customer.get("mobile_number"),
+                vendor=vendor,
+                tier=(customer.get("tier", {}).get("name") if customer.get("tier") else ""),
+                maximum_balance=(customer.get("tier", {}).get("maximum_balance") if customer.get("tier") else ""),
+            )
+            woman = Woman.create_woman(**data)
+            if not woman:
+                return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
-        data = dict(
-            cba_customer_id=woman_cba_customer_id,
-            first_name=customer.get("first_name"),
-            surname=customer.get("surname"),
-            other_name=customer.get("other_names", ""),
-            dob=customer.get("dob", None),
-            nationality=customer.get("nationality", ""),
-            occupation=customer.get("occupation", ""),
-            annual_income=customer.get("annual_income", ""),
-            employment_type=customer.get("employment_type", ""),
-            account_number=customer.get("account_number", ""),
-            nin=customer.get("nin", ""),
-            bvn=customer.get("bvn", ""),
-            image=customer.get("image", ""),
-            residential_address=customer.get("residential_address", ""),
-            email=customer.get("email"),
-            mobile_number=customer.get("mobile_number"),
-            vendor=vendor,
-            next_of_kin=customer.get("next_of_kin", ""),
-        )
+            return Response(
+                data=dict(
+                    status=True,
+                    woman_id=str(woman.id),
+                    woman_cba_customer_id=str(woman.cba_customer_id),
+                    account_number=str(woman.account_number),
+                    tier_type=woman.tier,
+                    message="woman created successfully",
+                ),
+                status=status.HTTP_201_CREATED,
+            )
 
-        result = Woman.create_woman(**data)
-        if not result.get("status"):
-            return Response(data=result, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(data=result, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print("==========WomenOboarding", e)
+            return Response(data=dict(status=False, message="An unexpected error has occured, please contact support"), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
-        tags=["Kidashi Woman Details"],
+        tags=["Woman"],
         description="Fetch details of a woman",
         request=FetchWomenFilterSerializer,
         responses={
@@ -477,19 +529,23 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
     def post(self, request):
         serializer = FetchWomenFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        filtered_data = serializer.validated_data or {}
+
         condition = Q()
-        for key, value in validated_data.items():
-            condition.add(Q(**{key: value}), Q.AND)
+        search_value = filtered_data.get("search")
+        if search_value:
+            condition |= Q(mobile_number__icontains=search_value)
+            condition |= Q(nin__iexact=search_value)
+            condition |= Q(bvn__iexact=search_value)
+            condition |= Q(account_number__iexact=search_value)
 
         woman = Woman.fetch_women(conditions=condition)
-
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
+class GetWomanBasicDetails(APIView):
     @extend_schema(
-        tags=["Kidashi Woman Details"],
+        tags=["Woman"],
         description="Fetch basic details of a woman",
         request=GetWomanBasicDetailsRequestSerializer,
         responses={
@@ -511,5 +567,4 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanDetailSerializer(woman).data), status=status.HTTP_200_OK)
