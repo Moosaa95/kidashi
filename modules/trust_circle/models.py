@@ -99,9 +99,18 @@ class TrustCircle(ModelMixin):
 
         queryset = queryset.annotate(
             current_member_count=Count("women", distinct=True),
-            get_active_members=Count("women", filter=Q(women__status=TrustCircleStatus.ACTIVE), distinct=True),
+            get_active_members=Count(
+                "women",
+                filter=Q(women__status=TrustCircleStatus.ACTIVE),
+                distinct=True,
+            ),
             can_add_more_members=Case(
                 When(current_member_count__lt=F("max_members"), then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            is_full=Case(
+                When(current_member_count__gte=F("max_members"), then=Value(True)),
                 default=Value(False),
                 output_field=BooleanField(),
             ),
@@ -119,7 +128,23 @@ class TrustCircle(ModelMixin):
         if count:
             queryset = queryset[: int(count)]
 
-        return queryset.values(*cls.get_fields())
+        return queryset.values(
+            "id",
+            "circle_name",
+            "description",
+            "max_members",
+            "current_member_count",
+            "get_active_members",
+            "can_add_more_members",
+            "is_full",
+            "can_accept_new_members_by_voting",
+            "status",
+            "loan_eligibility",
+            "activation_date",
+            "created_at",
+            "updated_at",
+            "vendor_id",
+        )
 
     @classmethod
     def get_trust_circle(cls, **kwargs):
