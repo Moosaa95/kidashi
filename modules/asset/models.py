@@ -39,6 +39,7 @@ class Asset(ModelMixin):
             "woman_id",
             "woman__first_name",
             "woman__surname",
+            "woman__trust_circle__circle_name",
             "vendor__id",
             "vendor__first_name",
             "vendor__surname",

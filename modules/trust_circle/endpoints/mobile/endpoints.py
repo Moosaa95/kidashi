@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 from rest_framework import status
@@ -15,13 +16,13 @@ from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembe
 from modules.trust_circle.serializers import (
     CreateTrustCircleRequestSerializer,
     GetTrustCircleRequestSerializer,
-    FetchTrustCirclesRequestSerializer,
     ProposeWomanRequestSerializer,
     UpdateVoteRequestSerializer,
     VoteStatusRequestSerializer,
     PendingVotesRequestSerializer,
     ResendOtpRequestSerializer,
     ExpiredVotesRequestSerializer,
+    FetchTrustCircleFilterSerializer,
 )
 from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
@@ -225,7 +226,7 @@ class FetchTrustCircles(APIView):
     @extend_schema(
         tags=["Trust Circle"],
         description="Fetch all Trust Circles for a vendor with optional filtering",
-        request=FetchTrustCirclesRequestSerializer,
+        request=FetchTrustCircleFilterSerializer,
         responses={
             200: inline_serializer(
                 name="FetchTrustCirclesResponse",
@@ -269,41 +270,31 @@ class FetchTrustCircles(APIView):
         },
     )
     def post(self, request):
-        serializer = FetchTrustCirclesRequestSerializer(data=request.data)
+        serializer = FetchTrustCircleFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        filters_data = validated_data.get("filters", {}) or {}
+        search = validated_data.get("search", "").strip()
+        vendor_id = filters_data.get("vendor_id")
+        # count = serializer.validated_data.get("count")
 
-        vendor_id = serializer.validated_data["vendor_id"]
-        circle_status_filter = serializer.validated_data.get("status_filter")
-
-        vendor = Vendor.get_vendor(id=vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Build query
-        if not circle_status_filter:
-            queryset = TrustCircle.objects.filter(vendor=vendor)
+        if search:
+            conditions = Q(circle_name__icontains=search)
         else:
-            queryset = TrustCircle.objects.filter(vendor=vendor, status=circle_status_filter)
+            conditions = Q(vendor_id=vendor_id) if vendor_id else Q()
 
-        circles = queryset.values(*TrustCircle.get_fields())
+        for key, value in filters_data.items():
+            conditions &= Q(**{key: value})
 
-        # Add computed properties to each circle
-        circles_data = []
-        for circle in circles:
-            circle_obj = TrustCircle.objects.get(id=circle["id"])
-            circle["current_member_count"] = circle_obj.current_member_count
-            circle["can_add_more_members"] = circle_obj.can_add_more_members
-            circle["is_full"] = circle_obj.is_full
-            circle["can_accept_new_members_by_voting"] = circle_obj.can_accept_new_members_by_voting
-            circles_data.append(circle)
+        trust_circles = TrustCircle.fetch_trust_circles_with_filter(conditions=conditions)
 
         return Response(
             {
                 "status": True,
-                "message": "Trust Circles fetched successfully",
+                "message": "Trust circles fetched successfully",
                 "data": {
-                    "circles": circles_data,
-                    "total_count": len(circles_data),
+                    "circles": trust_circles,
+                    "total_count": len(trust_circles),
                 },
             },
             status=status.HTTP_200_OK,

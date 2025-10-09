@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 from typing import TYPE_CHECKING
 
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q, When, Case, Value, BooleanField, F, Count
 
 from common.mixins import ModelMixin
 from modules.trust_circle.enums import TrustCircleStatus, LoanEligibility, NewMembershipVoteOption, TrustCircleActivityType, VoteStatus
@@ -97,12 +97,54 @@ class TrustCircle(ModelMixin):
         if conditions:
             queryset = queryset.filter(conditions)
 
+        queryset = queryset.annotate(
+            current_member_count=Count("women", distinct=True),
+            get_active_members=Count(
+                "women",
+                filter=Q(women__status=TrustCircleStatus.ACTIVE),
+                distinct=True,
+            ),
+            can_add_more_members=Case(
+                When(current_member_count__lt=F("max_members"), then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            is_full=Case(
+                When(current_member_count__gte=F("max_members"), then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+            can_accept_new_members_by_voting=Case(
+                When(
+                    Q(status=TrustCircleStatus.ACTIVE) & Q(loan_eligibility=LoanEligibility.ELIGIBLE),
+                    then=Value(True),
+                ),
+                default=Value(False),
+                output_field=BooleanField(),
+            ),
+        )
         queryset = queryset.order_by("-created_at")
 
         if count:
             queryset = queryset[: int(count)]
 
-        return list(queryset.values(*cls.get_fields()))
+        return queryset.values(
+            "id",
+            "circle_name",
+            "description",
+            "max_members",
+            "current_member_count",
+            "get_active_members",
+            "can_add_more_members",
+            "is_full",
+            "can_accept_new_members_by_voting",
+            "status",
+            "loan_eligibility",
+            "activation_date",
+            "created_at",
+            "updated_at",
+            "vendor_id",
+        )
 
     @classmethod
     def get_trust_circle(cls, **kwargs):
