@@ -5,6 +5,8 @@ from rest_framework.views import APIView
 from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema, inline_serializer
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.security.mixins import IsPayrepAuthenticatedMixin
 from modules.service.enums import ServiceCode
 from modules.service.models import Service
@@ -76,11 +78,20 @@ class CreateVendorBusinessOnboarding(IsPayrepAuthenticatedMixin, APIView):
                     transaction.set_rollback(True)
                     return Response(data=gurantor_result, status=status.HTTP_400_BAD_REQUEST)
 
-                # OnboardingActivityLogs.update_log(
-                #     log_id=log.id,
-                #     status=True,
-                #     data={"vendor": data, "guarantors": guarantors_data},
-                # )
+                transaction.on_commit(
+                    lambda: InAppNotification.create_notification(
+                        cba_customer_id=str(cba_customer_id),
+                        event_type=InAppEventType.VENDOR_ONBOARDED,
+                        title="Vendor Onboarding Successful",
+                        message=f"Your business '{data.get('business_type')}' has been successfully onboarded to Kidashi.",
+                        metadata=dict(
+                            vendor_id=str(result.get("vendor_id")),
+                            cba_customer_id=str(cba_customer_id),
+                            community=data.get("community"),
+                        ),
+                    )
+                )
+
                 return Response(status=status.HTTP_201_CREATED, data=result)
 
                 # except Exception:
