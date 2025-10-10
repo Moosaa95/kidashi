@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.db.models import Q
 from modules.notification.enums import InAppEventType
 from modules.notification.models import InAppNotification
@@ -36,6 +37,7 @@ from modules.woman.serializers import (
     WomanOnboardingRequestSerializer,
     WomanVerificationCheckSerializer,
 )
+from modules.woman.tasks import fetch_and_cache_shinobi_loans
 
 
 class VerifyWomanMobileNumber(IsPayrepAuthenticatedMixin, APIView):
@@ -557,7 +559,7 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(APIView):
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
@@ -577,8 +579,29 @@ class GetWomanBasicDetails(APIView):
         serializer = GetWomanBasicDetailsRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         cba_customer_id = serializer.validated_data.get("cba_customer_id")
-
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
+
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanDetailSerializer(woman).data), status=status.HTTP_200_OK)
+
+        cache_key = f"woman_loan_summary_{cba_customer_id}"
+        shinobi_response = cache.get(cache_key)
+        if not shinobi_response:
+            fetch_and_cache_shinobi_loans(cba_customer_id, token=request.payrep_token)
+            loan_summary = dict(total_outstanding=0, running_loans=0, processing_loans=0)
+            loans = []
+            message = "Woman details fetched (loan data is being updated)"
+        else:
+            data = shinobi_response.get("data", {})
+            loans = data.get("loans", [])
+            loan_summary = dict(
+                total_outstanding=data.get("total_outstanding", 0),
+                running_loans=data.get("running_loans", 0),
+                processing_loans=data.get("processing_loans", 0),
+            )
+            message = "Woman details fetched successfully"
+
+        woman_data = WomanDetailSerializer(woman).data
+        woman_data["loan_summary"] = loan_summary
+        woman_data["loans"] = loans
+        return Response(data=dict(status=True, message=message, data=woman_data), status=status.HTTP_200_OK)

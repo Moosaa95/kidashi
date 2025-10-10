@@ -48,7 +48,6 @@ class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
             otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
             if not otp_result.get("status"):
                 return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
-
             asset = Asset.create_asset(**validated_data)
             if not asset:
                 return Response(

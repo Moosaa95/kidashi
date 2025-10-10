@@ -22,7 +22,8 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
 
     total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
-        "account_number": asset.woman.account_number,
+        "woman_account_number": asset.woman.account_number,
+        "vendor_account_number": asset.vendor.account_number,
         "product_code": str(product_code),
         "amount": float(total_amount),
     }
