@@ -84,7 +84,7 @@ class Asset(ModelMixin):
                     return dict(status=False, message="Loan ID already assigned", loan_id=str(asset.loan_id))
 
                 asset.loan_id = loan_id
-                asset.status = AssetStatus.REQUESTED
+                asset.status = AssetStatus.RUNNING
                 asset.save(update_fields=["loan_id", "status"])
                 return dict(status=True, message="Loan ID set", loan_id=str(asset.loan_id))
 

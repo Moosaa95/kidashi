@@ -1,5 +1,4 @@
 from celery import shared_task
-from decimal import Decimal
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
 from modules.service.enums import ServiceCode
@@ -20,12 +19,12 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
     integration = service.active_integrations(channel="API").first()
     provider = integration.get_client()
 
-    total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
+    # total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
         "woman_account_number": asset.woman.account_number,
         "vendor_account_number": asset.vendor.account_number,
         "product_code": str(product_code),
-        "amount": float(total_amount),
+        "amount": float(asset.value),
     }
 
     try:
