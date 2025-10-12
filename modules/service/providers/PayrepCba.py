@@ -104,7 +104,7 @@ class PayrepCba(BaseCbaClient):
 
     def fetch_cba_customer_assets(self, cba_customer_id, token):
 
-        url = f"{self.base_url}/loan/mobile/get_loan_details"
+        url = f"{self.base_url}/loan/mobile/fetch_customer_loans"
         payload = dict(customer_id=str(cba_customer_id))
         return self.send_request(url, data=payload, token=token)
 

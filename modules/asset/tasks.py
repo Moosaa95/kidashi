@@ -56,4 +56,8 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
     else:
         activity_data.update(activity_type=AssetActivityType.SYNC_FAILED, description="PayRep loan creation failed", metadata={"error": response.get("message", "Unknown error")})
         AssetActivity.update_activity(activity_id=log_id, **activity_data)
-        Asset.update_assets(asset_id=asset.id, status=AssetStatus.FAILED)
+        Asset.update_assets(
+            asset_id=asset.id,
+            status=AssetStatus.FAILED,
+            reject_reason="PayRep loan creation failed, Please contact support",
+        )

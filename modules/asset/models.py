@@ -12,6 +12,7 @@ class Asset(ModelMixin):
     value = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     markup = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=20, choices=AssetStatus.choices, default=AssetStatus.REQUESTED, db_index=True)
+    reject_reason = models.TextField(blank=True, null=True)
     # Foreign key to vendor who owns the asset
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="requested_assets", null=True, blank=True)
     # Foreign key to woman who requested the asset
@@ -35,6 +36,7 @@ class Asset(ModelMixin):
             "loan_id",
             "product_code",
             "created_at",
+            "reject_reason",
             "items_requested",
             "woman_id",
             "woman__first_name",
