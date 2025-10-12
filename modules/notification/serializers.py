@@ -60,7 +60,7 @@ class UpdateInAppNotificationRequestSerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_blank=True, help_text="Updated notification message body")
     is_read = serializers.BooleanField(required=False, help_text="Set the notification read status")
 
-    def validate(self, attrs):
-        update_fields = [key for key in ("title", "message", "is_read") if key in attrs]
-        if not update_fields:
-            raise serializers.ValidationError("Provide at least one field to update")
+    # def validate(self, attrs):
+    #     update_fields = [key for key in ("title", "message", "is_read") if key in attrs]
+    #     if not update_fields:
+    #         raise serializers.ValidationError("Provide at least one field to update")
