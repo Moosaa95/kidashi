@@ -111,7 +111,7 @@ class UpdateVendorApplicationStatus(APIView):
                 new_status=status_value,
             ),
         )
-        notify_vendor_status_change.delay(vendor_id, status_value)
+        notify_vendor_status_change(vendor_id, status_value)
         response_dict.update(status=True, message="Vendor status updated successfully")
         return Response(response_dict, status=status.HTTP_200_OK)
 
