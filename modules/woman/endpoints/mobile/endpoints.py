@@ -585,10 +585,11 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
         service = Service.get_service(code=ServiceCode.CBA_CODE)
         integration = service.active_integrations(channel="API").first()
         provider = integration.get_client()
-        response = provider.fetch_cba_customer_assets(cba_customer_id, token=request.token)
+        response = provider.fetch_cba_customer_assets(cba_customer_id, token=request.payrep_token)
         data = response.get("data", {}) if response else {}
         loan_summary = {
             "total_outstanding": data.get("total_outstanding", 0),
+            "total_interest_balance": data.get("total_interest_balance", 0),
             "running_loans": data.get("running_loans", 0),
             "processing_loans": data.get("processing_loans", 0),
         }
