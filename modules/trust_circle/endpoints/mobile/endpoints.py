@@ -28,10 +28,10 @@ from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
 from modules.woman.models import Woman
 from modules.woman.enums import WomanStatus
+from modules.security.models import OTP
 
 
-def send_otp_to_woman(woman, otp):
-    mobile_number = woman.mobile_number
+def send_otp_to_woman(mobile_number, otp):
     # TODO: Send OTP to woman's mobile_number
     send_sms(message=f"this is your otp {otp}", recipient=mobile_number)
 
@@ -312,20 +312,6 @@ class ProposeWomanToTrustCircle(APIView):
                 fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
-                    action_taken=serializers.CharField(),
-                    vote_id=serializers.UUIDField(required=False),
-                    voting_deadline=serializers.DateTimeField(required=False),
-                    voters=serializers.ListField(
-                        child=inline_serializer(
-                            name="VoterInfo",
-                            fields={
-                                "id": serializers.UUIDField(),
-                                "name": serializers.CharField(),
-                                "mobile_number": serializers.CharField(),
-                            },
-                        ),
-                        required=False,
-                    ),
                 ),
             ),
             400: inline_serializer(
@@ -352,38 +338,32 @@ class ProposeWomanToTrustCircle(APIView):
             return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Get trust circle
-        try:
-            trust_circle = TrustCircle.objects.get(id=trust_circle_id)
-        except TrustCircle.DoesNotExist:
+        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id, values=True)
+        if not trust_circle:
             return Response({"status": False, "message": "Trust Circle not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Get woman
-        try:
-            woman = Woman.objects.get(id=woman_id)
-        except Woman.DoesNotExist:
+        woman = Woman.get_woman(id=woman_id)
+        if not woman:
             return Response({"status": False, "message": "Woman not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if circle is full
-        if trust_circle.is_full:
-            return Response({"status": False, "message": "Trust Circle is already full"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if woman is already a member
         if woman in trust_circle.get_active_members():
             return Response({"status": False, "message": "Woman is already a member of this Trust Circle"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if there's already a pending vote for this woman
-        existing_vote = CircleMembershipVote.objects.filter(trust_circle=trust_circle, candidate_member=woman, status=VoteStatus.PENDING).first()
+        existing_vote = CircleMembershipVote.fetch_votes(trust_circle=trust_circle, candidate_member=woman, status=VoteStatus.PENDING).first()
 
         if existing_vote:
             return Response({"status": False, "message": "There is already a pending vote for this woman"}, status=status.HTTP_400_BAD_REQUEST)
 
         ip_address = get_request_ip(request=request)
 
-        current_member_count = trust_circle.current_member_count
+        active_member_count = trust_circle.get_active_members().count()
 
         try:
             with transaction.atomic():
-                if current_member_count < 3:
+                if not active_member_count:
                     # Automatically add woman to trust circle
                     woman.trust_circle = trust_circle
                     woman.status = WomanStatus.ACTIVE
@@ -408,76 +388,72 @@ class ProposeWomanToTrustCircle(APIView):
                         },
                         status=status.HTTP_200_OK,
                     )
+                    
+                if active_member_count != 1 and len(selected_voter_ids) < 2:
+                    return Response({"status": False, "message": "At least 2 voters must be selected"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                voters = []
+                mobile_numbers = []
+                
+                for voter_id in selected_voter_ids:
+                    woman = Woman.get_woman(id=voter_id)
+                    
+                    if not woman:
+                        return Response({"status": False, "message": "Voter not found"}, status=status.HTTP_404_NOT_FOUND)
+                    
+                    if woman.get("trust_circle", None) != trust_circle_id:
+                        return Response({"status": False, "message": f"Selected voter {woman.first_name + ' ' + woman.surname} does not belong to this circle"}, status=status.HTTP_400_BAD_REQUEST)
 
-                else:
-                    # Create voting process
-                    active_members = list(trust_circle.get_active_members())
+                    if woman.get("status", None) != WomanStatus.ACTIVE:
+                        return Response({"status": False, "message": f"Selected voter {woman.first_name + ' ' + woman.surname} is not an active member of this circle"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    if current_member_count == 3:
-                        # Use all 3 members as voters
-                        voters = active_members
-                    else:
-                        # Vendor must select 3 voters
-                        if not selected_voter_ids or len(selected_voter_ids) != 3:
-                            return Response({"status": False, "message": "Must select exactly 3 voters when circle has more than 3 members"}, status=status.HTTP_400_BAD_REQUEST)
-
-                        # Validate selected voters
-                        voters = []
-                        for voter_id in selected_voter_ids:
-                            try:
-                                voter = Woman.objects.get(id=voter_id)
-                                if voter not in active_members:
-                                    return Response(
-                                        {"status": False, "message": f"Selected voter {voter.first_name + ' ' + voter.surname} is not an active member of this circle"},
-                                        status=status.HTTP_400_BAD_REQUEST,
-                                    )
-                                voters.append(voter)
-                            except Woman.DoesNotExist:
-                                return Response({"status": False, "message": f"Voter with ID {voter_id} not found"}, status=status.HTTP_404_NOT_FOUND)
-
+                    voters.append(voter_id)
+                    mobile_numbers.append(woman.get("mobile_number"))
+                    
+                votes = []
+                for voter in voters:
                     # Create the vote
-                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member=woman, initiating_vendor=vendor, voters=voters)
-
-                    # Generate OTPs for all voters
-                    vote.voter_one_generated_otp = generate_otp()
-                    vote.voter_two_generated_otp = generate_otp()
-                    vote.voter_three_generated_otp = generate_otp()
-                    vote.save()
-
-                    # Send OTPs to voters
-                    send_otp_to_woman(vote.voter_one, vote.voter_one_generated_otp)
-                    send_otp_to_woman(vote.voter_two, vote.voter_two_generated_otp)
-                    send_otp_to_woman(vote.voter_three, vote.voter_three_generated_otp)
-
-                    # Log activity
-                    CircleActivity.create_activity(
-                        trust_circle=trust_circle,
-                        activity_type=TrustCircleActivityType.VOTE_INITIATED,
-                        description=f"Voting initiated for woman '{woman.first_name + ' ' + woman.surname}' to join Trust Circle '{trust_circle.circle_name}'",
-                        performed_by=vendor,
-                        affected_woman=woman,
-                        metadata={"vote_id": str(vote.id), "candidate_id": str(woman.id), "voters": [str(v.id) for v in voters]},
-                        ip_address=ip_address,
+                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member=woman, initiating_vendor=vendor, voter=voter)
+                    if not vote:
+                        transaction.set_rollback(True)
+                        return Response({"status": False, "message": "Error creating vote"}, status=status.HTTP_400_BAD_REQUEST)
+                    votes.append(vote)
+                    
+                # Generate and send OTP to voter
+                for mobile_number in mobile_numbers:
+                    OTP.create_otp(
+                        purpose="trust circle vote",
+                        subject_id=mobile_number,
+                        channel="SMS",
+                        log_to_db=True,
+                        recipient=mobile_number,
                     )
 
-                    voters_info = [{"id": voter.id, "name": voter.first_name + " " + voter.surname, "mobile_number": voter.mobile_number} for voter in voters]
+                # Log activity
+                CircleActivity.create_activity(
+                    trust_circle=trust_circle,
+                    activity_type=TrustCircleActivityType.VOTE_INITIATED,
+                    description=f"Voting initiated for woman '{woman.first_name + ' ' + woman.surname}' to join Trust Circle '{trust_circle.circle_name}'",
+                    performed_by=vendor,
+                    affected_woman=woman,
+                    metadata={"votes": [str(vote.id) for vote in votes], "candidate_id": str(woman.id), "voters": selected_voter_ids},
+                    ip_address=ip_address,
+                )
 
-                    return Response(
-                        {
-                            "status": True,
-                            "message": "Voting process initiated. OTPs have been sent to selected voters.",
-                            "action_taken": "voting_initiated",
-                            "vote_id": vote.id,
-                            "voting_deadline": vote.voting_deadline,
-                            "voters": voters_info,
-                        },
-                        status=status.HTTP_200_OK,
-                    )
+                return Response(
+                    {
+                        "status": True,
+                        "message": "Voting process initiated. OTPs have been sent to selected voters.",
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         except ValidationError as e:
+            print("Validation exception:::", e)
             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"status": False, "message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print("General exception:::", e)
+            return Response({"status": False, "message": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class UpdateTrustCircleVote(APIView):
@@ -992,7 +968,7 @@ class ResendVoterOTP(APIView):
         vote.save()
 
         # Send new OTP
-        send_otp_to_woman(voter, new_otp)
+        send_otp_to_woman(voter.mobile_number, new_otp)
 
         ip_address = get_request_ip(request=request)
 

@@ -1,11 +1,12 @@
 import os
+
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator
 from django.db import models
+from django.db.utils import IntegrityError
 from django.utils import timezone
-from typing import TYPE_CHECKING
-
 from django.db.models import QuerySet, Q, When, Case, Value, BooleanField, F, Count
+from typing import TYPE_CHECKING
 
 from common.mixins import ModelMixin
 from modules.trust_circle.enums import TrustCircleStatus, LoanEligibility, NewMembershipVoteOption, TrustCircleActivityType, VoteStatus
@@ -170,6 +171,7 @@ class TrustCircle(ModelMixin):
             raise ValidationError(f"Trust circle cannot have more than {self.max_members} members")
 
 
+
 class CircleMembershipVote(ModelMixin):
     """
     Model to track voting for new trust circle members when circle has 3+ members
@@ -178,36 +180,11 @@ class CircleMembershipVote(ModelMixin):
     trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
     candidate_member = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
     initiating_vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True, null=True, blank=True)
-
-    # Voting participants
-    voter_one = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_one", null=True, blank=True)
-    voter_two = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_two", null=True, blank=True)
-    voter_three = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_three", null=True, blank=True)
-
-    # OTP codes for verification
-    voter_one_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_two_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_three_otp = models.CharField(max_length=10, blank=True, null=True)
-
-    # Generated OTPs to verify against
-    voter_one_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_two_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_three_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-
-    # Vote tracking
-    voter_one_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
-    voter_two_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
-    voter_three_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
+    voter = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_cast", null=True, blank=True)
 
     # Vote metadata
     status = models.CharField(max_length=20, choices=VoteStatus.choices, default=VoteStatus.PENDING)
-    voting_deadline = models.DateTimeField(help_text="Deadline for completing the vote")
     completed_at = models.DateTimeField(blank=True, null=True)
-
-    # Results
-    approved_votes = models.PositiveIntegerField(default=0)
-    rejected_votes = models.PositiveIntegerField(default=0)
-    result_message = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = "circle_membership_votes"
@@ -220,6 +197,60 @@ class CircleMembershipVote(ModelMixin):
 
     def __str__(self):
         return f"Vote for {self.candidate_member} in {self.trust_circle.circle_name} - {self.status}"
+    
+    @classmethod
+    def get_fields(cls):
+        return [
+            "id",
+            "trust_circle_id",
+            "trust_circle__circle_name",
+            "candidate_member_id",
+            "candidate_member__first_name",
+            "candidate_member__surname",
+            "initiating_vendor_id",
+            "initiating_vendor__first_name",
+            "initiating_vendor__surname",
+            "voter_id",
+            "voter__first_name",
+            "voter__surname",
+            "status",
+            "voting_deadline",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+    
+    @classmethod
+    def create_vote(cls, **kwargs):
+        try:
+            vote = cls.objects.create(**kwargs)
+            return vote
+        except IntegrityError:
+            return None
+        
+    @classmethod
+    def fetch_votes(cls, **kwargs):
+        return cls.objects.filter(**kwargs).values(*cls.get_fields())
+
+    @classmethod
+    def update_vote_status(cls, voter_id, status):
+        return cls.objects.filter(voter_id=voter_id).update(status=status)
+
+    @classmethod
+    def delete_vote(cls, voter_id):
+        vote = cls.objects.filter(voter_id=voter_id).first()
+        
+        if not vote:
+            return dict(status=False, message="No vote found for the given voter_id")
+        
+        if vote.status != VoteStatus.PENDING:
+            return dict(status=False, message="Only pending votes can be deleted")
+        
+        deleted_vote = cls.objects.filter(voter_id=voter_id).delete()
+        if not deleted_vote:
+            return dict(status=False, message="Failed to delete the vote")
+        
+        return dict(status=True, message="Vote deleted successfully")
 
     def save(self, *args, **kwargs):
         # Set voting deadline if not provided (e.g., 1 Week from creation)

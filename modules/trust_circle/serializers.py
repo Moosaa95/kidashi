@@ -51,7 +51,7 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
     trust_circle_id = serializers.UUIDField(help_text="UUID of the trust circle")
     woman_id = serializers.UUIDField(help_text="UUID of the woman to be added to the trust circle")
     selected_voters = serializers.ListField(
-        child=serializers.UUIDField(),
+        child=serializers.CharField(),
         required=False,
         allow_empty=True,
         max_length=3,
