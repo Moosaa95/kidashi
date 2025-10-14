@@ -557,7 +557,7 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(APIView):
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
@@ -577,8 +577,24 @@ class GetWomanBasicDetails(APIView):
         serializer = GetWomanBasicDetailsRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         cba_customer_id = serializer.validated_data.get("cba_customer_id")
-
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
+
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanDetailSerializer(woman).data), status=status.HTTP_200_OK)
+
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        response = provider.fetch_cba_customer_assets(cba_customer_id, token=request.token)
+        data = response.get("data", {}) if response else {}
+        loan_summary = {
+            "total_outstanding": data.get("total_outstanding", 0),
+            "total_interest_balance": data.get("total_interest_balance", 0),
+            "running_loans": data.get("running_loans", 0),
+            "processing_loans": data.get("processing_loans", 0),
+        }
+        loans = data.get("loans", [])
+
+        woman_data = WomanDetailSerializer(woman).data
+        woman_data.update(loan_summary=loan_summary, loans=loans)
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman_data), status=status.HTTP_200_OK)

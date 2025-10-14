@@ -1,5 +1,4 @@
 from celery import shared_task
-from decimal import Decimal
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
 from modules.service.enums import ServiceCode
@@ -20,11 +19,12 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
     integration = service.active_integrations(channel="API").first()
     provider = integration.get_client()
 
-    total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
+    # total_amount = (asset.value or Decimal(0)) + (asset.markup or Decimal(0))
     payload = {
-        "account_number": asset.woman.account_number,
+        "woman_account_number": asset.woman.account_number,
+        "vendor_account_number": asset.vendor.account_number,
         "product_code": str(product_code),
-        "amount": float(total_amount),
+        "amount": float(asset.value),
     }
 
     try:
@@ -56,4 +56,8 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
     else:
         activity_data.update(activity_type=AssetActivityType.SYNC_FAILED, description="PayRep loan creation failed", metadata={"error": response.get("message", "Unknown error")})
         AssetActivity.update_activity(activity_id=log_id, **activity_data)
-        Asset.update_assets(asset_id=asset.id, status=AssetStatus.FAILED)
+        Asset.update_assets(
+            asset_id=asset.id,
+            status=AssetStatus.FAILED,
+            reject_reason="PayRep loan creation failed, Please contact support",
+        )

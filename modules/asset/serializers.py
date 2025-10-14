@@ -1,3 +1,4 @@
+from decimal import Decimal
 from rest_framework import serializers
 from modules.asset.enums import AssetStatus
 
@@ -12,12 +13,18 @@ class AssetCreateRequestSerializer(serializers.Serializer):
     woman_id = serializers.UUIDField(required=True, help_text="Woman's customer ID")
     product_code = serializers.CharField(required=True, help_text="Loan product code from payrep")
     name = serializers.CharField(max_length=255, required=False)
-    value = serializers.DecimalField(max_digits=12, decimal_places=2)
+    value = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     markup = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     loan_id = serializers.UUIDField(required=False, help_text="Loan ID from bank system")
     items_requested = serializers.ListField(child=AssetItemSerializer(), min_length=1)
     status = serializers.ChoiceField(choices=AssetStatus.choices, required=False, default=AssetStatus.REQUESTED)
     otp = serializers.CharField(max_length=10, required=True)
+
+    def validate(self, data):
+        items = data.get("items_requested", [])
+        total_value = sum(Decimal(item["price"]) for item in items)
+        data["value"] = total_value
+        return data
 
 
 class AssetSerializer(serializers.Serializer):
