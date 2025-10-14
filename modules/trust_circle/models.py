@@ -87,6 +87,10 @@ class TrustCircle(ModelMixin):
             "created_at",
             "updated_at",
         ]
+        
+    @classmethod
+    def fetch_trust_circles(cls, **filters):
+        return cls.objects.filter(**filters).values(*cls.get_fields())
 
     @classmethod
     def fetch_trust_circles_with_filter(cls, conditions=None, count=None, use_today=False):

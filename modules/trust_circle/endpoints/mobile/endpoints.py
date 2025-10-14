@@ -338,7 +338,7 @@ class ProposeWomanToTrustCircle(APIView):
             return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Get trust circle
-        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id, values=True)
+        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id)
         if not trust_circle:
             return Response({"status": False, "message": "Trust Circle not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -347,8 +347,7 @@ class ProposeWomanToTrustCircle(APIView):
         if not woman:
             return Response({"status": False, "message": "Woman not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if woman is already a member
-        if woman in trust_circle.get_active_members():
+        if woman.get("trust_circle", None) == trust_circle_id:
             return Response({"status": False, "message": "Woman is already a member of this Trust Circle"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if there's already a pending vote for this woman
@@ -358,16 +357,19 @@ class ProposeWomanToTrustCircle(APIView):
             return Response({"status": False, "message": "There is already a pending vote for this woman"}, status=status.HTTP_400_BAD_REQUEST)
 
         ip_address = get_request_ip(request=request)
+        
+        conditions = Q()
 
-        active_member_count = trust_circle.get_active_members().count()
+        conditions |= Q(trust_circle_id=trust_circle_id)
+        conditions |= Q(status=WomanStatus.ACTIVE)
+
+        active_member_count = Woman.fetch_women(conditions=conditions).count()
 
         try:
             with transaction.atomic():
                 if not active_member_count:
                     # Automatically add woman to trust circle
-                    woman.trust_circle = trust_circle
-                    woman.status = WomanStatus.ACTIVE
-                    woman.save()
+                    woman = Woman.update_woman(woman_id, trust_circle_id=trust_circle_id, status=WomanStatus.ACTIVE)
 
                     # Log activity
                     CircleActivity.create_activity(
@@ -384,10 +386,12 @@ class ProposeWomanToTrustCircle(APIView):
                         {
                             "status": True,
                             "message": "Woman successfully added to Trust Circle",
-                            "action_taken": "automatic_addition",
                         },
                         status=status.HTTP_200_OK,
                     )
+                    
+                if active_member_count == 1 and len(selected_voter_ids) < 1:
+                    return Response({"status": False, "message": "At least 1 voter must be selected"}, status=status.HTTP_400_BAD_REQUEST)
                     
                 if active_member_count != 1 and len(selected_voter_ids) < 2:
                     return Response({"status": False, "message": "At least 2 voters must be selected"}, status=status.HTTP_400_BAD_REQUEST)
@@ -396,20 +400,20 @@ class ProposeWomanToTrustCircle(APIView):
                 mobile_numbers = []
                 
                 for voter_id in selected_voter_ids:
-                    woman = Woman.get_woman(id=voter_id)
-                    
-                    if not woman:
-                        return Response({"status": False, "message": "Voter not found"}, status=status.HTTP_404_NOT_FOUND)
-                    
-                    if woman.get("trust_circle", None) != trust_circle_id:
-                        return Response({"status": False, "message": f"Selected voter {woman.first_name + ' ' + woman.surname} does not belong to this circle"}, status=status.HTTP_400_BAD_REQUEST)
+                    voter_woman = Woman.get_woman(id=voter_id)
 
-                    if woman.get("status", None) != WomanStatus.ACTIVE:
-                        return Response({"status": False, "message": f"Selected voter {woman.first_name + ' ' + woman.surname} is not an active member of this circle"}, status=status.HTTP_400_BAD_REQUEST)
+                    if not voter_woman:
+                        return Response({"status": False, "message": "Voter not found"}, status=status.HTTP_404_NOT_FOUND)
+
+                    if voter_woman.get("trust_circle", None) != trust_circle_id:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.get('first_name', None) + ' ' + voter_woman.get('surname')} does not belong to this circle"}, status=status.HTTP_400_BAD_REQUEST)
+
+                    if voter_woman.get("status", None) != WomanStatus.ACTIVE:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.get("first_name", None) + ' ' + voter_woman.get("surname")} is not an active member of this circle"}, status=status.HTTP_400_BAD_REQUEST)
 
                     voters.append(voter_id)
-                    mobile_numbers.append(woman.get("mobile_number"))
-                    
+                    mobile_numbers.append(voter_woman.get("mobile_number"))
+
                 votes = []
                 for voter in voters:
                     # Create the vote
