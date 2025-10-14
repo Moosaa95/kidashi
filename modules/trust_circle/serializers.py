@@ -54,9 +54,8 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
         child=serializers.CharField(),
         required=False,
         allow_empty=True,
-        max_length=3,
-        min_length=3,
-        help_text="List of 3 voter UUIDs when circle has more than 3 members. Required only when circle has >3 members.",
+        max_length=2,
+        help_text="List of 2 voter UUIDs when circle has 3 or greater members. Required only when circle has >= 3 members.",
     )
 
     def validate_selected_voters(self, value):
@@ -70,28 +69,16 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
                 raise serializers.ValidationError("All selected voters must be unique")
         return value
 
+class VoteItemSerializer(serializers.Serializer):
+    vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
+    otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
 
 class UpdateVoteRequestSerializer(serializers.Serializer):
-    initiating_vendor_id = serializers.UUIDField(help_text="ID of the vendor submitting the vote")
-    vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
-    voter_position = serializers.IntegerField(min_value=1, max_value=3, help_text="Position of the voter (1, 2, or 3)")
-    otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
-    vote_choice = serializers.ChoiceField(
-        choices=NewMembershipVoteOption.choices,
-        help_text="Vote choice: APPROVE or REJECT",
-        required=False,
-        allow_blank=True,
+    votes = serializers.ListField(
+        child=VoteItemSerializer(),
+        allow_empty=False,
+        help_text="List of vote items, each containing vote_id and otp. Required when circle has >= 3 members.",
     )
-
-    def validate_otp(self, value):
-        """
-        Validate OTP format
-        """
-        if not value.isdigit():
-            raise serializers.ValidationError("OTP must contain only digits")
-        if not len(value) == 6:
-            raise serializers.ValidationError("OTP must be between 6 digits")
-        return value
 
 
 class ExpiredVotesRequestSerializer(serializers.Serializer):

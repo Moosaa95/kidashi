@@ -29,6 +29,7 @@ from modules.vendor.models import Vendor
 from modules.woman.models import Woman
 from modules.woman.enums import WomanStatus
 from modules.security.models import OTP
+from modules.security.enums import OtpPurpose
 
 
 def send_otp_to_woman(mobile_number, otp):
@@ -426,7 +427,7 @@ class ProposeWomanToTrustCircle(APIView):
                 # Generate and send OTP to voter
                 for mobile_number in mobile_numbers:
                     OTP.create_otp(
-                        purpose="trust circle vote",
+                        purpose=OtpPurpose.VOTER_VALIDATION,
                         subject_id=mobile_number,
                         channel="SMS",
                         log_to_db=True,
@@ -459,7 +460,7 @@ class ProposeWomanToTrustCircle(APIView):
             print("General exception:::", e)
             return Response({"status": False, "message": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+# deprecated
 class UpdateTrustCircleVote(APIView):
     @extend_schema(
         tags=["Trust Circle"],
@@ -605,6 +606,66 @@ class UpdateTrustCircleVote(APIView):
             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"status": False, "message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class ValidateVote(APIView):
+    @extend_schema(
+        tags=["Trust Circle"],
+        description="Submit or update a vote for Trust Circle membership",
+        request=UpdateVoteRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="ValidateVoteResponse",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                ),
+            ),
+            400: inline_serializer(
+                name="ValidateVoteErrorResponse",
+                fields=dict(
+                    status=serializers.BooleanField(),
+                    message=serializers.CharField(),
+                ),
+            ),
+        },
+    )
+    def post(self, request):
+        serializer = UpdateVoteRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        votes = serializer.validated_data["votes"]
+
+        try:
+            for vote in votes:
+                with transaction.atomic():
+                    vote_id = vote.get("vote_id")
+                    otp = vote.get("otp")
+
+                    circle_vote = CircleMembershipVote.get_vote(id=vote_id)
+                    
+                    if not circle_vote:
+                        return Response({"status": False, "message": f"Membership Vote not found"}, status=status.HTTP_404_NOT_FOUND)
+
+                    result = OTP.validate(
+                        purpose=OtpPurpose.VOTER_VALIDATION,
+                        input_otp=otp,
+                        subject_id=circle_vote.voter.mobile_number,
+                    )
+                    if not result.get("status", False):
+                        return Response({"status": False, "message": f"Invalid OTP for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    updated_vote = CircleMembershipVote.update_vote_status(vote_id=vote_id, status=VoteStatus.APPROVED)
+                    if not updated_vote:
+                        transaction.set_rollback(True)
+                        return Response({"status": False, "message": f"Error updating vote for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                return Response({"status": True, "message": "All votes validated and updated successfully"}, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            print("ValidateVote::::Validation exception:::", e)
+            return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print("ValidateVote::::General exception:::", e)
+            return Response({"status": False, "message": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class GetVoteStatus(APIView):

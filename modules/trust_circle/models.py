@@ -254,6 +254,14 @@ class CircleMembershipVote(ModelMixin):
             return None
         
     @classmethod
+    def get_vote(cls, **kwargs):
+        try:
+            vote = cls.objects.get(**kwargs)
+            return vote
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
     def fetch_votes(cls, **kwargs):
         return cls.objects.filter(**kwargs).values(*cls.get_fields())
 
