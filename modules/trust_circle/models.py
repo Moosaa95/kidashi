@@ -181,9 +181,30 @@ class CircleMembershipVote(ModelMixin):
     candidate_member = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
     initiating_vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True, null=True, blank=True)
     voter = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_cast", null=True, blank=True)
+    
+    # Voting participants
+    voter_one = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_one", null=True, blank=True)
+    voter_two = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_two", null=True, blank=True)
+    voter_three = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_three", null=True, blank=True)
+
+    # OTP codes for verification
+    voter_one_otp = models.CharField(max_length=10, blank=True, null=True)
+    voter_two_otp = models.CharField(max_length=10, blank=True, null=True)
+    voter_three_otp = models.CharField(max_length=10, blank=True, null=True)
+
+    # Generated OTPs to verify against
+    voter_one_generated_otp = models.CharField(max_length=10, blank=True, null=True)
+    voter_two_generated_otp = models.CharField(max_length=10, blank=True, null=True)
+    voter_three_generated_otp = models.CharField(max_length=10, blank=True, null=True)
+
+    # Vote tracking
+    voter_one_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
+    voter_two_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
+    voter_three_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
 
     # Vote metadata
     status = models.CharField(max_length=20, choices=VoteStatus.choices, default=VoteStatus.PENDING)
+    voting_deadline = models.DateTimeField(help_text="Deadline for completing the vote")
     completed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
