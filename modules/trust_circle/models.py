@@ -185,30 +185,9 @@ class CircleMembershipVote(ModelMixin):
     candidate_member = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="membership_votes", null=True, blank=True)
     initiating_vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, db_index=True, null=True, blank=True)
     voter = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_cast", null=True, blank=True)
-    
-    # Voting participants
-    voter_one = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_one", null=True, blank=True)
-    voter_two = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_two", null=True, blank=True)
-    voter_three = models.ForeignKey("woman.Woman", on_delete=models.CASCADE, related_name="votes_as_voter_three", null=True, blank=True)
-
-    # OTP codes for verification
-    voter_one_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_two_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_three_otp = models.CharField(max_length=10, blank=True, null=True)
-
-    # Generated OTPs to verify against
-    voter_one_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_two_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-    voter_three_generated_otp = models.CharField(max_length=10, blank=True, null=True)
-
-    # Vote tracking
-    voter_one_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
-    voter_two_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
-    voter_three_vote = models.CharField(max_length=10, choices=NewMembershipVoteOption.choices, blank=True, null=True)
 
     # Vote metadata
     status = models.CharField(max_length=20, choices=VoteStatus.choices, default=VoteStatus.PENDING)
-    voting_deadline = models.DateTimeField(help_text="Deadline for completing the vote")
     completed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -216,7 +195,6 @@ class CircleMembershipVote(ModelMixin):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["trust_circle", "candidate_member"]),
-            models.Index(fields=["status", "voting_deadline"]),
         ]
         unique_together = [["trust_circle", "candidate_member", "status"]]  # Prevent duplicate pending votes
 
@@ -239,7 +217,6 @@ class CircleMembershipVote(ModelMixin):
             "voter__first_name",
             "voter__surname",
             "status",
-            "voting_deadline",
             "completed_at",
             "created_at",
             "updated_at",
@@ -284,154 +261,7 @@ class CircleMembershipVote(ModelMixin):
             return dict(status=False, message="Failed to delete the vote")
         
         return dict(status=True, message="Vote deleted successfully")
-
-    def save(self, *args, **kwargs):
-        # Set voting deadline if not provided (e.g., 1 Week from creation)
-        if not self.voting_deadline:
-            self.voting_deadline = timezone.now() + timezone.timedelta(weeks=1)
-        super().save(*args, **kwargs)
-
-    def clean(self):
-        super().clean()
-
-        # Ensure all voters belong to the trust circle
-        active_members = self.trust_circle.get_active_members()
-
-        if self.voter_one not in active_members:
-            raise ValidationError("Voter one must be an active member of the trust circle")
-        if self.voter_two not in active_members:
-            raise ValidationError("Voter two must be an active member of the trust circle")
-        if self.voter_three not in active_members:
-            raise ValidationError("Voter three must be an active member of the trust circle")
-
-        # Ensure all voters are unique
-        voters = [self.voter_one, self.voter_two, self.voter_three]
-        if len(set(voters)) != 3:
-            raise ValidationError("All three voters must be different members")
-
-        # # Ensure candidate is not already a member
-        if self.candidate_member in active_members:
-            raise ValidationError("Candidate member is already an active member of the trust circle")
-
-        # # Ensure trust circle has exactly 3 or more members
-        if active_members.count() < 3:
-            raise ValidationError("Trust circle must have at least 3 members to initiate voting")
-
-    @property
-    def is_expired(self):
-        """Check if voting deadline has passed"""
-        return timezone.now() > self.voting_deadline
-
-    @property
-    def votes_received(self):
-        """Count how many votes have been submitted"""
-        count = 0
-        if self.voter_one_vote:
-            count += 1
-        if self.voter_two_vote:
-            count += 1
-        if self.voter_three_vote:
-            count += 1
-        return count
-
-    @property
-    def is_complete(self):
-        """Check if all three votes have been received"""
-        return self.votes_received == 3
-
-    def verify_otp(self, voter_position, submitted_otp):
-        """
-        Verify OTP for a specific voter position
-        Returns True if OTP is correct, False otherwise
-        """
-        if voter_position == 1:
-            return self.voter_one_generated_otp and self.voter_one_generated_otp == submitted_otp
-        elif voter_position == 2:
-            return self.voter_two_generated_otp and self.voter_two_generated_otp == submitted_otp
-        elif voter_position == 3:
-            return self.voter_three_generated_otp and self.voter_three_generated_otp == submitted_otp
-        return False
-
-    def submit_vote(self, voter_position, otp, vote_choice):
-        """
-        Submit a vote for a specific voter position after OTP verification
-        """
-        if not self.verify_otp(voter_position, otp):
-            raise ValidationError("Invalid OTP provided")
-
-        if vote_choice not in [choice[0] for choice in NewMembershipVoteOption.choices]:
-            raise ValidationError("Invalid vote choice")
-
-        # Record the vote
-        if voter_position == 1:
-            self.voter_one_otp = otp
-            self.voter_one_vote = vote_choice
-        elif voter_position == 2:
-            self.voter_two_otp = otp
-            self.voter_two_vote = vote_choice
-        elif voter_position == 3:
-            self.voter_three_otp = otp
-            self.voter_three_vote = vote_choice
-
-        # Update vote counts
-        self.calculate_vote_results()
-
-        # Check if voting is complete
-        if self.is_complete:
-            self.finalize_vote()
-
-        self.save()
-
-    def calculate_vote_results(self):
-        """Calculate and update vote counts"""
-        votes = [self.voter_one_vote, self.voter_two_vote, self.voter_three_vote]
-        self.approved_votes = votes.count(NewMembershipVoteOption.APPROVE)
-        self.rejected_votes = votes.count(NewMembershipVoteOption.REJECT)
-
-    def finalize_vote(self):
-        """Finalize the voting process and determine outcome"""
-        if self.approved_votes == 3:  # Total approval
-            self.status = VoteStatus.APPROVED
-            self.result_message = f"Candidate approved with {self.approved_votes} out of 3 votes"
-        else:
-            self.status = VoteStatus.REJECTED
-            self.result_message = f"Candidate rejected with {self.rejected_votes} out of 3 votes"
-
-        self.completed_at = timezone.now()
-
-    def expire_vote(self):
-        """Mark vote as expired if deadline has passed"""
-        if self.is_expired and self.status == VoteStatus.PENDING:
-            self.status = VoteStatus.EXPIRED
-            self.result_message = "Voting deadline expired"
-            self.save()
-
-    @classmethod
-    def create_vote(cls, trust_circle, candidate_member, initiating_vendor, voters=None):
-        """
-        Create a new membership vote
-        If voters not provided, automatically select 3 random active members
-        """
-        active_members = trust_circle.get_active_members()
-
-        if active_members.count() < 3:
-            raise ValidationError("Trust circle must have at least 3 members to create a vote")
-
-        if voters is None:
-            # Auto-select all members if exactly 3, otherwise raise error for manual selection
-            if active_members.count() == 3:
-                voters = list(active_members)
-            else:
-                raise ValidationError("Must specify 3 voters when circle has more than 3 members")
-
-        if len(voters) != 3:
-            raise ValidationError("Exactly 3 voters must be specified")
-
-        vote = cls.objects.create(trust_circle=trust_circle, candidate_member=candidate_member, initiating_vendor=initiating_vendor, voter_one=voters[0], voter_two=voters[1], voter_three=voters[2])
-
-        return vote
-
-
+     
 class CircleActivity(ModelMixin):
     """
     Model to track activities within trust circles for audit purposes
