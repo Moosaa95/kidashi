@@ -216,6 +216,7 @@ class CircleMembershipVote(ModelMixin):
             "voter_id",
             "voter__first_name",
             "voter__surname",
+            "voter__mobile_number"
             "status",
             "completed_at",
             "created_at",
