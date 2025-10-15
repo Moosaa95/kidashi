@@ -4,11 +4,10 @@ from modules.trust_circle.endpoints.mobile.endpoints import (
     GetTrustCircle,
     FetchTrustCircles,
     ProposeWomanToTrustCircle,
-    UpdateTrustCircleVote,
-    GetVoteStatus,
-    GetPendingInitiatedVotes,
-    ResendVoterOTP,
-    GetExpiredInitiatedVotes,
+    ValidateVote,
+    RemoveVoter,
+    AddVoter,
+    FetchVotes,
 )
 
 urlpatterns = (
@@ -16,9 +15,8 @@ urlpatterns = (
     path("get", GetTrustCircle.as_view(), name="get_trust_circle"),
     path("fetch", FetchTrustCircles.as_view(), name="fetch_trust_circles"),
     path("propose-member", ProposeWomanToTrustCircle.as_view(), name="propose_woman_to_trust_circles"),
-    path("vote/update", UpdateTrustCircleVote.as_view(), name="update_trust_circle_vote"),
-    path("vote/status", GetVoteStatus.as_view(), name="vote_status"),
-    path("vote/pending", GetPendingInitiatedVotes.as_view(), name="pending_votes"),
-    path("vote/expired", GetExpiredInitiatedVotes.as_view(), name="expired_votes"),
-    path("vote/resend-otp", ResendVoterOTP.as_view(), name="resend_otp"),
+    path("vote/validate", ValidateVote.as_view(), name="validate_vote"),
+    path("vote/remove", RemoveVoter.as_view(), name="remove_voter"),
+    path("vote/add", AddVoter.as_view(), name="add_voter"),
+    path("vote/fetch", FetchVotes.as_view(), name="fetch_votes"),
 )

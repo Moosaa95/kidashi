@@ -166,7 +166,11 @@ class Woman(ModelMixin):
     @classmethod
     def get_woman(cls, **filters):
         ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
-        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).first()
+        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).values(*cls.get_fields()).first()
+    
+    @classmethod
+    def update_woman(cls, woman_id, **kwargs):
+        return cls.objects.filter(id=woman_id).update(**kwargs)
 
 
 class NextOfKin(ModelMixin):
