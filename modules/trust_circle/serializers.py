@@ -80,7 +80,13 @@ class UpdateVoteRequestSerializer(serializers.Serializer):
         help_text="List of vote items, each containing vote_id and otp. Required when circle has >= 3 members.",
     )
 
+class AddorRemoveVoteSerializer(serializers.Serializer):
+    vote_id = serializers.UUIDField(help_text="ID of the vote")
 
+class VotesSerializer(serializers.Serializer):
+    trust_circle_id = serializers.UUIDField(required=False, help_text="Optional: UUID of specific trust circle")
+    candidate_member = serializers.UUIDField(required=False, help_text="Optional: UUID of the candidate member")
+    
 class ExpiredVotesRequestSerializer(serializers.Serializer):
     initiating_vendor_id = serializers.CharField(max_length=50, help_text="ID of the vendor initiating the membership vote")
     trust_circle_id = serializers.UUIDField(required=False, help_text="Optional: UUID of specific trust circle")
