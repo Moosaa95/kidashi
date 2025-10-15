@@ -402,20 +402,25 @@ class ProposeWomanToTrustCircle(APIView):
                 voters = []
                 mobile_numbers = []
                 
-                for voter_id in selected_voter_ids:
-                    voter_woman = Woman.get_woman(id=voter_id)
+                # Refactored logic to use a single query to retrieve women in bulk
+
+                # Fetch all women in a single query
+                voter_women = Woman.objects.filter(id__in=selected_voter_ids)
+
+                # Iterate over the selected voter IDs
+                for voter_woman in voter_women:
 
                     if not voter_woman:
                         return Response({"status": False, "message": "Voter not found"}, status=status.HTTP_404_NOT_FOUND)
 
-                    if voter_woman.get("trust_circle", None) != trust_circle_id:
-                        return Response({"status": False, "message": f"Selected voter {voter_woman.get('first_name', None) + ' ' + voter_woman.get('surname')} does not belong to this circle"}, status=status.HTTP_400_BAD_REQUEST)
+                    if voter_woman.trust_circle != trust_circle_id:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} does not belong to this circle"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    if voter_woman.get("status", None) != WomanStatus.ACTIVE:
-                        return Response({"status": False, "message": f"Selected voter {voter_woman.get("first_name", None) + ' ' + voter_woman.get("surname")} is not an active member of this circle"}, status=status.HTTP_400_BAD_REQUEST)
+                    if voter_woman.status != WomanStatus.ACTIVE:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} is not an active member of this circle"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    voters.append(voter_id)
-                    mobile_numbers.append(voter_woman.get("mobile_number"))
+                    voters.append(voter_woman.id)
+                    mobile_numbers.append(voter_woman.mobile_number)
 
                 votes = []
                 for voter in voters:
