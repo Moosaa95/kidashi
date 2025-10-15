@@ -427,7 +427,6 @@ class ProposeWomanToTrustCircle(APIView):
                     # Create the vote
                     vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member=woman, initiating_vendor=vendor, voter=voter)
                     if not vote:
-                        transaction.set_rollback(True)
                         return Response({"status": False, "message": "Error creating vote"}, status=status.HTTP_400_BAD_REQUEST)
                     votes.append(vote)
                     
@@ -590,17 +589,27 @@ class AddVoter(APIView):
         serializers = AddorRemoveVoteSerializer(data=request.data)
         serializers.is_valid(raise_exception=True)
         vote_id = serializers.validated_data.get("vote_id")
+        voter_id = serializers.validated_data.get("voter_id")
 
         vote = CircleMembershipVote.get_vote(id=vote_id)
         trust_circle = vote.trust_circle
         candidate_member = vote.candidate_member
-        voter = vote.voter
-
+        
+        voter = Woman.get_woman(id=voter_id)
+        
+        if not voter:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Woman not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # Check if the maximum number of votes has been exceeded
         active_votes = CircleMembershipVote.fetch_votes(
             trust_circle=trust_circle,
             candidate_member=candidate_member,
-            status=VoteStatus.PENDING
+            status=VoteStatus.APPROVED
         ).count()
 
         if active_votes >= 2:
@@ -616,7 +625,7 @@ class AddVoter(APIView):
         CircleMembershipVote.create_vote(
             trust_circle=trust_circle,
             candidate_member=candidate_member,
-            voter=voter,
+            voter_id=voter_id,
             status=VoteStatus.PENDING
         )
 
