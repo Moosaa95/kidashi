@@ -57,12 +57,12 @@ class Asset(ModelMixin):
 
     @classmethod
     def fetch_assets(cls, conditions=None, count=None):
-        queryset = None
+        queryset = cls.objects.all()
         if conditions:
-            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+            queryset = queryset.filter(conditions).order_by("-created_at")
         if count:
-            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
-        return list(queryset)
+            queryset = queryset.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)]
+        return queryset.values(*cls.get_fields())
 
     @classmethod
     def get_asset(cls, **filters):
