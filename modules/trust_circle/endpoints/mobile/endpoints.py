@@ -616,6 +616,15 @@ class AddVoter(APIView):
         trust_circle = vote.trust_circle
         candidate_member = vote.candidate_member
         
+        if candidate_member.status != WomanStatus.ACTIVE:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Cannot add vote. Candidate member is already active in the circle."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
         voter = Woman.get_woman(id=voter_id)
         
         if not voter:

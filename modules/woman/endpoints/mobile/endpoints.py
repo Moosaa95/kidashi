@@ -599,7 +599,6 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
         }
         loans = data.get("loans", [])
 
-        woman_data = WomanDetailSerializer(woman).data
+        woman_data = dict(**woman)
         woman_data.update(loan_summary=loan_summary, loans=loans)
-        print(woman_data)
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman_data), status=status.HTTP_200_OK)
