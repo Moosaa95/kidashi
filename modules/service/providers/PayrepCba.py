@@ -111,7 +111,7 @@ class PayrepCba(BaseCbaClient):
     def fetch_cba_customer_asset_metric(self, loan_id, token):
 
         url = f"{self.base_url}/loan/mobile/fetch_loan_metrics"
-        payload = dict(loan_ids=[str(loan_id)])
+        payload = dict(loan_id=str(loan_id))
         return self.send_request(url, data=payload, token=token)
 
     def create_loan_asset(self, payload, token):
@@ -163,3 +163,6 @@ class PayrepCba(BaseCbaClient):
             url = url.format(**path_params)
 
         return self.send_request(url, data=payload, method=config["method"], token=token)
+
+
+[{"amount_unpaid": 1000000, "amount_repaid": 0}, {"amount_unpaid": 5000000, "amount_repaid": 0}]

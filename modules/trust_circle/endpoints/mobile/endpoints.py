@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from common.functions import generate_otp
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.notification.tasks import send_sms
 from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
@@ -96,6 +98,17 @@ class CreateTrustCircle(APIView):
             performed_by=vendor,
             metadata={"circle_name": trust_circle.circle_name, "vendor_id": str(vendor.id)},
             ip_address=ip_address,
+        )
+        InAppNotification.create_notification(
+            cba_customer_id=vendor.cba_customer_id,
+            event_type=InAppEventType.TRUST_CIRCLE_CREATED,
+            title="Trust Circle Created",
+            message=f"Your trust circle '{trust_circle.circle_name}' has been created successfully.",
+            metadata={
+                "circle_id": str(trust_circle.id),
+                "circle_name": trust_circle.circle_name,
+                "vendor_id": str(vendor.id),
+            },
         )
 
         return Response(

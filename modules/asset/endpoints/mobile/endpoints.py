@@ -167,8 +167,12 @@ class GetAsset(IsPayrepAuthenticatedMixin, APIView):
         cba_response = provider.fetch_cba_customer_asset_metric(asset.get("loan_id"), token=request.payrep_token)
 
         metrics = dict(
-            total_amount_unpaid=cba_response.get("total_amount_unpaid", 0),
-            total_amount_repaid=cba_response.get("total_amount_repaid", 0),
+            disbursement_date=cba_response.get("disbursement_date"),
+            maturity_date=cba_response.get("maturity_date"),
+            amount_unpaid=cba_response.get("amount_unpaid", 0),
+            amount_repaid=cba_response.get("amount_repaid", 0),
+            repayment_progress=cba_response.get("repayment_progress", 0),
+            principal_balance_left=cba_response.get("principal_balance_left", 0),
         )
 
         member_id = asset["woman_id"] if isinstance(asset, dict) else getattr(asset.woman, "id", None)
