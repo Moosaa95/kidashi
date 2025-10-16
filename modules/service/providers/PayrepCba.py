@@ -163,6 +163,3 @@ class PayrepCba(BaseCbaClient):
             url = url.format(**path_params)
 
         return self.send_request(url, data=payload, method=config["method"], token=token)
-
-
-[{"amount_unpaid": 1000000, "amount_repaid": 0}, {"amount_unpaid": 5000000, "amount_repaid": 0}]
