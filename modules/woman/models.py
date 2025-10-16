@@ -62,7 +62,7 @@ class Woman(ModelMixin):
 
     # Foreign key relationships
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.DO_NOTHING, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
-    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="women", help_text="Trust circle this woman belongs to", null=True, blank=True)
+    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="trust_circle_women", help_text="Trust circle this woman belongs to", null=True, blank=True)
     geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     lga = models.CharField(max_length=100, blank=True, null=True)
