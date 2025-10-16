@@ -504,6 +504,7 @@ class ValidateVote(APIView):
         },
     )
     def post(self, request):
+        print(request.data)
         serializer = UpdateVoteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -527,7 +528,12 @@ class ValidateVote(APIView):
                     )
                     if not result.get("status", False):
                         return Response({"status": False, "message": f"Invalid OTP for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
-                    
+
+                    woman = Woman.update_woman(woman_id=circle_vote.candidate_member.id, trust_circle_id=circle_vote.trust_circle.id, status=WomanStatus.ACTIVE)
+
+                    if not woman:
+                        return Response({"status": False, "message": f"Error updating woman {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
+
                     updated_vote = CircleMembershipVote.update_vote_status(vote_id=vote_id, status=VoteStatus.APPROVED)
                     if not updated_vote:
                         transaction.set_rollback(True)
@@ -685,8 +691,6 @@ class FetchVotes(APIView):
         serializer.is_valid(raise_exception=True)
         trust_circle_id = serializer.validated_data.get("trust_circle_id")
         candidate_member = serializer.validated_data.get("candidate_member")
-        
-        print("trust_circle_id:::", trust_circle_id, "candidate_member:::", candidate_member)
 
         votes = CircleMembershipVote.fetch_votes(trust_circle_id=trust_circle_id, candidate_member_id=candidate_member)
 

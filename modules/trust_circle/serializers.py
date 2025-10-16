@@ -60,7 +60,7 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
 
 class VoteItemSerializer(serializers.Serializer):
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
-    otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
+    otp = serializers.CharField(max_length=4, min_length=4, help_text="OTP code provided by the voter")
 
 class UpdateVoteRequestSerializer(serializers.Serializer):
     votes = serializers.ListField(

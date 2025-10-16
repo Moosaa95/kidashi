@@ -243,13 +243,13 @@ class CircleMembershipVote(ModelMixin):
         return cls.objects.filter(**kwargs).values(*cls.get_fields())
 
     @classmethod
-    def update_vote_status(cls, voter_id, status):
-        return cls.objects.filter(voter_id=voter_id).update(status=status)
+    def update_vote_status(cls, vote_id, status):
+        return cls.objects.filter(id=vote_id).update(status=status)
 
     @classmethod
-    def delete_vote(cls, voter_id):
-        vote = cls.objects.filter(voter_id=voter_id).first()
-        
+    def delete_vote(cls, vote_id):
+        vote = cls.objects.filter(id=vote_id).first()
+
         if not vote:
             return dict(status=False, message="No vote found for the given voter_id")
         
