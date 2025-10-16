@@ -174,17 +174,11 @@ class GetAsset(IsPayrepAuthenticatedMixin, APIView):
             repayment_progress=cba_response.get("repayment_progress", 0),
             principal_balance_left=cba_response.get("principal_balance_left", 0),
         )
-
-        member_id = asset["woman_id"] if isinstance(asset, dict) else getattr(asset.woman, "id", None)
-        summary = Asset.fetch_asset_summaries(member_id=member_id)
-
         return Response(
             {
                 "status": True,
                 "message": "Asset fetched successfully",
-                "data": asset,
-                "summary": summary,
-                "metrics": metrics,
+                "data": {"asset": asset, "metrics": metrics},
             },
             status=status.HTTP_200_OK,
         )
