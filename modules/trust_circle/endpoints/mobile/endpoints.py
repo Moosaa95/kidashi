@@ -700,8 +700,14 @@ class FetchVotes(APIView):
         serializer.is_valid(raise_exception=True)
         trust_circle_id = serializer.validated_data.get("trust_circle_id")
         candidate_member = serializer.validated_data.get("candidate_member")
+        filters = dict()
+        
+        if trust_circle_id:
+            filters["trust_circle_id"] = trust_circle_id
+        if candidate_member:
+            filters["candidate_member"] = candidate_member
 
-        votes = CircleMembershipVote.fetch_votes(trust_circle_id=trust_circle_id, candidate_member_id=candidate_member)
+        votes = CircleMembershipVote.fetch_votes(**filters)
 
         return Response(
             {
