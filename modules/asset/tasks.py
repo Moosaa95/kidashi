@@ -1,6 +1,8 @@
 from celery import shared_task
 from modules.asset.enums import AssetActivityType, AssetStatus
 from modules.asset.models import Asset, AssetActivity
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.service.enums import ServiceCode
 from modules.service.models import Service
 
@@ -48,10 +50,24 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
         if assign_result.get("status"):
             activity_data.update(activity_type=AssetActivityType.SYNC_SUCCESS, description="Loan created successfully in PayRep Mfb", metadata={"loan_id": str(response["loan_id"]), "raw": response})
             AssetActivity.update_activity(activity_id=log_id, **activity_data)
+            InAppNotification.create_notification(
+                cba_customer_id=asset.woman.cba_customer_id,
+                event_type=InAppEventType.ASSET_APPROVED,
+                title="Asset booked Successfully",
+                message="Your asset loan has been successfully booked and disbursed.",
+                metadata={"loan_id": str(response["loan_id"])},
+            )
 
         else:
             activity_data.update(activity_type=AssetActivityType.SYNC_WARNING, description="Loan created in PayRep but not linked in Kidashi", metadata={"error": assign_result.get("message")})
             AssetActivity.update_activity(activity_id=log_id, **activity_data)
+            InAppNotification.create_notification(
+                cba_customer_id=asset.woman.cba_customer_id,
+                event_type=InAppEventType.ASSET_WARNING,
+                title="Loan Linked with Warning",
+                message="Your asset was created in PayRep but not linked properly in Kidashi. Please contact support.",
+                metadata={"error": assign_result.get("message")},
+            )
 
     else:
         activity_data.update(activity_type=AssetActivityType.SYNC_FAILED, description="PayRep loan creation failed", metadata={"error": response.get("message", "Unknown error")})
@@ -60,4 +76,11 @@ def create_loan_in_payrep(self, asset_id=None, token=None, product_code=None, lo
             asset_id=asset.id,
             status=AssetStatus.FAILED,
             reject_reason="PayRep loan creation failed, Please contact support",
+        )
+        InAppNotification.create_notification(
+            cba_customer_id=asset.woman.cba_customer_id,
+            event_type=InAppEventType.ASSET_DENIED,
+            title="Asset Creation Failed",
+            message="We couldn’t create your asset in PayRep MFB. Please contact support.",
+            metadata={"error": response.get("message", "Unknown error")},
         )

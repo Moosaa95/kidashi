@@ -29,3 +29,4 @@ class InAppEventType(models.TextChoices):
     FUNDING_CREDITED = "FUNDING_CREDITED", "Funding credited"
     WOMAN_ONBOARDED = "WOMAN_ONBOARDED", "Woman onboarded"
     VENDOR_ONBOARDED = "VENDOR_ONBOARDED", "Vendor onboarded"
+    ASSET_WARNING = "ASSET_WARNING", "Asset Warning"
