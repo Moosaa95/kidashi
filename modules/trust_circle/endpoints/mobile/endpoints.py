@@ -295,8 +295,8 @@ class FetchTrustCircles(APIView):
         else:
             conditions = Q(vendor_id=vendor_id) if vendor_id else Q()
 
-        for key, value in filters_data.items():
-            conditions &= Q(**{key: value})
+            for key, value in filters_data.items():
+                conditions &= Q(**{key: value})
 
         trust_circles = TrustCircle.fetch_trust_circles_with_filter(conditions=conditions)
 
@@ -373,24 +373,28 @@ class ProposeWomanToTrustCircle(APIView):
         conditions = Q()
 
         conditions |= Q(trust_circle_id=trust_circle_id)
-        conditions |= Q(status=WomanStatus.ACTIVE)
+        conditions &= Q(status=WomanStatus.ACTIVE)
 
         active_member_count = Woman.fetch_women(conditions=conditions).count()
 
         try:
             with transaction.atomic():
                 if not active_member_count:
+                    print("No active members, automatically")
                     # Automatically add woman to trust circle
-                    woman = Woman.update_woman(woman_id, trust_circle_id=trust_circle_id, status=WomanStatus.ACTIVE)
+                    updated_woman = Woman.update_woman(woman_id, trust_circle_id=trust_circle_id, status=WomanStatus.ACTIVE)
+                    
+                    if not updated_woman:
+                        return Response({"status": False, "message": "Error adding woman to Trust Circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
                     # Log activity
                     CircleActivity.create_activity(
                         trust_circle=trust_circle,
                         activity_type=TrustCircleActivityType.MEMBER_ADDED,
-                        description=f"Woman '{woman.first_name + ' ' + woman.surname}' automatically added to Trust Circle '{trust_circle.circle_name}'",
+                        description=f"Woman '{woman.get('first_name') + ' ' + woman.get('surname')}' automatically added to Trust Circle '{trust_circle.circle_name}'",
                         performed_by=vendor,
-                        affected_woman=woman,
-                        metadata={"woman_id": str(woman.id), "automatic_addition": True},
+                        affected_woman_id=woman.get("id"),
+                        metadata={"woman_id": str(woman.get("id")), "automatic_addition": True},
                         ip_address=ip_address,
                     )
 
@@ -404,10 +408,10 @@ class ProposeWomanToTrustCircle(APIView):
                     )
                     
                 if active_member_count == 1 and len(selected_voter_ids) < 1:
-                    return Response({"status": False, "message": "At least 1 voter must be selected", "data":{"verifier_required": True}}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"status": False, "message": "At least 1 voter must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
 
                 if active_member_count != 1 and len(selected_voter_ids) < 2:
-                    return Response({"status": False, "message": "At least 2 voters must be selected", "data":{"verifier_required": True}}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"status": False, "message": "At least 2 voters must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
 
                 voters = []
                 mobile_numbers = []
@@ -422,8 +426,8 @@ class ProposeWomanToTrustCircle(APIView):
 
                     if not voter_woman:
                         return Response({"status": False, "message": "Voter not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
-
-                    if voter_woman.trust_circle != trust_circle_id:
+                    print(voter_woman.trust_circle.id, trust_circle_id)
+                    if voter_woman.trust_circle.id != trust_circle_id:
                         return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} does not belong to this circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
                     if voter_woman.status != WomanStatus.ACTIVE:
@@ -435,7 +439,7 @@ class ProposeWomanToTrustCircle(APIView):
                 votes = []
                 for voter in voters:
                     # Create the vote
-                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member=woman, initiating_vendor=vendor, voter=voter)
+                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member_id=woman.get("id"), initiating_vendor_id=vendor.id, voter_id=voter)
                     if not vote:
                         return Response({"status": False, "message": "Error creating vote", "data": None}, status=status.HTTP_400_BAD_REQUEST)
                     votes.append(vote)
@@ -454,10 +458,10 @@ class ProposeWomanToTrustCircle(APIView):
                 CircleActivity.create_activity(
                     trust_circle=trust_circle,
                     activity_type=TrustCircleActivityType.VOTE_INITIATED,
-                    description=f"Voting initiated for woman '{woman.first_name + ' ' + woman.surname}' to join Trust Circle '{trust_circle.circle_name}'",
+                    description=f"Voting initiated for woman '{woman.get('first_name') + ' ' + woman.get('surname')}' to join Trust Circle '{trust_circle.circle_name}'",
                     performed_by=vendor,
-                    affected_woman=woman,
-                    metadata={"votes": [str(vote.id) for vote in votes], "candidate_id": str(woman.id), "voters": selected_voter_ids},
+                    affected_woman_id=woman.get("id"),
+                    metadata={"votes": [str(vote.id) for vote in votes], "candidate_id": str(woman.get("id")), "voters": selected_voter_ids},
                     ip_address=ip_address,
                 )
 
@@ -681,6 +685,8 @@ class FetchVotes(APIView):
         serializer.is_valid(raise_exception=True)
         trust_circle_id = serializer.validated_data.get("trust_circle_id")
         candidate_member = serializer.validated_data.get("candidate_member")
+        
+        print("trust_circle_id:::", trust_circle_id, "candidate_member:::", candidate_member)
 
         votes = CircleMembershipVote.fetch_votes(trust_circle_id=trust_circle_id, candidate_member_id=candidate_member)
 

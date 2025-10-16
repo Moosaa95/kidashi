@@ -547,11 +547,15 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
 
         condition = Q()
         search_value = filtered_data.get("search")
+        trust_circle_id = filtered_data.get("trust_circle_id")
         if search_value:
             condition |= Q(mobile_number__icontains=search_value)
             condition |= Q(nin__iexact=search_value)
             condition |= Q(bvn__iexact=search_value)
             condition |= Q(account_number__iexact=search_value)
+
+        if trust_circle_id:
+            condition &= Q(trust_circle_id=trust_circle_id)
 
         woman = Woman.fetch_women(conditions=condition)
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
@@ -597,4 +601,5 @@ class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
 
         woman_data = WomanDetailSerializer(woman).data
         woman_data.update(loan_summary=loan_summary, loans=loans)
+        print(woman_data)
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman_data), status=status.HTTP_200_OK)

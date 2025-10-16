@@ -58,17 +58,6 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
         help_text="List of 2 voter UUIDs when circle has 3 or greater members. Required only when circle has >= 3 members.",
     )
 
-    def validate_selected_voters(self, value):
-        """
-        Validate that if selected_voters is provided, it contains exactly 3 unique UUIDs
-        """
-        if value is not None:
-            if len(value) != 3:
-                raise serializers.ValidationError("Must select exactly 3 voters")
-            if len(set(value)) != 3:
-                raise serializers.ValidationError("All selected voters must be unique")
-        return value
-
 class VoteItemSerializer(serializers.Serializer):
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
     otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
