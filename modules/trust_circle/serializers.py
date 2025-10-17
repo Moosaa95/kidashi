@@ -70,7 +70,7 @@ class UpdateVoteRequestSerializer(serializers.Serializer):
     )
 
 class AddorRemoveVoteSerializer(serializers.Serializer):
-    vote_id = serializers.UUIDField(help_text="ID of the vote")
+    trust_circle_id = serializers.UUIDField(help_text="ID of the trust circle", required=False, allow_null=True)
     voter_id = serializers.UUIDField(help_text="ID of the voter", allow_null=True, required=False)
 
 class VotesSerializer(serializers.Serializer):

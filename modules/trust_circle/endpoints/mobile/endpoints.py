@@ -609,14 +609,40 @@ class AddVoter(APIView):
     def post(self, request):
         serializers = AddorRemoveVoteSerializer(data=request.data)
         serializers.is_valid(raise_exception=True)
-        vote_id = serializers.validated_data.get("vote_id")
+        trust_circle_id = serializers.validated_data.get("trust_circle_id")
         voter_id = serializers.validated_data.get("voter_id")
-
-        vote = CircleMembershipVote.get_vote(id=vote_id)
-        trust_circle = vote.trust_circle
-        candidate_member = vote.candidate_member
         
-        if candidate_member.status != WomanStatus.ACTIVE:
+        if not trust_circle_id:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Woman does not belong to a trust circle"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id)
+        if not trust_circle:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Trust Circle not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        woman = Woman.get_woman(trust_circle_id=trust_circle_id)
+        
+        if not woman:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Candidate not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if woman.get("status") == WomanStatus.ACTIVE:
             return Response(
                 {
                     "status": False,
@@ -631,14 +657,14 @@ class AddVoter(APIView):
             return Response(
                 {
                     "status": False,
-                    "message": "Woman not found"
+                    "message": "Voter not found"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # Check if the maximum number of votes has been exceeded
         active_votes = CircleMembershipVote.fetch_votes(
             trust_circle=trust_circle,
-            candidate_member=candidate_member,
+            candidate_member_id=woman.get("id"),
             status=VoteStatus.APPROVED
         ).count()
 
@@ -654,7 +680,7 @@ class AddVoter(APIView):
         # Create the vote
         CircleMembershipVote.create_vote(
             trust_circle=trust_circle,
-            candidate_member=candidate_member,
+            candidate_member_id=woman.get("id"),
             voter_id=voter_id,
             status=VoteStatus.PENDING
         )
