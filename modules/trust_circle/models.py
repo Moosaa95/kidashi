@@ -195,7 +195,6 @@ class CircleMembershipVote(ModelMixin):
         indexes = [
             models.Index(fields=["trust_circle", "candidate_member"]),
         ]
-        unique_together = [["trust_circle", "candidate_member", "status"]]  # Prevent duplicate pending votes
 
     def __str__(self):
         return f"Vote for {self.candidate_member} in {self.trust_circle.circle_name} - {self.status}"
@@ -227,7 +226,8 @@ class CircleMembershipVote(ModelMixin):
         try:
             vote = cls.objects.create(**kwargs)
             return vote
-        except IntegrityError:
+        except IntegrityError as e:
+            print(f"IntegrityError while creating vote: {e}")
             return None
         
     @classmethod
@@ -256,7 +256,7 @@ class CircleMembershipVote(ModelMixin):
         if vote.status != VoteStatus.PENDING:
             return dict(status=False, message="Only pending votes can be deleted")
         
-        deleted_vote = cls.objects.filter(voter_id=voter_id).delete()
+        deleted_vote = cls.objects.filter(id=vote_id).delete()
         if not deleted_vote:
             return dict(status=False, message="Failed to delete the vote")
         
