@@ -58,20 +58,9 @@ class ProposeWomanRequestSerializer(serializers.Serializer):
         help_text="List of 2 voter UUIDs when circle has 3 or greater members. Required only when circle has >= 3 members.",
     )
 
-    def validate_selected_voters(self, value):
-        """
-        Validate that if selected_voters is provided, it contains exactly 3 unique UUIDs
-        """
-        if value is not None:
-            if len(value) != 3:
-                raise serializers.ValidationError("Must select exactly 3 voters")
-            if len(set(value)) != 3:
-                raise serializers.ValidationError("All selected voters must be unique")
-        return value
-
 class VoteItemSerializer(serializers.Serializer):
     vote_id = serializers.UUIDField(help_text="UUID of the membership vote")
-    otp = serializers.CharField(max_length=6, min_length=6, help_text="OTP code provided by the voter")
+    otp = serializers.CharField(max_length=4, min_length=4, help_text="OTP code provided by the voter")
 
 class UpdateVoteRequestSerializer(serializers.Serializer):
     votes = serializers.ListField(
@@ -85,7 +74,7 @@ class AddorRemoveVoteSerializer(serializers.Serializer):
     voter_id = serializers.UUIDField(help_text="ID of the voter", allow_null=True, required=False)
 
 class VotesSerializer(serializers.Serializer):
-    trust_circle_id = serializers.UUIDField(required=False, help_text="Optional: UUID of specific trust circle")
+    trust_circle_id = serializers.UUIDField(required=False, help_text="Optional: UUID of specific trust circle", allow_null=True)
     candidate_member = serializers.UUIDField(required=False, help_text="Optional: UUID of the candidate member")
     
 class ExpiredVotesRequestSerializer(serializers.Serializer):

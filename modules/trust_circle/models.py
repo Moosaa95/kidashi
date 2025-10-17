@@ -45,7 +45,7 @@ class TrustCircle(ModelMixin):
 
     @property
     def current_member_count(self):
-        return self.women.count()
+        return self.trust_circle_women.count()
 
     @property
     def can_add_more_members(self):
@@ -103,11 +103,10 @@ class TrustCircle(ModelMixin):
             queryset = queryset.filter(conditions)
 
         queryset = queryset.annotate(
-            current_member_count=Count("women", distinct=True),
+            current_member_count=Count("trust_circle_women"),
             get_active_members=Count(
-                "women",
-                filter=Q(women__status=TrustCircleStatus.ACTIVE),
-                distinct=True,
+                "trust_circle_women",
+                filter=Q(trust_circle_women__status=TrustCircleStatus.ACTIVE),
             ),
             can_add_more_members=Case(
                 When(current_member_count__lt=F("max_members"), then=Value(True)),
@@ -164,7 +163,7 @@ class TrustCircle(ModelMixin):
                 if trust_circle.count():
                     trust_circle = trust_circle.first()
             else:
-                trust_circle = cls.objects.select_related("vendor").prefetch_related("women").get(**kwargs)
+                trust_circle = cls.objects.select_related("vendor").prefetch_related("trust_circle_women").get(**kwargs)
             return trust_circle
         except cls.DoesNotExist:
             return None
@@ -216,7 +215,7 @@ class CircleMembershipVote(ModelMixin):
             "voter_id",
             "voter__first_name",
             "voter__surname",
-            "voter__mobile_number"
+            "voter__mobile_number",
             "status",
             "completed_at",
             "created_at",
@@ -244,13 +243,13 @@ class CircleMembershipVote(ModelMixin):
         return cls.objects.filter(**kwargs).values(*cls.get_fields())
 
     @classmethod
-    def update_vote_status(cls, voter_id, status):
-        return cls.objects.filter(voter_id=voter_id).update(status=status)
+    def update_vote_status(cls, vote_id, status):
+        return cls.objects.filter(id=vote_id).update(status=status)
 
     @classmethod
-    def delete_vote(cls, voter_id):
-        vote = cls.objects.filter(voter_id=voter_id).first()
-        
+    def delete_vote(cls, vote_id):
+        vote = cls.objects.filter(id=vote_id).first()
+
         if not vote:
             return dict(status=False, message="No vote found for the given voter_id")
         
