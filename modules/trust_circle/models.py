@@ -195,6 +195,7 @@ class CircleMembershipVote(ModelMixin):
         indexes = [
             models.Index(fields=["trust_circle", "candidate_member"]),
         ]
+        unique_together = [["candidate_member", "vote_id"]]
 
     def __str__(self):
         return f"Vote for {self.candidate_member} in {self.trust_circle.circle_name} - {self.status}"
