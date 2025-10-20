@@ -2,10 +2,10 @@ import {
     Home,
     Building2,
     Users,
-    CreditCard,
+    // CreditCard,
     TrendingUp,
     MessageSquare,
-    BarChart3,
+    // BarChart3,
 } from "lucide-react"
 
 
