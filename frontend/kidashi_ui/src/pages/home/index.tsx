@@ -27,7 +27,7 @@ export default function DashboardOverview() {
       icon: "Building2",
     },
     {
-      name: "Active Communities",
+      name: "Active Circles",
       value: stats.totalCommunities.toLocaleString(),
       change: "+8%",
       changeType: "positive" as const,
@@ -40,13 +40,13 @@ export default function DashboardOverview() {
       changeType: "positive" as const,
       icon: "CreditCard",
     },
-    {
-      name: "Repayment Rate",
-      value: `${stats.repaymentRate}%`,
-      change: "+2.1%",
-      changeType: "positive" as const,
-      icon: "TrendingUp",
-    },
+    // {
+    //   name: "Repayment Rate",
+    //   value: `${stats.repaymentRate}%`,
+    //   change: "+2.1%",
+    //   changeType: "positive" as const,
+    //   icon: "TrendingUp",
+    // },
     {
       name: "Total Women",
       value: `${stats.totalWomen}`,
@@ -90,26 +90,26 @@ export default function DashboardOverview() {
     <div className="space-y-8">
       <DashboardHeader loading={loading} onRefresh={() => window.location.reload()} />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsData.map((stat) => (
           <StatCard key={stat.name} {...stat} />
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-1">
         <RecentApplications
           applications={recentApplications}
           onReview={handleReviewApplication}
           onViewAll={() => navigate("/vendors")}
         />
-        <SystemAlerts
+        {/* <SystemAlerts
           alerts={alerts}
           onDismiss={handleDismissAlert}
           onViewAll={() => console.log("open all alerts")}
-        />
+        /> */}
       </div>
 
-      <QuickActions onAction={handleQuickAction} />
+      {/* <QuickActions onAction={handleQuickAction} /> */}
     </div>
   )
 

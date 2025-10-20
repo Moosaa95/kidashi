@@ -59,14 +59,14 @@ export default function WomenManagement() {
             icon: "CreditCard",
             description: "Loans in progress",
         },
-        {
-            name: "At Risk",
-            value: atRisk.toString(),
-            change: "",
-            changeType: atRisk > 0 ? "negative" : "positive",
-            icon: "AlertTriangle",
-            description: "Late or defaulted loans",
-        },
+        // {
+        //     name: "At Risk",
+        //     value: atRisk.toString(),
+        //     change: "",
+        //     changeType: atRisk > 0 ? "negative" : "positive",
+        //     icon: "AlertTriangle",
+        //     description: "Late or defaulted loans",
+        // },
     ]
 
     const filteredWomen = useMemo(() => {
@@ -102,7 +102,7 @@ export default function WomenManagement() {
             </div>
 
             {/* Stats */}
-            <div className="grid gap-6 lg:grid-cols-4">
+            <div className="grid gap-6 lg:grid-cols-3">
                 {(womenLoading || womenFetching) ? (
                     Array.from({ length: 4 }).map((_, index) => (
                         <StatCardSkeleton key={index} />

@@ -167,17 +167,23 @@ const buildStatData = (
             description: "Women onboarded under vendor",
         },
         {
-            name: "Repayment Rate",
-            value: repaymentRate != null ? `${repaymentRate}%` : "N/A",
-            icon: "TrendingUp",
-            description: "Overall repayment success",
+            name: "Running Assets",
+            value: `${0}`,
+            icon: "UserCheck",
+            description: "Total running assets under vendor",
         },
-        {
-            name: "Membership",
-            value: formatMembershipDuration(vendor.created_at),
-            icon: "Calendar",
-            description: vendor.created_at ? `Joined ${new Date(vendor.created_at).toLocaleDateString()}` : "Join date unavailable",
-        },
+        // {
+        //     name: "Repayment Rate",
+        //     value: repaymentRate != null ? `${repaymentRate}%` : "N/A",
+        //     icon: "TrendingUp",
+        //     description: "Overall repayment success",
+        // },
+        // {
+        //     name: "Membership",
+        //     value: formatMembershipDuration(vendor.created_at),
+        //     icon: "Calendar",
+        //     description: vendor.created_at ? `Joined ${new Date(vendor.created_at).toLocaleDateString()}` : "Join date unavailable",
+        // },
     ]
 }
 
@@ -495,9 +501,9 @@ export default function VendorDetailPage() {
                         <TabsTrigger value="women-members" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
                             <UserCheck className="h-4 w-4" /> Women Members
                         </TabsTrigger>
-                        <TabsTrigger value="documents" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
+                        {/* <TabsTrigger value="documents" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
                             <FileText className="h-4 w-4" /> Documents
-                        </TabsTrigger>
+                        </TabsTrigger> */}
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-6">
@@ -616,14 +622,14 @@ export default function VendorDetailPage() {
                         />
                     </TabsContent>
 
-                    <TabsContent value="documents">
+                    {/* <TabsContent value="documents">
                         <DataTable
                             columns={documentColumns}
                             data={documents}
                             searchColumn="name"
                             searchPlaceholder="Search documents..."
                         />
-                    </TabsContent>
+                    </TabsContent> */}
                 </Tabs>
 
                 <Dialog open={isGuarantorModalOpen} onOpenChange={handleGuarantorDialogToggle}>
