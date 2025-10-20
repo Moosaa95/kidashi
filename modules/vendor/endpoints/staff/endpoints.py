@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.vendor.enums import GurantorVerificationStatus, VendorStatus
 from modules.vendor.models import Guarantor, Vendor
 from modules.vendor.serializers import (
@@ -47,7 +49,7 @@ class FetchVendorsFilter(APIView):
         for key, value in filters.items():
             and_condition.add(Q(**{key: value}), Q.AND)
 
-        filtered = Vendor.fetch_vendors(filters=and_condition)
+        filtered = Vendor.fetch_vendors(conditions=and_condition)
         return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
 
 
@@ -99,7 +101,17 @@ class UpdateVendorApplicationStatus(APIView):
         if not updated_count:
             response_dict.update(message="Vendor status update failed")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
-        notify_vendor_status_change.delay(vendor_id, status_value)
+        InAppNotification.create_notification(
+            cba_customer_id=vendor.cba_customer_id,
+            event_type=InAppEventType.VENDOR_STATUS_CHANGED,
+            title="Vendor Status Updated",
+            message=f"Your vendor status has been updated to {status_value}.",
+            metadata=dict(
+                vendor_id=str(vendor.id),
+                new_status=status_value,
+            ),
+        )
+        notify_vendor_status_change(vendor_id, status_value)
         response_dict.update(status=True, message="Vendor status updated successfully")
         return Response(response_dict, status=status.HTTP_200_OK)
 

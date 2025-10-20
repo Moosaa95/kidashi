@@ -1,4 +1,6 @@
 from django.db.models import Q
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.security.mixins import IsPayrepAuthenticatedMixin
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -493,6 +495,18 @@ class CreateWomanOnboarding(IsPayrepAuthenticatedMixin, APIView):
             if not woman:
                 return Response(data=dict(status=False, message="failed to create woman"), status=status.HTTP_400_BAD_REQUEST)
 
+            InAppNotification.create_notification(
+                cba_customer_id=vendor.cba_customer_id,  # using the vendor that onboards the woman id
+                event_type=InAppEventType.WOMAN_ONBOARDED,
+                title="New Woman Onboarded",
+                message=f"{woman.first_name} {woman.surname} has been successfully onboarded.",
+                metadata=dict(
+                    woman_id=str(woman.id),
+                    woman_cba_customer_id=str(woman.cba_customer_id),
+                    account_number=woman.account_number,
+                    tier=woman.tier,
+                ),
+            )
             return Response(
                 data=dict(
                     status=True,
@@ -533,17 +547,21 @@ class FetchWomen(IsPayrepAuthenticatedMixin, APIView):
 
         condition = Q()
         search_value = filtered_data.get("search")
+        trust_circle_id = filtered_data.get("trust_circle_id")
         if search_value:
             condition |= Q(mobile_number__icontains=search_value)
             condition |= Q(nin__iexact=search_value)
             condition |= Q(bvn__iexact=search_value)
             condition |= Q(account_number__iexact=search_value)
 
+        if trust_circle_id:
+            condition &= Q(trust_circle_id=trust_circle_id)
+
         woman = Woman.fetch_women(conditions=condition)
         return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman), status=status.HTTP_200_OK)
 
 
-class GetWomanBasicDetails(APIView):
+class GetWomanBasicDetails(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Woman"],
         description="Fetch basic details of a woman",
@@ -563,8 +581,24 @@ class GetWomanBasicDetails(APIView):
         serializer = GetWomanBasicDetailsRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         cba_customer_id = serializer.validated_data.get("cba_customer_id")
-
         woman = Woman.get_woman(cba_customer_id=cba_customer_id)
+
         if not woman:
             return Response(dict(status=False, message="Woman not found"), status=status.HTTP_404_NOT_FOUND)
-        return Response(data=dict(status=True, message="Woman details fetched successfully", data=WomanDetailSerializer(woman).data), status=status.HTTP_200_OK)
+
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        provider = integration.get_client()
+        response = provider.fetch_cba_customer_assets(cba_customer_id, token=request.payrep_token)
+        data = response.get("data", {}) if response else {}
+        loan_summary = {
+            "total_outstanding": data.get("total_outstanding", 0),
+            "total_interest_balance": data.get("total_interest_balance", 0),
+            "running_loans": data.get("running_loans", 0),
+            "processing_loans": data.get("processing_loans", 0),
+        }
+        loans = data.get("loans", [])
+
+        woman_data = dict(**woman)
+        woman_data.update(loan_summary=loan_summary, loans=loans)
+        return Response(data=dict(status=True, message="Woman details fetched successfully", data=woman_data), status=status.HTTP_200_OK)

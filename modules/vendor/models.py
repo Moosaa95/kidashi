@@ -19,6 +19,7 @@ class Vendor(ModelMixin):
     other_name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=20, unique=True)
     email = models.EmailField(blank=True, null=True)
+    account_number = models.CharField(max_length=11, unique=True, validators=[RegexValidator(regex=r"^\+?1?\d{9,15}$", message="Account number must be valid")], null=True, blank=True)
     business_name = models.CharField(max_length=255, blank=True, null=True)
     business_type = models.CharField(max_length=20, choices=BusinessTypes.choices)
     business_description = models.TextField(blank=True, null=True)

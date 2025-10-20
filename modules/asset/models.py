@@ -12,6 +12,7 @@ class Asset(ModelMixin):
     value = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     markup = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, validators=[MinValueValidator(0)])
     status = models.CharField(max_length=20, choices=AssetStatus.choices, default=AssetStatus.REQUESTED, db_index=True)
+    reject_reason = models.TextField(blank=True, null=True)
     # Foreign key to vendor who owns the asset
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="requested_assets", null=True, blank=True)
     # Foreign key to woman who requested the asset
@@ -35,10 +36,12 @@ class Asset(ModelMixin):
             "loan_id",
             "product_code",
             "created_at",
+            "reject_reason",
             "items_requested",
             "woman_id",
             "woman__first_name",
             "woman__surname",
+            "woman__trust_circle__circle_name",
             "vendor__id",
             "vendor__first_name",
             "vendor__surname",
@@ -54,12 +57,12 @@ class Asset(ModelMixin):
 
     @classmethod
     def fetch_assets(cls, conditions=None, count=None):
-        queryset = None
+        queryset = cls.objects.all()
         if conditions:
-            queryset = cls.objects.filter(conditions).order_by("-created_at").values(*cls.get_fields())
+            queryset = queryset.filter(conditions).order_by("-created_at")
         if count:
-            queryset = cls.objects.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)].values(*cls.get_fields())
-        return list(queryset)
+            queryset = queryset.filter(created_at__date=timezone.now().date()).order_by("-created_at")[: int(count)]
+        return queryset.values(*cls.get_fields())
 
     @classmethod
     def get_asset(cls, **filters):
@@ -83,7 +86,7 @@ class Asset(ModelMixin):
                     return dict(status=False, message="Loan ID already assigned", loan_id=str(asset.loan_id))
 
                 asset.loan_id = loan_id
-                asset.status = AssetStatus.REQUESTED
+                asset.status = AssetStatus.RUNNING
                 asset.save(update_fields=["loan_id", "status"])
                 return dict(status=True, message="Loan ID set", loan_id=str(asset.loan_id))
 

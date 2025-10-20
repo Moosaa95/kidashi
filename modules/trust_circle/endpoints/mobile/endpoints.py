@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from common.functions import generate_otp
+from modules.notification.enums import InAppEventType
+from modules.notification.models import InAppNotification
 from modules.notification.tasks import send_sms
 from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
@@ -18,20 +20,19 @@ from modules.trust_circle.serializers import (
     GetTrustCircleRequestSerializer,
     ProposeWomanRequestSerializer,
     UpdateVoteRequestSerializer,
-    VoteStatusRequestSerializer,
-    PendingVotesRequestSerializer,
-    ResendOtpRequestSerializer,
-    ExpiredVotesRequestSerializer,
     FetchTrustCircleFilterSerializer,
+    AddorRemoveVoteSerializer,
+    VotesSerializer
 )
 from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
 from modules.woman.models import Woman
 from modules.woman.enums import WomanStatus
+from modules.security.models import OTP
+from modules.security.enums import OtpPurpose
 
 
-def send_otp_to_woman(woman, otp):
-    mobile_number = woman.mobile_number
+def send_otp_to_woman(mobile_number, otp):
     # TODO: Send OTP to woman's mobile_number
     send_sms(message=f"this is your otp {otp}", recipient=mobile_number)
 
@@ -96,6 +97,17 @@ class CreateTrustCircle(APIView):
             performed_by=vendor,
             metadata={"circle_name": trust_circle.circle_name, "vendor_id": str(vendor.id)},
             ip_address=ip_address,
+        )
+        InAppNotification.create_notification(
+            cba_customer_id=vendor.cba_customer_id,
+            event_type=InAppEventType.TRUST_CIRCLE_CREATED,
+            title="Trust Circle Created",
+            message=f"Your trust circle '{trust_circle.circle_name}' has been created successfully.",
+            metadata={
+                "circle_id": str(trust_circle.id),
+                "circle_name": trust_circle.circle_name,
+                "vendor_id": str(vendor.id),
+            },
         )
 
         return Response(
@@ -214,7 +226,7 @@ class GetTrustCircle(APIView):
                         "image": woman.image,
                         "status": woman.status,
                     }
-                    for woman in trust_circle_detail.women.all()
+                    for woman in trust_circle_detail.trust_circle_women.all()
                 ],
             }
             response_data.update(data=trust_circle_data)
@@ -283,8 +295,8 @@ class FetchTrustCircles(APIView):
         else:
             conditions = Q(vendor_id=vendor_id) if vendor_id else Q()
 
-        for key, value in filters_data.items():
-            conditions &= Q(**{key: value})
+            for key, value in filters_data.items():
+                conditions &= Q(**{key: value})
 
         trust_circles = TrustCircle.fetch_trust_circles_with_filter(conditions=conditions)
 
@@ -312,20 +324,6 @@ class ProposeWomanToTrustCircle(APIView):
                 fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
-                    action_taken=serializers.CharField(),
-                    vote_id=serializers.UUIDField(required=False),
-                    voting_deadline=serializers.DateTimeField(required=False),
-                    voters=serializers.ListField(
-                        child=inline_serializer(
-                            name="VoterInfo",
-                            fields={
-                                "id": serializers.UUIDField(),
-                                "name": serializers.CharField(),
-                                "mobile_number": serializers.CharField(),
-                            },
-                        ),
-                        required=False,
-                    ),
                 ),
             ),
             400: inline_serializer(
@@ -349,54 +347,54 @@ class ProposeWomanToTrustCircle(APIView):
         # Get member addition - initiating vendor
         vendor = Vendor.get_vendor(id=initiating_vendor_id)
         if not vendor:
-            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"status": False, "message": "Initiating Vendor not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
 
         # Get trust circle
-        try:
-            trust_circle = TrustCircle.objects.get(id=trust_circle_id)
-        except TrustCircle.DoesNotExist:
-            return Response({"status": False, "message": "Trust Circle not found"}, status=status.HTTP_404_NOT_FOUND)
+        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id)
+        if not trust_circle:
+            return Response({"status": False, "message": "Trust Circle not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
 
         # Get woman
-        try:
-            woman = Woman.objects.get(id=woman_id)
-        except Woman.DoesNotExist:
-            return Response({"status": False, "message": "Woman not found"}, status=status.HTTP_404_NOT_FOUND)
+        woman = Woman.get_woman(id=woman_id)
+        if not woman:
+            return Response({"status": False, "message": "Woman not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check if circle is full
-        if trust_circle.is_full:
-            return Response({"status": False, "message": "Trust Circle is already full"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check if woman is already a member
-        if woman in trust_circle.get_active_members():
-            return Response({"status": False, "message": "Woman is already a member of this Trust Circle"}, status=status.HTTP_400_BAD_REQUEST)
+        if woman.get("trust_circle", None) == trust_circle_id:
+            return Response({"status": False, "message": "Woman is already a member of this Trust Circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if there's already a pending vote for this woman
-        existing_vote = CircleMembershipVote.objects.filter(trust_circle=trust_circle, candidate_member=woman, status=VoteStatus.PENDING).first()
+        existing_vote = CircleMembershipVote.fetch_votes(trust_circle_id=trust_circle.id, candidate_member_id=woman.get("id"), status=VoteStatus.PENDING).first()
 
         if existing_vote:
-            return Response({"status": False, "message": "There is already a pending vote for this woman"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": False, "message": "There is already a pending vote for this woman", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
         ip_address = get_request_ip(request=request)
+        
+        conditions = Q()
 
-        current_member_count = trust_circle.current_member_count
+        conditions |= Q(trust_circle_id=trust_circle_id)
+        conditions &= Q(status=WomanStatus.ACTIVE)
+
+        active_member_count = Woman.fetch_women(conditions=conditions).count()
 
         try:
             with transaction.atomic():
-                if current_member_count < 3:
+                if not active_member_count:
+                    print("No active members, automatically")
                     # Automatically add woman to trust circle
-                    woman.trust_circle = trust_circle
-                    woman.status = WomanStatus.ACTIVE
-                    woman.save()
+                    updated_woman = Woman.update_woman(woman_id, trust_circle_id=trust_circle_id, status=WomanStatus.ACTIVE)
+                    
+                    if not updated_woman:
+                        return Response({"status": False, "message": "Error adding woman to Trust Circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
                     # Log activity
                     CircleActivity.create_activity(
                         trust_circle=trust_circle,
                         activity_type=TrustCircleActivityType.MEMBER_ADDED,
-                        description=f"Woman '{woman.first_name + ' ' + woman.surname}' automatically added to Trust Circle '{trust_circle.circle_name}'",
+                        description=f"Woman '{woman.get('first_name') + ' ' + woman.get('surname')}' automatically added to Trust Circle '{trust_circle.circle_name}'",
                         performed_by=vendor,
-                        affected_woman=woman,
-                        metadata={"woman_id": str(woman.id), "automatic_addition": True},
+                        affected_woman_id=woman.get("id"),
+                        metadata={"woman_id": str(woman.get("id")), "automatic_addition": True},
                         ip_address=ip_address,
                     )
 
@@ -404,104 +402,100 @@ class ProposeWomanToTrustCircle(APIView):
                         {
                             "status": True,
                             "message": "Woman successfully added to Trust Circle",
-                            "action_taken": "automatic_addition",
+                            "data": None
                         },
                         status=status.HTTP_200_OK,
                     )
+                    
+                if active_member_count == 1 and len(selected_voter_ids) < 1:
+                    return Response({"status": False, "message": "At least 1 voter must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
 
-                else:
-                    # Create voting process
-                    active_members = list(trust_circle.get_active_members())
+                if active_member_count != 1 and len(selected_voter_ids) < 2:
+                    return Response({"status": False, "message": "At least 2 voters must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
 
-                    if current_member_count == 3:
-                        # Use all 3 members as voters
-                        voters = active_members
-                    else:
-                        # Vendor must select 3 voters
-                        if not selected_voter_ids or len(selected_voter_ids) != 3:
-                            return Response({"status": False, "message": "Must select exactly 3 voters when circle has more than 3 members"}, status=status.HTTP_400_BAD_REQUEST)
+                voters = []
+                mobile_numbers = []
+                
+                # Refactored logic to use a single query to retrieve women in bulk
 
-                        # Validate selected voters
-                        voters = []
-                        for voter_id in selected_voter_ids:
-                            try:
-                                voter = Woman.objects.get(id=voter_id)
-                                if voter not in active_members:
-                                    return Response(
-                                        {"status": False, "message": f"Selected voter {voter.first_name + ' ' + voter.surname} is not an active member of this circle"},
-                                        status=status.HTTP_400_BAD_REQUEST,
-                                    )
-                                voters.append(voter)
-                            except Woman.DoesNotExist:
-                                return Response({"status": False, "message": f"Voter with ID {voter_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+                # Fetch all women in a single query
+                voter_women = Woman.objects.filter(id__in=selected_voter_ids)
 
+                # Iterate over the selected voter IDs
+                for voter_woman in voter_women:
+
+                    if not voter_woman:
+                        return Response({"status": False, "message": "Voter not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
+                    print(voter_woman.trust_circle.id, trust_circle_id)
+                    if voter_woman.trust_circle.id != trust_circle_id:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} does not belong to this circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+
+                    if voter_woman.status != WomanStatus.ACTIVE:
+                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} is not an active member of this circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+
+                    voters.append(voter_woman.id)
+                    mobile_numbers.append(voter_woman.mobile_number)
+
+                votes = []
+                for voter in voters:
                     # Create the vote
-                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member=woman, initiating_vendor=vendor, voters=voters)
-
-                    # Generate OTPs for all voters
-                    vote.voter_one_generated_otp = generate_otp()
-                    vote.voter_two_generated_otp = generate_otp()
-                    vote.voter_three_generated_otp = generate_otp()
-                    vote.save()
-
-                    # Send OTPs to voters
-                    send_otp_to_woman(vote.voter_one, vote.voter_one_generated_otp)
-                    send_otp_to_woman(vote.voter_two, vote.voter_two_generated_otp)
-                    send_otp_to_woman(vote.voter_three, vote.voter_three_generated_otp)
-
-                    # Log activity
-                    CircleActivity.create_activity(
-                        trust_circle=trust_circle,
-                        activity_type=TrustCircleActivityType.VOTE_INITIATED,
-                        description=f"Voting initiated for woman '{woman.first_name + ' ' + woman.surname}' to join Trust Circle '{trust_circle.circle_name}'",
-                        performed_by=vendor,
-                        affected_woman=woman,
-                        metadata={"vote_id": str(vote.id), "candidate_id": str(woman.id), "voters": [str(v.id) for v in voters]},
-                        ip_address=ip_address,
+                    vote = CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member_id=woman.get("id"), initiating_vendor_id=vendor.id, voter_id=voter)
+                    if not vote:
+                        return Response({"status": False, "message": "Error creating vote", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+                    votes.append(vote)
+                    
+                # Generate and send OTP to voter
+                for mobile_number in mobile_numbers:
+                    OTP.create_otp(
+                        purpose=OtpPurpose.VOTER_VALIDATION,
+                        subject_id=mobile_number,
+                        channel="SMS",
+                        log_to_db=True,
+                        recipient=mobile_number,
                     )
 
-                    voters_info = [{"id": voter.id, "name": voter.first_name + " " + voter.surname, "mobile_number": voter.mobile_number} for voter in voters]
+                # Log activity
+                CircleActivity.create_activity(
+                    trust_circle=trust_circle,
+                    activity_type=TrustCircleActivityType.VOTE_INITIATED,
+                    description=f"Voting initiated for woman '{woman.get('first_name') + ' ' + woman.get('surname')}' to join Trust Circle '{trust_circle.circle_name}'",
+                    performed_by=vendor,
+                    affected_woman_id=woman.get("id"),
+                    metadata={"votes": [str(vote.id) for vote in votes], "candidate_id": str(woman.get("id")), "voters": selected_voter_ids},
+                    ip_address=ip_address,
+                )
 
-                    return Response(
-                        {
-                            "status": True,
-                            "message": "Voting process initiated. OTPs have been sent to selected voters.",
-                            "action_taken": "voting_initiated",
-                            "vote_id": vote.id,
-                            "voting_deadline": vote.voting_deadline,
-                            "voters": voters_info,
-                        },
-                        status=status.HTTP_200_OK,
-                    )
+                return Response(
+                    {
+                        "status": True,
+                        "message": "Voting process initiated. OTPs have been sent to selected voters.",
+                        "data": None
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         except ValidationError as e:
-            return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            print("Validation exception:::", e)
+            return Response({"status": False, "message": str(e), "data": None}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"status": False, "message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print("General exception:::", e)
+            return Response({"status": False, "message": "An unexpected error occurred", "data": None}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-class UpdateTrustCircleVote(APIView):
+class ValidateVote(APIView):
     @extend_schema(
         tags=["Trust Circle"],
         description="Submit or update a vote for Trust Circle membership",
         request=UpdateVoteRequestSerializer,
         responses={
             200: inline_serializer(
-                name="UpdateVoteResponse",
+                name="ValidateVoteResponse",
                 fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
-                    vote_status=serializers.CharField(),
-                    votes_received=serializers.IntegerField(),
-                    total_votes_needed=serializers.IntegerField(),
-                    is_complete=serializers.BooleanField(),
-                    result=serializers.CharField(required=False),
-                    approved_votes=serializers.IntegerField(required=False),
-                    rejected_votes=serializers.IntegerField(required=False),
                 ),
             ),
             400: inline_serializer(
-                name="UpdateVoteErrorResponse",
+                name="ValidateVoteErrorResponse",
                 fields=dict(
                     status=serializers.BooleanField(),
                     message=serializers.CharField(),
@@ -510,512 +504,242 @@ class UpdateTrustCircleVote(APIView):
         },
     )
     def post(self, request):
+        print(request.data)
         serializer = UpdateVoteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        initiating_vendor_id = serializer.validated_data["initiating_vendor_id"]
-        vote_id = serializer.validated_data["vote_id"]
-        voter_position = serializer.validated_data["voter_position"]
-        otp = serializer.validated_data["otp"]
-        vote_choice = serializer.validated_data["vote_choice", NewMembershipVoteOption.APPROVE]
-
-        # Get vendor
-        vendor = Vendor.get_vendor(id=initiating_vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Get vote
-        try:
-            vote = CircleMembershipVote.objects.get(id=vote_id, initiating_vendor=vendor)
-        except CircleMembershipVote.DoesNotExist:
-            return Response({"status": False, "message": "Membership Vote not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if vote is still active
-        if vote.status != VoteStatus.PENDING:
-            return Response({"status": False, "message": f"Vote is no longer active. Current status: {vote.status}"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check if vote has expired
-        if vote.is_expired:
-            vote.expire_vote()
-            return Response({"status": False, "message": "Voting deadline has expired"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate voter position
-        if voter_position not in [1, 2, 3]:
-            return Response({"status": False, "message": "Invalid voter position. Must be 1, 2, or 3"}, status=status.HTTP_400_BAD_REQUEST)
-
-        ip_address = get_request_ip(request=request)
+        
+        votes = serializer.validated_data["votes"]
 
         try:
-            with transaction.atomic():
-                # Check if this voter has already voted
-                existing_vote = None
-                if voter_position == 1 and vote.voter_one_vote:
-                    existing_vote = vote.voter_one_vote
-                elif voter_position == 2 and vote.voter_two_vote:
-                    existing_vote = vote.voter_two_vote
-                elif voter_position == 3 and vote.voter_three_vote:
-                    existing_vote = vote.voter_three_vote
+            for vote in votes:
+                with transaction.atomic():
+                    vote_id = vote.get("vote_id")
+                    otp = vote.get("otp")
 
-                if existing_vote:
-                    return Response({"status": False, "message": f"Voter {voter_position} has already submitted their vote"}, status=status.HTTP_400_BAD_REQUEST)
+                    circle_vote = CircleMembershipVote.get_vote(id=vote_id)
+                    
+                    if not circle_vote:
+                        return Response({"status": False, "message": f"Membership Vote not found"}, status=status.HTTP_404_NOT_FOUND)
 
-                # Submit the vote
-                vote.submit_vote(voter_position, otp, vote_choice)
-
-                # Get voter name for logging
-                voter = None
-                if voter_position == 1:
-                    voter = vote.voter_one
-                elif voter_position == 2:
-                    voter = vote.voter_two
-                elif voter_position == 3:
-                    voter = vote.voter_three
-
-                # Log activity
-                CircleActivity.create_activity(
-                    trust_circle=vote.trust_circle,
-                    activity_type=TrustCircleActivityType.VOTE_SUBMITTED,
-                    description=f"Vote submitted by '{voter.first_name + ' ' + voter.surname}' for candidate '{vote.candidate_member.first_name + ' ' + vote.candidate_member.surname}': {vote_choice}",
-                    performed_by=vendor,
-                    affected_woman=voter,
-                    metadata={"vote_id": str(vote.id), "voter_position": voter_position, "vote_choice": vote_choice, "candidate_id": str(vote.candidate_member.id)},
-                    ip_address=ip_address,
-                )
-
-                response_data = {
-                    "status": True,
-                    "message": f"Vote submitted successfully by voter {voter_position}",
-                    "vote_status": vote.status,
-                    "votes_received": vote.votes_received,
-                    "total_votes_needed": 3,
-                    "is_complete": vote.is_complete,
-                }
-
-                # If voting is complete, add result information
-                if vote.is_complete:
-                    response_data.update(
-                        {
-                            "result": vote.status,
-                            "approved_votes": vote.approved_votes,
-                            "rejected_votes": vote.rejected_votes,
-                        }
+                    result = OTP.validate(
+                        purpose=OtpPurpose.VOTER_VALIDATION,
+                        input_otp=otp,
+                        subject_id=circle_vote.voter.mobile_number,
                     )
+                    if not result.get("status", False):
+                        return Response({"status": False, "message": f"Invalid OTP for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    # If approved, add woman to trust circle
-                    if vote.status == VoteStatus.APPROVED:
-                        vote.candidate_member.trust_circle = vote.trust_circle
-                        vote.candidate_member.status = WomanStatus.ACTIVE
-                        vote.candidate_member.save()
+                    woman = Woman.update_woman(woman_id=circle_vote.candidate_member.id, trust_circle_id=circle_vote.trust_circle.id, status=WomanStatus.ACTIVE)
 
-                        # Log member addition
-                        CircleActivity.create_activity(
-                            trust_circle=vote.trust_circle,
-                            activity_type=TrustCircleActivityType.MEMBER_ADDED,
-                            description=f"Woman '{vote.candidate_member.first_name + ' ' + vote.candidate_member.surname}' "
-                            f"added to Trust Circle '{vote.trust_circle.circle_name}' after successful vote",
-                            performed_by=vendor,
-                            affected_woman=vote.candidate_member,
-                            metadata={"vote_id": str(vote.id), "approved_votes": vote.approved_votes, "rejected_votes": vote.rejected_votes},
-                            ip_address=ip_address,
-                        )
+                    if not woman:
+                        return Response({"status": False, "message": f"Error updating woman {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
 
-                return Response(response_data, status=status.HTTP_200_OK)
-
+                    updated_vote = CircleMembershipVote.update_vote_status(vote_id=vote_id, status=VoteStatus.APPROVED)
+                    if not updated_vote:
+                        transaction.set_rollback(True)
+                        return Response({"status": False, "message": f"Error updating vote for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                return Response({"status": True, "message": "All votes validated and updated successfully"}, status=status.HTTP_200_OK)
         except ValidationError as e:
+            print("ValidateVote::::Validation exception:::", e)
             return Response({"status": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response({"status": False, "message": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print("ValidateVote::::General exception:::", e)
+            return Response({"status": False, "message": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class GetVoteStatus(APIView):
+class RemoveVoter(APIView):
     @extend_schema(
         tags=["Trust Circle"],
-        description="Get the status of a specific membership vote",
-        request=VoteStatusRequestSerializer,
+        description="Remove a vote only if the vote is still pending",
+        request=AddorRemoveVoteSerializer,
         responses={
             200: inline_serializer(
-                name="VoteStatusResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    data=inline_serializer(
-                        name="VoteStatusData",
-                        fields={
-                            "vote_id": serializers.UUIDField(),
-                            "trust_circle_name": serializers.CharField(),
-                            "candidate_name": serializers.CharField(),
-                            "status": serializers.CharField(),
-                            "votes_received": serializers.IntegerField(),
-                            "total_votes_needed": serializers.IntegerField(),
-                            "is_complete": serializers.BooleanField(),
-                            "is_expired": serializers.BooleanField(),
-                            "voting_deadline": serializers.DateTimeField(),
-                            "approved_votes": serializers.IntegerField(),
-                            "rejected_votes": serializers.IntegerField(),
-                            "result_message": serializers.CharField(allow_null=True),
-                            "voters": serializers.ListField(
-                                child=inline_serializer(
-                                    name="VoterStatusInfo",
-                                    fields={
-                                        "position": serializers.IntegerField(),
-                                        "name": serializers.CharField(),
-                                        "has_voted": serializers.BooleanField(),
-                                        "vote_choice": serializers.CharField(allow_null=True),
-                                    },
-                                )
-                            ),
-                        },
-                    ),
-                ),
+                name="RemoveVoterResponse",
+                fields={
+                    "status": serializers.BooleanField(),
+                    "message": serializers.CharField(),
+                },
+            ),
+            400: inline_serializer(
+                name="RemoveVoterErrorResponse",
+                fields={
+                    "status": serializers.BooleanField(),
+                    "message": serializers.CharField(),
+                },
             ),
         },
     )
     def post(self, request):
-        initiating_vendor_id = request.data.get("initiating_vendor_id")
-        vote_id = request.data.get("vote_id")
+        serializers = AddorRemoveVoteSerializer(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        vote_id = serializers.validated_data.get("vote_id")
 
-        if not initiating_vendor_id or not vote_id:
-            return Response({"status": False, "message": "cba_customer_id and vote_id are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get vendor
-        vendor = Vendor.get_vendor(id=initiating_vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Get vote
-        try:
-            vote = CircleMembershipVote.objects.select_related("trust_circle", "candidate_member", "voter_one", "voter_two", "voter_three").get(id=vote_id, initiating_vendor=vendor)
-        except CircleMembershipVote.DoesNotExist:
-            return Response({"status": False, "message": "Vote not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if vote has expired and update status
-        if vote.is_expired and vote.status == VoteStatus.PENDING:
-            vote.expire_vote()
-
-        voters_info = [
-            {
-                "position": 1,
-                "name": vote.voter_one.first_name + " " + vote.voter_one.surname,
-                "has_voted": bool(vote.voter_one_vote),
-                "vote_choice": vote.voter_one_vote,
-            },
-            {
-                "position": 2,
-                "name": vote.voter_two.first_name + " " + vote.voter_two.surname,
-                "has_voted": bool(vote.voter_two_vote),
-                "vote_choice": vote.voter_two_vote,
-            },
-            {
-                "position": 3,
-                "name": vote.voter_three.first_name + " " + vote.voter_three.surname,
-                "has_voted": bool(vote.voter_three_vote),
-                "vote_choice": vote.voter_three_vote,
-            },
-        ]
-
+        result = CircleMembershipVote.delete_vote(vote_id)
+            
         return Response(
-            {
-                "status": True,
-                "message": "Vote status retrieved successfully",
-                "data": {
-                    "vote_id": vote.id,
-                    "trust_circle_name": vote.trust_circle.circle_name,
-                    "candidate_name": vote.candidate_member.first_name + " " + vote.candidate_member.surname,
-                    "status": vote.status,
-                    "votes_received": vote.votes_received,
-                    "total_votes_needed": 3,
-                    "is_complete": vote.is_complete,
-                    "is_expired": vote.is_expired,
-                    "voting_deadline": vote.voting_deadline,
-                    "approved_votes": vote.approved_votes,
-                    "rejected_votes": vote.rejected_votes,
-                    "result_message": vote.result_message,
-                    "voters": voters_info,
-                },
-            },
+            data=result,
             status=status.HTTP_200_OK,
         )
 
 
-class GetPendingInitiatedVotes(APIView):
+class AddVoter(APIView):
     @extend_schema(
         tags=["Trust Circle"],
-        description="Get all pending votes for an initiating vendor's trust circles",
-        request=PendingVotesRequestSerializer,
+        description="Add a vote, ensuring the maximum number of votes (2) is not exceeded",
+        request=AddorRemoveVoteSerializer,
         responses={
             200: inline_serializer(
-                name="PendingVotesResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    data=inline_serializer(
-                        name="PendingVotesData",
-                        fields={
-                            "pending_initiated_votes": serializers.ListField(
-                                child=inline_serializer(
-                                    name="PendingVoteItem",
-                                    fields={
-                                        "vote_id": serializers.UUIDField(),
-                                        "trust_circle_name": serializers.CharField(),
-                                        "candidate_name": serializers.CharField(),
-                                        "votes_received": serializers.IntegerField(),
-                                        "voting_deadline": serializers.DateTimeField(),
-                                        "time_remaining_hours": serializers.FloatField(),
-                                        "is_expired": serializers.BooleanField(),
-                                        "created_at": serializers.DateTimeField(),
-                                    },
-                                )
-                            ),
-                            "total_count": serializers.IntegerField(),
-                        },
-                    ),
-                ),
+                name="AddVoterResponse",
+                fields={
+                    "status": serializers.BooleanField(),
+                    "message": serializers.CharField(),
+                },
+            ),
+            400: inline_serializer(
+                name="AddVoterErrorResponse",
+                fields={
+                    "status": serializers.BooleanField(),
+                    "message": serializers.CharField(),
+                },
             ),
         },
     )
     def post(self, request):
-        initiating_vendor_id = request.data.get("initiating_vendor_id")
-        trust_circle_id = request.data.get("trust_circle_id")
-
-        if not initiating_vendor_id:
-            return Response({"status": False, "message": "initiating_vendor_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get vendor
-        vendor = Vendor.get_vendor(id=initiating_vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Build query
-        queryset = CircleMembershipVote.objects.filter(initiating_vendor=vendor, status=VoteStatus.PENDING).select_related("trust_circle", "candidate_member")
-
-        if trust_circle_id:
-            queryset = queryset.filter(trust_circle_id=trust_circle_id)
-
-        votes = queryset.order_by("voting_deadline")
-
-        pending_votes_data = []
-        now = timezone.now()
-
-        for vote in votes:
-            # Check if expired and update
-            if vote.is_expired:
-                vote.expire_vote()
-                continue  # Skip expired votes
-
-            time_remaining = vote.voting_deadline - now
-            time_remaining_hours = time_remaining.total_seconds() / 3600
-
-            pending_votes_data.append(
+        serializers = AddorRemoveVoteSerializer(data=request.data)
+        serializers.is_valid(raise_exception=True)
+        trust_circle_id = serializers.validated_data.get("trust_circle_id")
+        voter_id = serializers.validated_data.get("voter_id")
+        
+        if not trust_circle_id:
+            return Response(
                 {
-                    "vote_id": vote.id,
-                    "trust_circle_name": vote.trust_circle.circle_name,
-                    "candidate_name": vote.candidate_member.first_name + " " + vote.candidate_member.surname,
-                    "votes_received": vote.votes_received,
-                    "voting_deadline": vote.voting_deadline,
-                    "time_remaining_hours": max(0, time_remaining_hours),
-                    "is_expired": vote.is_expired,
-                    "created_at": vote.created_at,
-                }
+                    "status": False,
+                    "message": "Woman does not belong to a trust circle"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id)
+        if not trust_circle:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Trust Circle not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+            
+        woman = Woman.get_woman(trust_circle_id=trust_circle_id)
+        
+        if not woman:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Candidate not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(
-            {
-                "status": True,
-                "message": "Pending Initiated votes retrieved successfully",
-                "data": {
-                    "pending_initiated_votes": pending_votes_data,
-                    "total_count": len(pending_votes_data),
-                },
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class GetExpiredInitiatedVotes(APIView):
-    @extend_schema(
-        tags=["Trust Circle"],
-        description="Get all expired votes for an initiating vendor's trust circles",
-        request=ExpiredVotesRequestSerializer,
-        responses={
-            200: inline_serializer(
-                name="ExpiredVotesResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    data=inline_serializer(
-                        name="ExpiredVotesData",
-                        fields={
-                            "expired_initiated_votes": serializers.ListField(
-                                child=inline_serializer(
-                                    name="ExpiredVoteItem",
-                                    fields={
-                                        "vote_id": serializers.UUIDField(),
-                                        "trust_circle_name": serializers.CharField(),
-                                        "candidate_name": serializers.CharField(),
-                                        "votes_received": serializers.IntegerField(),
-                                        "voting_deadline": serializers.DateTimeField(),
-                                        "is_expired": serializers.BooleanField(),
-                                        "created_at": serializers.DateTimeField(),
-                                    },
-                                )
-                            ),
-                            "total_count": serializers.IntegerField(),
-                        },
-                    ),
-                ),
-            ),
-        },
-    )
-    def post(self, request):
-        initiating_vendor_id = request.data.get("initiating_vendor_id")
-        trust_circle_id = request.data.get("trust_circle_id")
-
-        if not initiating_vendor_id:
-            return Response({"status": False, "message": "initiating_vendor_id is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get vendor
-        vendor = Vendor.get_vendor(id=initiating_vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Build query
-        queryset = CircleMembershipVote.objects.filter(initiating_vendor=vendor, status=VoteStatus.EXPIRED).select_related("trust_circle", "candidate_member")
-
-        if trust_circle_id:
-            queryset = queryset.filter(trust_circle_id=trust_circle_id)
-
-        votes = queryset.order_by("created_at")
-
-        expired_votes_data = []
-
-        for vote in votes:
-            expired_votes_data.append(
+        if woman.get("status") == WomanStatus.ACTIVE:
+            return Response(
                 {
-                    "vote_id": vote.id,
-                    "trust_circle_name": vote.trust_circle.circle_name,
-                    "candidate_name": vote.candidate_member.first_name + " " + vote.candidate_member.surname,
-                    "votes_received": vote.votes_received,
-                    "voting_deadline": vote.voting_deadline,
-                    "is_expired": vote.is_expired,
-                    "created_at": vote.created_at,
-                }
+                    "status": False,
+                    "message": "Cannot add vote. Candidate member is already active in the circle."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        voter = Woman.get_woman(id=voter_id)
+        
+        if not voter:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Voter not found"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Check if the maximum number of votes has been exceeded
+        active_votes = CircleMembershipVote.fetch_votes(
+            trust_circle=trust_circle,
+            candidate_member_id=woman.get("id"),
+            status=VoteStatus.APPROVED
+        ).count()
+
+        if active_votes >= 2:
+            return Response(
+                {
+                    "status": False,
+                    "message": "Maximum number of votes (2) has been exceeded."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Create the vote
+        CircleMembershipVote.create_vote(
+            trust_circle=trust_circle,
+            candidate_member_id=woman.get("id"),
+            voter_id=voter_id,
+            status=VoteStatus.PENDING
+        )
+
         return Response(
             {
                 "status": True,
-                "message": "Expired Initiated votes retrieved successfully",
-                "data": {
-                    "expired_initiated_votes": expired_votes_data,
-                    "total_count": len(expired_votes_data),
-                },
+                "message": "Vote successfully added."
             },
             status=status.HTTP_200_OK,
         )
 
 
-class ResendVoterOTP(APIView):
+class FetchVotes(APIView):
     @extend_schema(
         tags=["Trust Circle"],
-        description="Resend OTP to a specific voter",
-        request=ResendOtpRequestSerializer,
+        description="Fetch votes, returning vote ID, voter details (first name, surname, mobile_number), and vote status",
+        request=VotesSerializer,
         responses={
             200: inline_serializer(
-                name="ResendOTPResponse",
-                fields=dict(
-                    status=serializers.BooleanField(),
-                    message=serializers.CharField(),
-                    voter_name=serializers.CharField(),
-                    phone_number=serializers.CharField(),
-                ),
+                name="FetchVotesResponse",
+                fields={
+                    "status": serializers.BooleanField(),
+                    "message": serializers.CharField(),
+                    "data": serializers.ListField(
+                        child=inline_serializer(
+                            name="VoteData",
+                            fields={
+                                "vote_id": serializers.UUIDField(),
+                                "voter_first_name": serializers.CharField(),
+                                "voter_surname": serializers.CharField(),
+                                "voter_mobile_number": serializers.CharField(),
+                                "vote_status": serializers.CharField(),
+                            },
+                        )
+                    ),
+                },
             ),
         },
     )
     def post(self, request):
-        serializer = ResendOtpRequestSerializer(data=request.data)
+        serializer = VotesSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        trust_circle_id = serializer.validated_data.get("trust_circle_id")
+        candidate_member = serializer.validated_data.get("candidate_member")
+        filters = dict()
+        
+        if trust_circle_id:
+            filters["trust_circle_id"] = trust_circle_id
+        if candidate_member:
+            filters["candidate_member"] = candidate_member
 
-        initiating_vendor_id = request.data.get("initiating_vendor_id")
-        vote_id = request.data.get("vote_id")
-        voter_position = request.data.get("voter_position")
-
-        if voter_position not in [1, 2, 3]:
-            return Response({"status": False, "message": "voter_position must be 1, 2, or 3"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get vendor
-        vendor = Vendor.get_vendor(id=initiating_vendor_id)
-        if not vendor:
-            return Response({"status": False, "message": "Initiating Vendor not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Get vote
-        try:
-            vote = CircleMembershipVote.objects.select_related("voter_one", "voter_two", "voter_three").get(id=vote_id, initiating_vendor=vendor)
-        except CircleMembershipVote.DoesNotExist:
-            return Response({"status": False, "message": "Vote not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if vote is still active
-        if vote.status != VoteStatus.PENDING:
-            return Response({"status": False, "message": f"Vote is no longer active. Current status: {vote.status}"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Check if vote has expired
-        if vote.is_expired:
-            vote.expire_vote()
-            return Response({"status": False, "message": "Voting deadline has expired"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Get voter and check if they've already voted
-        voter = None
-        has_voted = False
-
-        if voter_position == 1:
-            voter = vote.voter_one
-            has_voted = bool(vote.voter_one_vote)
-        elif voter_position == 2:
-            voter = vote.voter_two
-            has_voted = bool(vote.voter_two_vote)
-        elif voter_position == 3:
-            voter = vote.voter_three
-            has_voted = bool(vote.voter_three_vote)
-
-        if has_voted:
-            return Response({"status": False, "message": f"Voter {voter_position} has already submitted their vote"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Generate new OTP and resend
-        new_otp = generate_otp()
-
-        if voter_position == 1:
-            vote.voter_one_generated_otp = new_otp
-        elif voter_position == 2:
-            vote.voter_two_generated_otp = new_otp
-        elif voter_position == 3:
-            vote.voter_three_generated_otp = new_otp
-
-        vote.save()
-
-        # Send new OTP
-        send_otp_to_woman(voter, new_otp)
-
-        ip_address = get_request_ip(request=request)
-
-        # Log activity
-        CircleActivity.create_activity(
-            trust_circle=vote.trust_circle,
-            activity_type=TrustCircleActivityType.OTP_RESENT,
-            description=f"OTP resent to voter '{voter.name}' (position {voter_position}) for vote {vote.id}",
-            performed_by=vendor,
-            affected_woman=voter,
-            metadata={
-                "vote_id": str(vote.id),
-                "voter_position": voter_position,
-            },
-            ip_address=ip_address,
-        )
+        votes = CircleMembershipVote.fetch_votes(**filters)
 
         return Response(
             {
                 "status": True,
-                "message": f"OTP has been resent to voter {voter_position}",
-                "voter_name": voter.first_name + " " + voter.surname,
-                "phone_number": voter.mobile_number,
+                "message": "Votes fetched successfully.",
+                "data": votes,
             },
             status=status.HTTP_200_OK,
         )

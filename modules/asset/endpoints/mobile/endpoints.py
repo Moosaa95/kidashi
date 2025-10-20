@@ -17,6 +17,8 @@ from modules.asset.serializers import (
     FetchAssetsFilterSerializer,
     GetAssetRequestSerializer,
 )
+from modules.service.enums import ServiceCode
+from modules.service.models import Service
 
 
 class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
@@ -48,7 +50,6 @@ class CreateAsset(IsPayrepAuthenticatedMixin, APIView):
             otp_result = OTP.validate(purpose=OtpPurpose.ASSET_REQUEST, input_otp=otp, subject_id=str(vendor_id))
             if not otp_result.get("status"):
                 return Response(data=dict(status=False, message=otp_result.get("message")), status=status.HTTP_400_BAD_REQUEST)
-
             asset = Asset.create_asset(**validated_data)
             if not asset:
                 return Response(
@@ -102,7 +103,7 @@ class FetchAssets(APIView):
         return Response(data=dict(status=True, message="Assets fetched successfully", data=assets), status=status.HTTP_200_OK)
 
 
-class GetAsset(APIView):
+class GetAsset(IsPayrepAuthenticatedMixin, APIView):
     @extend_schema(
         tags=["Kidashi Assets"],
         summary="Fetch a single asset and portfolio summary",
@@ -156,14 +157,28 @@ class GetAsset(APIView):
         asset = Asset.get_asset(**filters)
         if not asset:
             return Response(dict(status=False, message="Asset not found"), status=status.HTTP_404_NOT_FOUND)
-        member_id = asset["woman_id"] if isinstance(asset, dict) else getattr(asset.woman, "id", None)
-        summary = Asset.fetch_asset_summaries(member_id=member_id)
+
+        service = Service.get_service(code=ServiceCode.CBA_CODE)
+        integration = service.active_integrations(channel="API").first()
+        if not integration:
+            return Response(dict(status=False, message="No active PayRep integration found"), status=status.HTTP_400_BAD_REQUEST)
+
+        provider = integration.get_client()
+        cba_response = provider.fetch_cba_customer_asset_metric(asset.get("loan_id"), token=request.payrep_token)
+
+        metrics = dict(
+            disbursement_date=cba_response.get("disbursement_date"),
+            maturity_date=cba_response.get("maturity_date"),
+            amount_unpaid=cba_response.get("amount_unpaid", 0),
+            amount_repaid=cba_response.get("amount_repaid", 0),
+            repayment_progress=cba_response.get("repayment_progress", 0),
+            principal_balance_left=cba_response.get("principal_balance_left", 0),
+        )
         return Response(
             {
                 "status": True,
                 "message": "Asset fetched successfully",
-                "data": asset,
-                "summary": summary,
+                "data": {"asset": asset, "metrics": metrics},
             },
             status=status.HTTP_200_OK,
         )

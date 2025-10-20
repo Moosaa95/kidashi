@@ -61,8 +61,8 @@ class Woman(ModelMixin):
     status = models.CharField(max_length=20, choices=WomanStatus.choices, default=WomanStatus.ACTIVE)
 
     # Foreign key relationships
-    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.CASCADE, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
-    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="women", help_text="Trust circle this woman belongs to", null=True, blank=True)
+    vendor = models.ForeignKey("vendor.Vendor", on_delete=models.DO_NOTHING, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
+    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="trust_circle_women", help_text="Trust circle this woman belongs to", null=True, blank=True)
     geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     lga = models.CharField(max_length=100, blank=True, null=True)
@@ -166,7 +166,11 @@ class Woman(ModelMixin):
     @classmethod
     def get_woman(cls, **filters):
         ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
-        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).first()
+        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).values(*cls.get_fields()).first()
+    
+    @classmethod
+    def update_woman(cls, woman_id, **kwargs):
+        return cls.objects.filter(id=woman_id).update(**kwargs)
 
 
 class NextOfKin(ModelMixin):
