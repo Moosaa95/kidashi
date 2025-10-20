@@ -98,20 +98,20 @@ export const womenColumns: ColumnDef<any>[] = [
         accessorKey: "loanAmount", header: "Loan Amount",
         cell: ({ row }) => `₦${row.original.loanAmount.toLocaleString()}`
     },
-    {
-        accessorKey: "repaymentStatus", header: "Repayment Status",
-        cell: ({ row }) => (
-            <Badge
-                className={
-                    row.original.repaymentStatus === "current"
-                        ? "bg-success text-success-foreground"
-                        : "bg-destructive text-destructive-foreground"
-                }
-            >
-                {row.original.repaymentStatus}
-            </Badge>
-        )
-    },
+    // {
+    //     accessorKey: "repaymentStatus", header: "Repayment Status",
+    //     cell: ({ row }) => (
+    //         <Badge
+    //             className={
+    //                 row.original.repaymentStatus === "current"
+    //                     ? "bg-success text-success-foreground"
+    //                     : "bg-destructive text-destructive-foreground"
+    //             }
+    //         >
+    //             {row.original.repaymentStatus}
+    //         </Badge>
+    //     )
+    // },
     {
         accessorKey: "joinDate", header: "Join Date",
         cell: ({ row }) => new Date(row.original.joinDate).toLocaleDateString()
@@ -135,10 +135,10 @@ export const trustCircleColumns: ColumnDef<any>[] = [
         accessorKey: "totalLoanAmount", header: "Total Loan Amount",
         cell: ({ row }) => `₦${row.original.totalLoanAmount.toLocaleString()}`
     },
-    {
-        accessorKey: "repaymentRate", header: "Repayment Rate",
-        cell: ({ row }) => `${row.original.repaymentRate}%`
-    },
+    // {
+    //     accessorKey: "repaymentRate", header: "Repayment Rate",
+    //     cell: ({ row }) => `${row.original.repaymentRate}%`
+    // },
     {
         accessorKey: "status", header: "Status",
         cell: ({ row }) => (

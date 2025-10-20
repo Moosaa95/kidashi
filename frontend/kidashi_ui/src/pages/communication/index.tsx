@@ -44,7 +44,7 @@ const messageHistory = [
             "PayRep Kidashi will undergo scheduled maintenance on Sunday, January 21st from 2:00 AM to 4:00 AM. Services may be temporarily unavailable.",
         recipients: "All Users",
         recipientCount: 1247,
-        channels: ["sms", "ussd", "voice_bot"],
+        channels: ["sms"],
         sentAt: "2024-01-15 10:00:00",
         status: "delivered",
         deliveryRate: 98.5,
@@ -59,7 +59,7 @@ const messageHistory = [
             "Dear members of Katsina Women Cooperative, this is a friendly reminder that your loan repayment is due in 3 days. Please ensure timely payment to maintain your good standing.",
         recipients: "Katsina Women Cooperative",
         recipientCount: 12,
-        channels: ["sms", "vendor_notification"],
+        channels: ["sms"],
         sentAt: "2024-01-15 09:30:00",
         status: "delivered",
         deliveryRate: 100,
@@ -74,7 +74,7 @@ const messageHistory = [
             "Hello Zainab Usman, your loan payment of ₦8,000 is now 15 days overdue. Please contact your vendor or make payment immediately to avoid penalties.",
         recipients: "Zainab Usman",
         recipientCount: 1,
-        channels: ["sms", "voice_bot"],
+        channels: ["sms"],
         sentAt: "2024-01-15 08:45:00",
         status: "delivered",
         deliveryRate: 100,
@@ -104,7 +104,7 @@ const messageHistory = [
             "Exciting news! You can now purchase data bundles directly through PayRep Kidashi. Check out the new feature in your transaction menu.",
         recipients: "All Women",
         recipientCount: 894,
-        channels: ["sms", "ussd"],
+        channels: ["sms"],
         sentAt: "2024-01-14 16:00:00",
         status: "failed",
         deliveryRate: 45.2,
@@ -157,8 +157,8 @@ const communicationStats = {
     totalMessages: messageHistory.length,
     deliveredMessages: messageHistory.filter((m) => m.status === "delivered").length,
     failedMessages: messageHistory.filter((m) => m.status === "failed").length,
-    averageDeliveryRate: messageHistory.reduce((sum, m) => sum + m.deliveryRate, 0) / messageHistory.length,
-    averageReadRate: messageHistory.reduce((sum, m) => sum + m.readRate, 0) / messageHistory.length,
+    // averageDeliveryRate: messageHistory.reduce((sum, m) => sum + m.deliveryRate, 0) / messageHistory.length,
+    // averageReadRate: messageHistory.reduce((sum, m) => sum + m.readRate, 0) / messageHistory.length,
 }
 
 export default function CommunicationCenter() {
@@ -205,14 +205,14 @@ export default function CommunicationCenter() {
         switch (channel) {
             case "sms":
                 return MessageCircle
-            case "ussd":
-                return Phone
-            case "voice_bot":
-                return Volume2
-            case "in_app":
-                return MessageSquare
-            case "vendor_notification":
-                return Building2
+            // case "ussd":
+            //     return Phone
+            // case "voice_bot":
+            //     return Volume2
+            // case "in_app":
+            //     return MessageSquare
+            // case "vendor_notification":
+            //     return Building2
             default:
                 return Mail
         }
@@ -255,7 +255,7 @@ export default function CommunicationCenter() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-6 md:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total Messages</CardTitle>
@@ -263,10 +263,10 @@ export default function CommunicationCenter() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-foreground">{communicationStats.totalMessages}</div>
-                        <p className="text-xs text-muted-foreground">This month</p>
+                        <p className="text-xs text-muted-foreground">total messages</p>
                     </CardContent>
                 </Card>
-                <Card>
+                {/* <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Delivery Rate</CardTitle>
                         <CheckCircle className="h-4 w-4 text-muted-foreground" />
@@ -277,8 +277,8 @@ export default function CommunicationCenter() {
                         </div>
                         <p className="text-xs text-muted-foreground">{communicationStats.deliveredMessages} delivered</p>
                     </CardContent>
-                </Card>
-                <Card>
+                </Card> */}
+                {/* <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Read Rate</CardTitle>
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -287,7 +287,7 @@ export default function CommunicationCenter() {
                         <div className="text-2xl font-bold text-foreground">{communicationStats.averageReadRate.toFixed(1)}%</div>
                         <p className="text-xs text-muted-foreground">Average engagement</p>
                     </CardContent>
-                </Card>
+                </Card> */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Failed Messages</CardTitle>
@@ -302,10 +302,10 @@ export default function CommunicationCenter() {
 
             {/* Communication Tabs */}
             <Tabs defaultValue="messages" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="messages">Message History</TabsTrigger>
-                    <TabsTrigger value="templates">Message Templates</TabsTrigger>
-                    <TabsTrigger value="channels">Channel Analytics</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="messages">Message History</TabsTrigger>
+                    <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="templates">Message Templates</TabsTrigger>
+                    {/* <TabsTrigger value="channels">Channel Analytics</TabsTrigger> */}
                 </TabsList>
 
                 {/* Message History Tab */}
@@ -655,7 +655,7 @@ function ComposeMessageForm({
                             SMS
                         </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                         <Checkbox
                             id="ussd"
                             checked={message.channels.includes("ussd")}
@@ -665,8 +665,8 @@ function ComposeMessageForm({
                             <Phone className="h-4 w-4" />
                             USSD
                         </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
+                    </div> */}
+                    {/* <div className="flex items-center space-x-2">
                         <Checkbox
                             id="voice_bot"
                             checked={message.channels.includes("voice_bot")}
@@ -676,8 +676,8 @@ function ComposeMessageForm({
                             <Volume2 className="h-4 w-4" />
                             Voice Bot
                         </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
+                    </div> */}
+                    {/* <div className="flex items-center space-x-2">
                         <Checkbox
                             id="vendor_notification"
                             checked={message.channels.includes("vendor_notification")}
@@ -687,7 +687,7 @@ function ComposeMessageForm({
                             <Building2 className="h-4 w-4" />
                             Vendor Network
                         </Label>
-                    </div>
+                    </div> */}
                 </div>
             </div>
 

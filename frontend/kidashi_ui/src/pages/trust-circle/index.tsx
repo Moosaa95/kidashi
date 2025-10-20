@@ -31,21 +31,21 @@ export default function TrustCircle() {
             description: "3 women required"
         },
         {
-            name: "Total Women",
+            name: "Total Running Loans",
             value: stats.total_women.toLocaleString(),
             change: "",
             changeType: "positive",
             icon: "UserCheck",
-            description: "Women onboarded"
+            description: "Total running loans under vendor"
         },
-        {
-            name: "Avg. Repayment Rate",
-            value: `${stats.average_repayment_rate.toFixed(1)}%`,
-            change: "",
-            changeType: "positive",
-            icon: "TrendingUp",
-            description: "Currently participating members"
-        }
+        // {
+        //     name: "Avg. Repayment Rate",
+        //     value: `${stats.average_repayment_rate.toFixed(1)}%`,
+        //     change: "",
+        //     changeType: "positive",
+        //     icon: "TrendingUp",
+        //     description: "Currently participating members"
+        // }
     ]
 
     const filtered = circles.filter((circle) => {
@@ -70,7 +70,7 @@ export default function TrustCircle() {
                     Monitor circle health, track member activity, and manage loan eligibility across all vendor communities.
                 </p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-4">
+            <div className="grid gap-6 lg:grid-cols-3">
                 {statsData.map((stat) => (
                     <StatCard key={stat.name} {...stat} />
                 ))}

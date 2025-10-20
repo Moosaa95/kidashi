@@ -56,6 +56,16 @@ export const circleColumns: ColumnDef<TrustCircles>[] = [
         header: "Women Members",
     },
     {
+        accessorKey: "totalLoanAmount",
+        header: "Total Loan Amount",
+        cell: ({ row }) => `₦${row.original.totalLoanAmount.toLocaleString()}`
+    },
+    {
+        accessorKey: "runningLoansCount",
+        header: "Running Loans",
+        // cell: ({ row }) => row.original.runningLoansCount.toLocaleString()
+    },
+    {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => {

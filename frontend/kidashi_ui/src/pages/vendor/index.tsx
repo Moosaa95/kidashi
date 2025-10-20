@@ -29,12 +29,11 @@ export default function VendorManagement() {
 
     const statsData: StatProps[] = [
         {
-            name: "Pending Applications",
-            value: stats.pendingApplications.toString(),
+            name: "Total Vendors",
+            value: stats.totalTrustCircles.toString(),
             change: "",
-            changeType: "positive" as const,
-            icon: "Clock",
-            description: "Awaiting review"
+            changeType: "negative" as const,
+            icon: "Building2",
         },
         {
             name: "Active Vendors",
@@ -45,19 +44,20 @@ export default function VendorManagement() {
             description: "Currently operating"
         },
         {
-            name: "Total Trust Circles",
-            value: stats.totalTrustCircles.toString(),
-            change: "-1.2%",
-            changeType: "negative" as const,
-            icon: "Building2",
-        },
-        {
-            name: "Avg. Repayment Rate",
-            value: `${stats.averageRepaymentRate}%`,
-            change: "+0.8%",
+            name: "Pending Applications",
+            value: stats.pendingApplications.toString(),
+            change: "",
             changeType: "positive" as const,
-            icon: "TrendingUp",
+            icon: "Clock",
+            description: "Awaiting review"
         },
+        // {
+        //     name: "Avg. Repayment Rate",
+        //     value: `${stats.averageRepaymentRate}%`,
+        //     change: "+0.8%",
+        //     changeType: "positive" as const,
+        //     icon: "TrendingUp",
+        // },
     ]
 
     const filtered = vendorsData?.data.filter((vendor) => {
@@ -104,7 +104,7 @@ export default function VendorManagement() {
                     </p>
                 </div>
             </div>
-            <div className="grid gap-6 lg:grid-cols-4">
+            <div className="grid gap-6 lg:grid-cols-3">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, index) => (
                         <StatCardSkeleton key={index} />
