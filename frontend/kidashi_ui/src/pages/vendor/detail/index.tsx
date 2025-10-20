@@ -3,7 +3,6 @@ import { useParams } from "react-router"
 import {
     CheckCircle,
     ChevronRight,
-    FileText,
     Loader2,
     Shield,
     UserCheck,
@@ -17,7 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard"
 import { DataTable } from "@/components/datatable"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
+import { trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
+// import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type { VendorDetail, VendorGuarantor, VendorStatus } from "@/types/global"
 import {
@@ -41,12 +41,12 @@ const statusVariants: Record<string, string> = {
     inactive: "bg-gray-100 text-gray-800",
 }
 
-const defaultDocuments = [
-    { id: 1, name: "BVN Document", type: "Bank Verification Number", status: "verified" },
-    { id: 2, name: "NIN Document", type: "National Identity Number", status: "verified" },
-    { id: 3, name: "Business License", type: "CAC Registration", status: "verified" },
-    { id: 4, name: "Guarantor Forms", type: "Completed Forms", status: "complete" },
-]
+// const defaultDocuments = [
+//     { id: 1, name: "BVN Document", type: "Bank Verification Number", status: "verified" },
+//     { id: 2, name: "NIN Document", type: "National Identity Number", status: "verified" },
+//     { id: 3, name: "Business License", type: "CAC Registration", status: "verified" },
+//     { id: 4, name: "Guarantor Forms", type: "Completed Forms", status: "complete" },
+// ]
 
 const getStatusBadgeClass = (status?: string) => {
     if (!status) return "bg-muted text-muted-foreground"
@@ -61,33 +61,33 @@ const formatStatusLabel = (status?: string) => {
         .replace(/(^|\s)\w/g, (char) => char.toUpperCase())
 }
 
-const formatMembershipDuration = (createdAt?: string) => {
-    if (!createdAt) return "N/A"
-    const createdDate = new Date(createdAt)
-    if (Number.isNaN(createdDate.getTime())) return "N/A"
+// const formatMembershipDuration = (createdAt?: string) => {
+//     if (!createdAt) return "N/A"
+//     const createdDate = new Date(createdAt)
+//     if (Number.isNaN(createdDate.getTime())) return "N/A"
 
-    const now = new Date()
-    const diffInMs = now.getTime() - createdDate.getTime()
-    const diffInDays = Math.max(1, Math.floor(diffInMs / (1000 * 60 * 60 * 24)))
+//     const now = new Date()
+//     const diffInMs = now.getTime() - createdDate.getTime()
+//     const diffInDays = Math.max(1, Math.floor(diffInMs / (1000 * 60 * 60 * 24)))
 
-    if (diffInDays < 30) {
-        return `${diffInDays} day${diffInDays === 1 ? "" : "s"}`
-    }
+//     if (diffInDays < 30) {
+//         return `${diffInDays} day${diffInDays === 1 ? "" : "s"}`
+//     }
 
-    const diffInMonths = Math.floor(diffInDays / 30)
-    if (diffInMonths < 12) {
-        return `${diffInMonths} month${diffInMonths === 1 ? "" : "s"}`
-    }
+//     const diffInMonths = Math.floor(diffInDays / 30)
+//     if (diffInMonths < 12) {
+//         return `${diffInMonths} month${diffInMonths === 1 ? "" : "s"}`
+//     }
 
-    const years = Math.floor(diffInMonths / 12)
-    const remainingMonths = diffInMonths % 12
+//     const years = Math.floor(diffInMonths / 12)
+//     const remainingMonths = diffInMonths % 12
 
-    if (remainingMonths === 0) {
-        return `${years} year${years === 1 ? "" : "s"}`
-    }
+//     if (remainingMonths === 0) {
+//         return `${years} year${years === 1 ? "" : "s"}`
+//     }
 
-    return `${years} yr${years > 1 ? "s" : ""} ${remainingMonths} mo${remainingMonths > 1 ? "s" : ""}`
-}
+//     return `${years} yr${years > 1 ? "s" : ""} ${remainingMonths} mo${remainingMonths > 1 ? "s" : ""}`
+// }
 
 const getErrorMessage = (error: unknown, fallback: string) => {
     if (typeof error === "object" && error !== null) {
@@ -152,7 +152,7 @@ const buildStatData = (
     trustCirclesCount: number,
     womenMembersCount: number,
 ): StatProps[] => {
-    const repaymentRate = vendor.repayment_rate ?? vendor.repaymentRate
+    // const repaymentRate = vendor.repayment_rate ?? vendor.repaymentRate
     return [
         {
             name: "Trust Circles",
@@ -386,15 +386,15 @@ export default function VendorDetailPage() {
     const trustCircles = (vendor.trustCircles ?? vendor.trust_circles ?? []) as any[]
     const womenMembers = (vendor.womenMembers ?? vendor.women_members ?? []) as any[]
     const guarantors = (vendor.guarantors ?? []) as VendorGuarantor[]
-    const documents =
-        vendor.documents && vendor.documents.length
-            ? vendor.documents.map((doc, index) => {
-                if (typeof doc === "string") {
-                    return { id: index, name: doc, type: "Document", status: "uploaded" }
-                }
-                return doc
-            })
-            : defaultDocuments
+    // const documents =
+    //     vendor.documents && vendor.documents.length
+    //         ? vendor.documents.map((doc, index) => {
+    //             if (typeof doc === "string") {
+    //                 return { id: index, name: doc, type: "Document", status: "uploaded" }
+    //             }
+    //             return doc
+    //         })
+    //         : defaultDocuments
     const statusLabel = formatStatusLabel(vendor.status)
     const status = vendor.status?.toUpperCase()
 

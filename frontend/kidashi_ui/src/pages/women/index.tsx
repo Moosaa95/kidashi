@@ -29,10 +29,10 @@ export default function WomenManagement() {
         const status = woman.repayment_status ?? ""
         return status && !["NOT_APPLICABLE", "PAID_OFF"].includes(status)
     }).length
-    const atRisk = women.filter((woman) => {
-        const status = woman.repayment_status ?? ""
-        return ["LATE", "DEFAULTED"].includes(status)
-    }).length
+    // const atRisk = women.filter((woman) => {
+    //     const status = woman.repayment_status ?? ""
+    //     return ["LATE", "DEFAULTED"].includes(status)
+    // }).length
 
     const statsData: StatProps[] = [
         {

@@ -130,8 +130,8 @@ export const staffColumns: ColumnDef<Staff>[] = [
         header: "Actions",
         enableSorting: false,
         enableHiding: false,
-        cell: ({ row }) => {
-            const staff = row.original
+        cell: () => {
+            // const staff = row.original
             return (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
