@@ -18,26 +18,33 @@ export default function VendorManagement() {
     const dispatch = useAppDispatch()
     // const [searchParams] = useSearchParams()
 
-    const { data: vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery();
+    const filter = useAppSelector((state) => state.vendors.filter);
+
+    // Create filters object based on selected tab
+    const apiFilters = filter === "all" ? {} : { status: filter.toUpperCase() };
+
+    const { data: vendorsData, isLoading: isLoadingVendors } = useFetchVendorsQuery({
+        filters: apiFilters
+    });
+
+    console.log("[v0] Current filter:", filter);
+    console.log("[v0] API filters:", apiFilters);
 
     const isLoading = isLoadingVendors;
 
-    const filter = useAppSelector((state) => state.vendors.filter);
-    const stats = useAppSelector((state) => state.vendors.stats);
-    const vendors = useAppSelector((state) => state.vendors.vendors)
-
+    const metrics = vendorsData?.metrics;
 
     const statsData: StatProps[] = [
         {
             name: "Total Vendors",
-            value: stats.totalTrustCircles.toString(),
-            change: "",
-            changeType: "negative" as const,
+            value: (metrics?.total_vendors || 0).toString(),
+            change: `${metrics?.active_vendors || 0} active`,
+            changeType: "positive" as const,
             icon: "Building2",
         },
         {
             name: "Active Vendors",
-            value: stats.activeVendors.toString(),
+            value: (metrics?.active_vendors || 0).toString(),
             change: "",
             changeType: "positive" as const,
             icon: "CheckCircle",
@@ -45,12 +52,28 @@ export default function VendorManagement() {
         },
         {
             name: "Pending Applications",
-            value: stats.pendingApplications.toString(),
+            value: (metrics?.pending_vendors || 0).toString(),
             change: "",
             changeType: "positive" as const,
             icon: "Clock",
             description: "Awaiting review"
         },
+        {
+            name: "Rejected Applications",
+            value: (metrics?.rejected_vendors || 0).toString(),
+            change: "",
+            changeType: "negative" as const,
+            icon: "XCircle",
+            description: "Not approved"
+        },
+        {
+            name: "Suspended Vendors",
+            value: (metrics?.suspended_vendors || 0).toString(),
+            change: "",
+            changeType: "negative" as const,
+            icon: "PauseCircle",
+            description: "Currently suspended"
+        }
         // {
         //     name: "Avg. Repayment Rate",
         //     value: `${stats.averageRepaymentRate}%`,
@@ -64,11 +87,10 @@ export default function VendorManagement() {
         const matchesSearch =
             (vendor.first_name + " " + vendor.surname).toLowerCase().includes(searchQuery.toLowerCase()) ||
             vendor.location.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesFilter = filter === "all" || vendor.status.toLowerCase() === filter
-        return matchesSearch && matchesFilter
+        return matchesSearch
     })
 
-    console.log("[v0] Vendors:", vendors);
+    console.log("[v0] Vendors Data:", vendorsData);
     console.log("[v0] Filtered Vendors:", filtered, filter);
 
     // useEffect(() => {
@@ -104,7 +126,7 @@ export default function VendorManagement() {
                     </p>
                 </div>
             </div>
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-5">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, index) => (
                         <StatCardSkeleton key={index} />
@@ -128,11 +150,12 @@ export default function VendorManagement() {
                     </div>
                 ) : (
                     <>
-                        <TabsList className="grid w-full grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                        <TabsList className=" bg-card p-1 h-auto rounded-lg border shadow-sm justify-center items-center">
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="all">All</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="pending">Pending</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="active">Approved</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="rejected">Rejected</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="suspended">Suspended</TabsTrigger>
                         </TabsList>
                         <TabsContent value={filter}>
                             <DataTable columns={vendorColumns} data={filtered || []} searchColumn="name" searchPlaceholder="search vendors" />

@@ -47,6 +47,7 @@ class VendorSerializer(serializers.Serializer):
     business_name = serializers.CharField(max_length=255, required=False, help_text="Filter by business name.")
     phone = serializers.CharField(max_length=255, required=False, validators=[validate_mobile_number], help_text="Filter by customer's mobile number.")
     status = serializers.CharField(max_length=255, required=False, help_text="Filter by registration stage.")
+    rejection_reason = serializers.CharField(required=False, allow_blank=True, help_text="Reason for rejecting the vendor application.")
     date = serializers.CharField(required=False, help_text="Filter by a specific registration date (YYYY-MM-DD).")
     start_date = serializers.CharField(required=False, help_text="Filter by a start date range (YYYY-MM-DD).")
     end_date = serializers.CharField(required=False, help_text="Filter by an end date range (YYYY-MM-DD).")
@@ -91,6 +92,7 @@ class FetchVendorFilterSerializer(serializers.Serializer):
 class GetVendorDetailRequestSerializer(serializers.Serializer):
     vendor_id = serializers.UUIDField(required=False)
     cba_customer_id = serializers.UUIDField(required=False)
+    include_summary = serializers.BooleanField(required=False, default=False)
 
 
 class VendorDetailSerializer(serializers.Serializer):

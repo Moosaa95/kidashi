@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router"
-import { useAppDispatch, useAppSelector } from "@/states/app/hooks"
+import { useAppDispatch } from "@/states/app/hooks"
 // import { dismissAlert } from "@/states/features/dashboard/dashboardSlice"
 import { setFilter } from "@/states/features/dashboard/vendorSlice"
 
@@ -8,64 +8,61 @@ import RecentApplications from "@/components/dashboard/RecentApplications"
 // import SystemAlerts from "@/components/dashboard/SystemAlerts"
 // import QuickActions from "@/components/dashboard/QuickActions"
 import StatCard, { type StatProps } from "@/components/dashboard/StatCard"
+import { useGetDashboardMetricsQuery, useGetPendingVendorsQuery } from "@/states/api/endpoints/dashboard/dashboardApiSlice"
 
 export default function DashboardOverview() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
 
-  const { stats, loading } = useAppSelector((state) => state.dashboard)
-  const { vendors } = useAppSelector((state) => state.vendors)
+  const { data: metricsData, isLoading: metricsLoading, refetch } = useGetDashboardMetricsQuery()
+  const { data: pendingVendorsData } = useGetPendingVendorsQuery({
+    filters: { status: "PENDING" }
+  })
 
+  console.log("this is vendors data", pendingVendorsData);
 
 
   const statsData: StatProps[] = [
     {
       name: "Total Vendors",
-      value: stats.totalVendors.toLocaleString(),
-      change: "+12%",
+      value: (metricsData?.data?.vendors?.total_vendors || 0).toLocaleString(),
+      change: `${metricsData?.data?.vendors?.active_vendors || 0} active`,
       changeType: "positive" as const,
       icon: "Building2",
     },
     {
       name: "Active Circles",
-      value: stats.totalCommunities.toLocaleString(),
-      change: "+8%",
+      value: (metricsData?.data?.trust_circles?.active_circles || 0).toLocaleString(),
+      change: `${metricsData?.data?.trust_circles?.eligible_circles || 0} eligible`,
       changeType: "positive" as const,
       icon: "Users",
     },
     {
       name: "Total Loans Disbursed",
-      value: `₦${(stats.totalLoansValue / 1_000_000).toFixed(1)}M`,
-      change: "+23%",
+      value: `₦${((metricsData?.data?.assets?.total_value_disbursed || 0) / 1_000_000).toFixed(2)}M`,
+      change: `${metricsData?.data?.assets?.total_loans || 0} loans`,
       changeType: "positive" as const,
       icon: "CreditCard",
     },
-    // {
-    //   name: "Repayment Rate",
-    //   value: `${stats.repaymentRate}%`,
-    //   change: "+2.1%",
-    //   changeType: "positive" as const,
-    //   icon: "TrendingUp",
-    // },
     {
       name: "Total Women",
-      value: `${stats.totalWomen}`,
-      change: "+2.1%",
+      value: `${metricsData?.data?.women?.total_women || 0}`,
+      change: `${metricsData?.data?.women?.active_women || 0} active`,
       changeType: "positive" as const,
       icon: "PersonStanding",
     },
   ]
 
-
+  const vendors = pendingVendorsData?.data || []
+  console.log("vendors list", vendors);
   const recentApplications = vendors
-    .filter((v) => v.status === "PENDING" || v.status === "APPROVED")
     .slice(0, 3)
-    .map((vendor) => ({
+    .map((vendor: any) => ({
       id: vendor.id,
       vendorName: vendor.first_name,
       location: vendor.location,
       status: vendor.status,
-      submittedAt: new Date(vendor.application_date).toLocaleDateString(),
+      submittedAt: new Date(vendor.created_at).toLocaleDateString(),
       guarantors: 2,
     }))
 
@@ -88,7 +85,7 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-8">
-      <DashboardHeader loading={loading} onRefresh={() => window.location.reload()} />
+      <DashboardHeader loading={metricsLoading} onRefresh={() => refetch()} />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {statsData.map((stat) => (
@@ -100,7 +97,7 @@ export default function DashboardOverview() {
         <RecentApplications
           applications={recentApplications}
           onReview={handleReviewApplication}
-          onViewAll={() => navigate("/vendors")}
+          onViewAll={() => navigate("/vendors/list")}
         />
         {/* <SystemAlerts
           alerts={alerts}

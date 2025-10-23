@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useParams } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -7,109 +8,140 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // import { DataTable } from "@/components/datatable"
 import {
     Phone, UserCheck, UserX, CreditCard, Mail, MapPin, Users,
-    Edit, Bell, Shield, Calendar, ArrowRight, Download,
-    BarChart3, FileText, History, Target
+    Shield, Calendar, ArrowRight,
+    BarChart3, Target, Loader2
 } from "lucide-react"
 import StatCard from "@/components/dashboard/StatCard"
-import { useAppSelector } from "@/states/app/hooks"
+import { useGetWomanDetailMutation, type AssetSummary } from "@/states/api/endpoints/women/womenApiSlice"
+import type { WomanDetail } from "@/types/global"
 
 export default function WomenDetailPage() {
+    const { id } = useParams<{ id: string }>()
     const [activeTab, setActiveTab] = useState("overview")
-    const { stats } = useAppSelector(state => state.women)
+    const [woman, setWoman] = useState<WomanDetail | null>(null)
+    const [summary, setSummary] = useState<AssetSummary | null>(null)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [isFetching, setIsFetching] = useState(false)
+
+    const [getWomanDetail] = useGetWomanDetailMutation()
+
+    useEffect(() => {
+        if (!id) {
+            setErrorMessage("Woman ID is required")
+            return
+        }
+
+        let isMounted = true
+        setIsFetching(true)
+        setErrorMessage(null)
+
+            ; (async () => {
+                try {
+                    const response = await getWomanDetail({ woman_id: id, include_summary: true }).unwrap()
+                    if (!isMounted) return
+
+                    if (!response.status || !response.data) {
+                        setWoman(null)
+                        setErrorMessage(response.message || "Woman not found")
+                        return
+                    }
+
+                    setWoman(response.data as WomanDetail)
+                    setSummary(response.summary || null)
+                    console.log("[v0] Fetched woman detail:", response.data);
+
+                } catch (error) {
+                    if (!isMounted) return
+                    setWoman(null)
+                    setErrorMessage("Unable to fetch woman details")
+                } finally {
+                    if (isMounted) {
+                        setIsFetching(false)
+                    }
+                }
+            })()
+
+        return () => {
+            isMounted = false
+        }
+    }, [id, getWomanDetail])
 
     const statData = [
+        // {
+        //     name: "Total Assets",
+        //     value: summary?.total_assets?.toString() || "0",
+        //     icon: "CreditCard",
+        //     description: "All time assets",
+        // },
         {
-            name: "Total Loans",
-            value: "₦60,000",
-            icon: "CircleDollarSign",
-            trend: "neutral",
-            description: "All time loans taken",
-            change: "+12% from last year"
-        },
-        {
-            name: "Active Loans",
-            value: "₦25,000",
+            name: "Ongoing Assets",
+            value: summary?.member_ongoing_assets?.toString() || "0",
             icon: "Clock",
-            trend: "up",
-            description: "Currently ongoing loans",
-            change: "1 active loan"
+            description: "Currently ongoing",
         },
         {
-            name: "Repayment Rate",
-            value: `${stats.repaid_loans}%`,
+            name: "Completed Assets",
+            value: summary?.member_total_completed_assets?.toString() || "0",
+            icon: "CheckCircle",
+            description: "Successfully completed",
+        },
+        {
+            name: "Ongoing Value",
+            value: summary?.member_ongoing_value ? `₦${summary.member_ongoing_value.toLocaleString()}` : "₦0",
             icon: "TrendingUp",
-            trend: "up",
-            description: "On-time repayment percentage",
-            change: "+5% from last month"
-        },
-        {
-            name: "Membership",
-            value: `9 months`,
-            icon: "Calendar",
-            trend: "neutral",
-            description: "Time with the program",
-            change: "Joined Feb 2024"
+            description: "Total ongoing value",
         },
     ]
 
-    const womanData = {
-        id: 32,
-        name: "Araft Bello",
-        phone: "09029029909",
-        status: "active",
-        repaymentStatus: "current",
-        circleName: "Kidhasas Group",
-        vendorName: "Mustafa Mallam",
-        location: "Kaduna, Nigeria",
-        circleRepaymentRate: "92",
-        circleId: 3,
-        email: "araft.bello@example.com",
-        joinDate: "2024-02-15",
-        lastLoanDate: "2024-10-20",
-        profileImage: "/woman-avatar.jpg",
-        business: "Textile Trading",
-        nextPaymentDate: "2024-11-15",
-        nextPaymentAmount: "₦8,500"
+    if (isFetching) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-muted/20">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm">Loading woman details...</span>
+                </div>
+            </div>
+        )
     }
 
-    // Mock loan data for the table
-    const loanData = [
-        {
-            id: "LN-001",
-            amount: "₦25,000",
-            date: "2024-10-20",
-            dueDate: "2024-11-20",
-            status: "active",
-            repaid: "₦5,000",
-            progress: 20
-        },
-        {
-            id: "LN-002",
-            amount: "₦20,000",
-            date: "2024-07-15",
-            dueDate: "2024-08-15",
-            status: "repaid",
-            repaid: "₦20,000",
-            progress: 100
-        },
-        {
-            id: "LN-003",
-            amount: "₦15,000",
-            date: "2024-04-10",
-            dueDate: "2024-05-10",
-            status: "repaid",
-            repaid: "₦15,000",
-            progress: 100
-        },
-    ]
+    if (errorMessage && !woman) {
+        return (
+            <div className="min-h-screen bg-muted/20 p-4 md:p-6">
+                <Card className="mx-auto max-w-md">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Unable to load woman</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">{errorMessage}</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
-    // Mock repayment history
-    const repaymentHistory = [
-        { date: "2024-11-05", amount: "₦2,500", method: "Bank Transfer", status: "completed" },
-        { date: "2024-10-28", amount: "₦2,500", method: "Cash", status: "completed" },
-        { date: "2024-10-21", amount: "₦2,500", method: "Mobile Money", status: "completed" },
-        { date: "2024-10-14", amount: "₦2,500", method: "Bank Transfer", status: "completed" },
-    ]
+    if (!woman) {
+        return (
+            <div className="min-h-screen bg-muted/20 p-4 md:p-6">
+                <Card className="mx-auto max-w-md">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Woman not found</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">We could not find the woman you requested.</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    const womanName = [woman.first_name, woman.other_name, woman.surname].filter(Boolean).join(" ")
+    const initials = womanName
+        .split(" ")
+        .filter(Boolean)
+        .map((word) => word[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "W"
 
     return (
         <div className="min-h-screen bg-muted/20 p-4 md:p-6">
@@ -120,59 +152,61 @@ export default function WomenDetailPage() {
                         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-md">
-                                    <AvatarImage src={womanData.profileImage} alt={womanData.name} />
+                                    <AvatarImage src={woman.image || ""} alt={womanName} />
                                     <AvatarFallback className="bg-primary/10 text-primary font-medium text-lg">
-                                        {womanData.name.split(" ").map((n: string) => n[0]).join("")}
+                                        {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-foreground">{womanData.name}</h1>
+                                    <h1 className="text-2xl font-bold text-foreground">{womanName}</h1>
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                                             <Phone className="h-3.5 w-3.5" />
-                                            {womanData.phone}
+                                            {woman.mobile_number || "N/A"}
                                         </p>
-                                        <span className="text-muted-foreground">•</span>
-                                        <p className="text-sm text-muted-foreground">ID: {womanData.id}</p>
+                                        {/* <span className="text-muted-foreground">•</span>
+                                        <p className="text-sm text-muted-foreground">ID: {woman.id}</p> */}
                                         <span className="text-muted-foreground">•</span>
                                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                                             <Calendar className="h-3.5 w-3.5" />
-                                            Joined {new Date(womanData.joinDate).toLocaleDateString()}
+                                            Joined {woman.created_at ? new Date(woman.created_at).toLocaleDateString() : "N/A"}
                                         </p>
                                     </div>
                                     <div className="flex gap-2 mt-3">
                                         <Badge
-                                            className={`px-2 py-1 text-xs ${womanData.status === "active"
+                                            className={`px-2 py-1 text-xs ${woman.status === "ACTIVE"
                                                 ? "bg-green-100 text-green-800 hover:bg-green-100"
                                                 : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                                                 }`}
                                         >
-                                            {womanData.status === "active" ? (
+                                            {woman.status === "ACTIVE" ? (
                                                 <UserCheck className="h-3 w-3 mr-1" />
                                             ) : (
                                                 <UserX className="h-3 w-3 mr-1" />
                                             )}
-                                            {womanData.status}
+                                            {woman.status}
                                         </Badge>
                                         <Badge
-                                            className={`px-2 py-1 text-xs ${womanData.repaymentStatus === "current"
+                                            className={`px-2 py-1 text-xs ${woman.repayment_status === "CURRENT"
                                                 ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
-                                                : womanData.repaymentStatus === "overdue"
+                                                : woman.repayment_status === "LATE"
                                                     ? "bg-red-100 text-red-800 hover:bg-red-100"
                                                     : "bg-gray-100 text-gray-800 hover:bg-gray-100"
                                                 }`}
                                         >
                                             <CreditCard className="h-3 w-3 mr-1" />
-                                            {womanData.repaymentStatus}
+                                            {woman.repayment_status || "N/A"}
                                         </Badge>
-                                        <Badge className="px-2 py-1 text-xs bg-purple-100 text-purple-800 hover:bg-purple-100">
-                                            <Target className="h-3 w-3 mr-1" />
-                                            {womanData.business}
-                                        </Badge>
+                                        {woman.occupation && (
+                                            <Badge className="px-2 py-1 text-xs bg-purple-100 text-purple-800 hover:bg-purple-100">
+                                                <Target className="h-3 w-3 mr-1" />
+                                                {woman.occupation}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            {/* <div className="flex flex-wrap gap-2">
                                 <Button variant="outline" size="sm" className="gap-1">
                                     <Edit className="h-4 w-4" />
                                     Edit
@@ -184,12 +218,12 @@ export default function WomenDetailPage() {
                                 <Button variant="destructive" size="sm">
                                     Deactivate
                                 </Button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t">
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t">
                         {statData.map((stat, index) => (
                             <StatCard
                                 key={index}
@@ -206,22 +240,10 @@ export default function WomenDetailPage() {
 
                 {/* Tabbed Content */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="w-full grid grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                    <TabsList className="w-full bg-card p-1 h-auto rounded-lg border shadow-sm">
                         <TabsTrigger value="overview" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
                             <BarChart3 className="h-4 w-4" />
                             Overview
-                        </TabsTrigger>
-                        <TabsTrigger value="loans" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
-                            <CreditCard className="h-4 w-4" />
-                            Loans
-                        </TabsTrigger>
-                        <TabsTrigger value="repayments" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
-                            <History className="h-4 w-4" />
-                            Repayments
-                        </TabsTrigger>
-                        <TabsTrigger value="documents" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
-                            <FileText className="h-4 w-4" />
-                            Documents
                         </TabsTrigger>
                     </TabsList>
 
@@ -241,28 +263,28 @@ export default function WomenDetailPage() {
                                         <Mail className="h-4 w-4 text-muted-foreground" />
                                         <div>
                                             <p className="text-sm font-medium">Email</p>
-                                            <p className="text-sm text-muted-foreground">{womanData.email}</p>
+                                            <p className="text-sm text-muted-foreground">{woman.email || "N/A"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
                                         <Phone className="h-4 w-4 text-muted-foreground" />
                                         <div>
                                             <p className="text-sm font-medium">Phone</p>
-                                            <p className="text-sm text-muted-foreground">{womanData.phone}</p>
+                                            <p className="text-sm text-muted-foreground">{woman.mobile_number || "N/A"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
                                         <MapPin className="h-4 w-4 text-muted-foreground" />
                                         <div>
                                             <p className="text-sm font-medium">Location</p>
-                                            <p className="text-sm text-muted-foreground">{womanData.location}</p>
+                                            <p className="text-sm text-muted-foreground">{woman.residential_address || "N/A"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
                                         <Target className="h-4 w-4 text-muted-foreground" />
                                         <div>
-                                            <p className="text-sm font-medium">Business</p>
-                                            <p className="text-sm text-muted-foreground">{womanData.business}</p>
+                                            <p className="text-sm font-medium">Occupation</p>
+                                            <p className="text-sm text-muted-foreground">{woman.occupation || "N/A"}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -282,207 +304,60 @@ export default function WomenDetailPage() {
                                     <CardContent>
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg">
                                             <div className="space-y-1">
-                                                <p className="font-medium text-lg">{womanData.circleName}</p>
+                                                <p className="font-medium text-lg">Trust Circle Name: {woman.trust_circle__circle_name || "Not Assigned"}</p>
                                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                                     <Shield className="h-4 w-4" />
-                                                    Managed by: {womanData.vendorName}
+                                                    Vendor fullName: {`${woman.vendor__first_name || ""} ${woman.vendor__surname || ""}`}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                                     <MapPin className="h-4 w-4" />
-                                                    {womanData.location}
+                                                    {woman.state || "N/A"}, {woman.country || "N/A"}
                                                 </p>
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <div className="flex items-center">
-                                                        <div className="h-2 w-20 bg-primary/20 rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-green-500"
-                                                                style={{ width: `${womanData.circleRepaymentRate}%` }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-xs text-muted-foreground ml-2">
-                                                            {womanData.circleRepaymentRate}% Repayment Rate
-                                                        </span>
-                                                    </div>
-                                                </div>
                                             </div>
-                                            <Button asChild className="gap-1">
-                                                <a href={`/dashboard/trust-circles/${womanData.circleId}`}>
-                                                    View Circle
-                                                    <ArrowRight className="h-4 w-4" />
-                                                </a>
-                                            </Button>
+                                            {woman.trust_circle_id && (
+                                                <Button asChild className="gap-1">
+                                                    <a href={`/dashboard/trust-circles/${woman.trust_circle_id}`}>
+                                                        View Circle
+                                                        <ArrowRight className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
 
-                                {/* Upcoming Payment */}
+                                {/* Account Information */}
                                 <Card className="border shadow-sm">
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                            <Calendar className="h-5 w-5 text-primary" />
-                                            Upcoming Payment
+                                            <CreditCard className="h-5 w-5 text-primary" />
+                                            Account Information
                                         </CardTitle>
-                                        <CardDescription>Next scheduled repayment</CardDescription>
+                                        <CardDescription>Banking and verification details</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                            <div className="space-y-1">
-                                                <p className="font-medium text-lg text-blue-800">{womanData.nextPaymentAmount}</p>
-                                                <p className="text-sm text-blue-600">Due on {womanData.nextPaymentDate}</p>
-                                                <p className="text-xs text-blue-500">For loan LN-001</p>
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between p-2 rounded-lg bg-muted/30">
+                                                <span className="text-sm font-medium">Account Number:</span>
+                                                <span className="text-sm text-muted-foreground">{woman.account_number || "N/A"}</span>
                                             </div>
-                                            <Button className="gap-1 bg-blue-600 hover:bg-blue-700">
-                                                <Download className="h-4 w-4" />
-                                                Download Invoice
-                                            </Button>
+                                            <div className="flex justify-between p-2 rounded-lg bg-muted/30">
+                                                <span className="text-sm font-medium">NIN:</span>
+                                                <span className="text-sm text-muted-foreground">{woman.nin || "N/A"}</span>
+                                            </div>
+                                            <div className="flex justify-between p-2 rounded-lg bg-muted/30">
+                                                <span className="text-sm font-medium">BVN:</span>
+                                                <span className="text-sm text-muted-foreground">{woman.bvn || "N/A"}</span>
+                                            </div>
+                                            <div className="flex justify-between p-2 rounded-lg bg-muted/30">
+                                                <span className="text-sm font-medium">Tier:</span>
+                                                <span className="text-sm text-muted-foreground">{woman.tier || "N/A"}</span>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
                             </div>
                         </div>
-                    </TabsContent>
-
-                    {/* Loans Tab */}
-                    <TabsContent value="loans" className="space-y-6">
-                        <Card className="border shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Loan History</CardTitle>
-                                <CardDescription>All loans taken and repayment progress</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="rounded-md border overflow-hidden">
-                                    <div className="grid grid-cols-6 p-4 bg-muted/50 font-medium text-sm">
-                                        <div>Loan ID</div>
-                                        <div>Amount</div>
-                                        <div>Date</div>
-                                        <div>Due Date</div>
-                                        <div>Status</div>
-                                        <div>Progress</div>
-                                    </div>
-                                    {loanData.map((loan) => (
-                                        <div key={loan.id} className="grid grid-cols-6 p-4 border-t text-sm items-center">
-                                            <div className="font-medium text-primary">{loan.id}</div>
-                                            <div className="font-semibold">{loan.amount}</div>
-                                            <div>{loan.date}</div>
-                                            <div>{loan.dueDate}</div>
-                                            <div>
-                                                <Badge
-                                                    className={
-                                                        loan.status === "active"
-                                                            ? "bg-blue-100 text-blue-800"
-                                                            : "bg-green-100 text-green-800"
-                                                    }
-                                                >
-                                                    {loan.status}
-                                                </Badge>
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-green-500"
-                                                            style={{ width: `${loan.progress}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-xs text-muted-foreground">{loan.progress}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Repayments Tab */}
-                    <TabsContent value="repayments" className="space-y-6">
-                        <Card className="border shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Repayment History</CardTitle>
-                                <CardDescription>All repayment transactions</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="rounded-md border overflow-hidden">
-                                    <div className="grid grid-cols-4 p-4 bg-muted/50 font-medium text-sm">
-                                        <div>Date</div>
-                                        <div>Amount</div>
-                                        <div>Method</div>
-                                        <div>Status</div>
-                                    </div>
-                                    {repaymentHistory.map((repayment, index) => (
-                                        <div key={index} className="grid grid-cols-4 p-4 border-t text-sm items-center">
-                                            <div>{repayment.date}</div>
-                                            <div className="font-semibold">{repayment.amount}</div>
-                                            <div>{repayment.method}</div>
-                                            <div>
-                                                <Badge className="bg-green-100 text-green-800">
-                                                    {repayment.status}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    {/* Documents Tab */}
-                    <TabsContent value="documents" className="space-y-6">
-                        <Card className="border shadow-sm">
-                            <CardHeader>
-                                <CardTitle>Documents</CardTitle>
-                                <CardDescription>All documents associated with this member</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-100 rounded-lg">
-                                                <FileText className="h-5 w-5 text-blue-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">ID Verification Document</p>
-                                                <p className="text-sm text-muted-foreground">Uploaded on 2024-02-15</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm" className="gap-1">
-                                            <Download className="h-4 w-4" />
-                                            Download
-                                        </Button>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-green-100 rounded-lg">
-                                                <FileText className="h-5 w-5 text-green-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">Loan Agreement - LN-001</p>
-                                                <p className="text-sm text-muted-foreground">Signed on 2024-10-20</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm" className="gap-1">
-                                            <Download className="h-4 w-4" />
-                                            Download
-                                        </Button>
-                                    </div>
-                                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-purple-100 rounded-lg">
-                                                <FileText className="h-5 w-5 text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">Business Registration</p>
-                                                <p className="text-sm text-muted-foreground">Uploaded on 2024-02-18</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" size="sm" className="gap-1">
-                                            <Download className="h-4 w-4" />
-                                            Download
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>

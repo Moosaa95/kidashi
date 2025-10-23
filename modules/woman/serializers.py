@@ -113,6 +113,7 @@ class WomanAttestationSerializer(serializers.Serializer):
 
 
 class WomanSerializer(serializers.Serializer):
+    woman_id = serializers.UUIDField(required=False, help_text="ID of the woman")
     id = serializers.UUIDField(required=False, help_text="ID of the woman")
     first_name = serializers.CharField(max_length=255, required=False, help_text="Filter by first name")
     other_name = serializers.CharField(max_length=255, required=False, help_text="Filter by other name")
@@ -130,10 +131,10 @@ class WomanSerializer(serializers.Serializer):
     lga_id = serializers.UUIDField(required=False, help_text="Filter by local government area ID")
     country_id = serializers.UUIDField(required=False, help_text="Filter by country ID")
     repayment_status = serializers.CharField(max_length=20, required=False, help_text="Filter by repayment status")
-    status = serializers.CharField(max_length=20, required=False, help_text="Filter by status")
     cba_customer_id = serializers.UUIDField(required=False)
     nin = serializers.CharField(max_length=20, required=False)
     bvn = serializers.CharField(max_length=20, required=False)
+    include_summary = serializers.BooleanField(required=False, default=False, help_text="Include asset summary metrics")
 
 
 # class FetchWomenFilterSerializer(serializers.Serializer):
@@ -146,6 +147,7 @@ class FetchWomenFilterSerializer(serializers.Serializer):
     status = serializers.CharField(required=False, help_text="Filter by status")
     vendor_id = serializers.UUIDField(required=False, help_text="Filter by vendor ID")
     trust_circle_id = serializers.UUIDField(required=False, help_text="Filter by trust circle ID")
+    include_summary = serializers.BooleanField(required=False, default=False)
 
 
 class GetWomanBasicDetailsRequestSerializer(serializers.Serializer):
@@ -178,7 +180,10 @@ class WomanDetailSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
 
     vendor_id = serializers.UUIDField(read_only=True)
+    vendor_first_name = serializers.CharField(read_only=True)
+    vendor_surname = serializers.CharField(read_only=True)
     trust_circle_id = serializers.UUIDField(read_only=True)
+    trust_circle_name = serializers.CharField(read_only=True)
     geo_region = serializers.UUIDField(read_only=True)
     state = serializers.CharField(read_only=True)
     lga = serializers.CharField(read_only=True)

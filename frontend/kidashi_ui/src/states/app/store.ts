@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit"
 import { apiSlice } from "../api/apiSlice";
-import { AuthReducer, DashboardReducer, TransactionsReducer, TrustCircleReducer, VendorsReducer, WomenReducer } from "..";
+import { AssetReducer, AuthReducer, DashboardReducer, TransactionsReducer, TrustCircleReducer, VendorsReducer, WomenReducer } from "..";
 
 
 
@@ -12,6 +12,7 @@ export const store = configureStore({
         vendors: VendorsReducer,
         circles: TrustCircleReducer,
         women: WomenReducer,
+        assets: AssetReducer,
         transactions: TransactionsReducer,
     },
     middleware: (getDefaultMiddleware) =>

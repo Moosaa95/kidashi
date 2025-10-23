@@ -1,10 +1,11 @@
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.db.utils import IntegrityError
 from django.core.validators import RegexValidator
 from typing import TYPE_CHECKING
 from common.functions import json_list_default
 from common.mixins import ModelMixin
+from modules.asset.enums import AssetStatus
 from modules.general.models import Country, GeoRegion, LocalGovernment, State
 from modules.trust_circle.enums import TrustCircleStatus
 from modules.vendor.enums import BusinessTypes, Gender, GurantorVerificationStatus, VendorStatus
@@ -66,6 +67,7 @@ class Vendor(ModelMixin):
             "state__name",
             "lga__name",
             "country__name",
+            "created_at",
         ]
 
     @property
@@ -117,6 +119,27 @@ class Vendor(ModelMixin):
     @classmethod
     def can_be_activated(cls, vendor_id: str) -> bool:
         return Guarantor.has_two_verified(vendor_id)
+
+    @classmethod
+    def get_vendor_metrics(cls, conditions=None):
+        queryset = cls.objects.all()
+        running_statuses = [AssetStatus.RUNNING, AssetStatus.APPROVED]
+        if conditions:
+            if isinstance(conditions, Q):
+                queryset = queryset.filter(conditions)
+            elif isinstance(conditions, dict):
+                queryset = queryset.filter(**conditions)
+
+        return queryset.aggregate(
+            total_vendors=Count("id", distinct=True),
+            active_vendors=Count("id", filter=Q(status=VendorStatus.ACTIVE), distinct=True),
+            pending_vendors=Count("id", filter=Q(status=VendorStatus.PENDING), distinct=True),
+            rejected_vendors=Count("id", filter=Q(status=VendorStatus.REJECTED), distinct=True),
+            suspended_vendors=Count("id", filter=Q(status=VendorStatus.SUSPENDED), distinct=True),
+            total_circles=Count("trust_circles", distinct=True),
+            total_women=Count("women", distinct=True),
+            total_running_assets=Count("requested_assets", filter=Q(requested_assets__status__in=running_statuses), distinct=True),
+        )
 
 
 class Guarantor(ModelMixin):

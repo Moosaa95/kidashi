@@ -1,4 +1,3 @@
-// src/components/vendors/vendorColumns.tsx
 import { type ColumnDef } from "@tanstack/react-table"
 import type { Vendor } from "@/types/global"
 import { Button } from "@/components/ui/button"
@@ -92,11 +91,16 @@ export const womenColumns: ColumnDef<any>[] = [
             </div>
         ),
     },
-    { accessorKey: "name", header: "Name" },
-    { accessorKey: "phone", header: "Phone" },
     {
-        accessorKey: "loanAmount", header: "Loan Amount",
-        cell: ({ row }) => `₦${row.original.loanAmount.toLocaleString()}`
+        accessorKey: "full_name",
+        header: "Full Name",
+        cell: ({ row }) => <span className="font-medium">{row.original.first_name} {row.original.surname}</span>,
+    },
+    { accessorKey: "mobile_number", header: "Mobile Number" },
+    { accessorKey: "account_number", header: "Account Number" },
+    {
+        accessorKey: "maximum_balance", header: "Max Balance",
+        cell: ({ row }) => `₦${row.original.maximum_balance.toLocaleString()}`
     },
     // {
     //     accessorKey: "repaymentStatus", header: "Repayment Status",
@@ -113,8 +117,8 @@ export const womenColumns: ColumnDef<any>[] = [
     //     )
     // },
     {
-        accessorKey: "joinDate", header: "Join Date",
-        cell: ({ row }) => new Date(row.original.joinDate).toLocaleDateString()
+        accessorKey: "created_at", header: "Join Date",
+        cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
     }
 ]
 
@@ -129,11 +133,11 @@ export const trustCircleColumns: ColumnDef<any>[] = [
             </div>
         ),
     },
-    { accessorKey: "name", header: "Circle Name" },
-    { accessorKey: "memberCount", header: "Members" },
+    { accessorKey: "circle_name", header: "Circle Name" },
+    { accessorKey: "current_member_count", header: "Members" },
     {
-        accessorKey: "totalLoanAmount", header: "Total Loan Amount",
-        cell: ({ row }) => `₦${row.original.totalLoanAmount.toLocaleString()}`
+        accessorKey: "total_asset_amount", header: "Total Loan Amount",
+        cell: ({ row }) => `₦${(row.original.total_asset_amount || 0).toLocaleString()}`
     },
     // {
     //     accessorKey: "repaymentRate", header: "Repayment Rate",

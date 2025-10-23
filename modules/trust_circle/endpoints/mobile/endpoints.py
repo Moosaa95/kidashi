@@ -6,14 +6,12 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import serializers
-from django.utils import timezone
 
 from drf_spectacular.utils import extend_schema, inline_serializer
-from common.functions import generate_otp
 from modules.notification.enums import InAppEventType
 from modules.notification.models import InAppNotification
 from modules.notification.tasks import send_sms
-from modules.trust_circle.enums import TrustCircleActivityType, NewMembershipVoteOption
+from modules.trust_circle.enums import TrustCircleActivityType
 from modules.trust_circle.models import TrustCircle, CircleActivity, CircleMembershipVote, VoteStatus
 from modules.trust_circle.serializers import (
     CreateTrustCircleRequestSerializer,
@@ -22,7 +20,7 @@ from modules.trust_circle.serializers import (
     UpdateVoteRequestSerializer,
     FetchTrustCircleFilterSerializer,
     AddorRemoveVoteSerializer,
-    VotesSerializer
+    VotesSerializer,
 )
 from modules.vendor.enums import VendorStatus
 from modules.vendor.models import Vendor
@@ -226,7 +224,7 @@ class GetTrustCircle(APIView):
                         "image": woman.image,
                         "status": woman.status,
                     }
-                    for woman in trust_circle_detail.trust_circle_women.all()
+                    for woman in trust_circle_detail.women.all()
                 ],
             }
             response_data.update(data=trust_circle_data)
@@ -369,7 +367,7 @@ class ProposeWomanToTrustCircle(APIView):
             return Response({"status": False, "message": "There is already a pending vote for this woman", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
         ip_address = get_request_ip(request=request)
-        
+
         conditions = Q()
 
         conditions |= Q(trust_circle_id=trust_circle_id)
@@ -383,7 +381,7 @@ class ProposeWomanToTrustCircle(APIView):
                     print("No active members, automatically")
                     # Automatically add woman to trust circle
                     updated_woman = Woman.update_woman(woman_id, trust_circle_id=trust_circle_id, status=WomanStatus.ACTIVE)
-                    
+
                     if not updated_woman:
                         return Response({"status": False, "message": "Error adding woman to Trust Circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -399,23 +397,19 @@ class ProposeWomanToTrustCircle(APIView):
                     )
 
                     return Response(
-                        {
-                            "status": True,
-                            "message": "Woman successfully added to Trust Circle",
-                            "data": None
-                        },
+                        {"status": True, "message": "Woman successfully added to Trust Circle", "data": None},
                         status=status.HTTP_200_OK,
                     )
-                    
+
                 if active_member_count == 1 and len(selected_voter_ids) < 1:
-                    return Response({"status": False, "message": "At least 1 voter must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
+                    return Response({"status": False, "message": "At least 1 voter must be selected", "data": {"verifier_required": True}}, status=status.HTTP_200_OK)
 
                 if active_member_count != 1 and len(selected_voter_ids) < 2:
-                    return Response({"status": False, "message": "At least 2 voters must be selected", "data":{"verifier_required": True}}, status=status.HTTP_200_OK)
+                    return Response({"status": False, "message": "At least 2 voters must be selected", "data": {"verifier_required": True}}, status=status.HTTP_200_OK)
 
                 voters = []
                 mobile_numbers = []
-                
+
                 # Refactored logic to use a single query to retrieve women in bulk
 
                 # Fetch all women in a single query
@@ -428,10 +422,16 @@ class ProposeWomanToTrustCircle(APIView):
                         return Response({"status": False, "message": "Voter not found", "data": None}, status=status.HTTP_404_NOT_FOUND)
                     print(voter_woman.trust_circle.id, trust_circle_id)
                     if voter_woman.trust_circle.id != trust_circle_id:
-                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} does not belong to this circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+                        return Response(
+                            {"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} does not belong to this circle", "data": None},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
                     if voter_woman.status != WomanStatus.ACTIVE:
-                        return Response({"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} is not an active member of this circle", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+                        return Response(
+                            {"status": False, "message": f"Selected voter {voter_woman.first_name + ' ' + voter_woman.surname} is not an active member of this circle", "data": None},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
                     voters.append(voter_woman.id)
                     mobile_numbers.append(voter_woman.mobile_number)
@@ -443,7 +443,7 @@ class ProposeWomanToTrustCircle(APIView):
                     if not vote:
                         return Response({"status": False, "message": "Error creating vote", "data": None}, status=status.HTTP_400_BAD_REQUEST)
                     votes.append(vote)
-                    
+
                 # Generate and send OTP to voter
                 for mobile_number in mobile_numbers:
                     OTP.create_otp(
@@ -466,11 +466,7 @@ class ProposeWomanToTrustCircle(APIView):
                 )
 
                 return Response(
-                    {
-                        "status": True,
-                        "message": "Voting process initiated. OTPs have been sent to selected voters.",
-                        "data": None
-                    },
+                    {"status": True, "message": "Voting process initiated. OTPs have been sent to selected voters.", "data": None},
                     status=status.HTTP_200_OK,
                 )
 
@@ -480,6 +476,7 @@ class ProposeWomanToTrustCircle(APIView):
         except Exception as e:
             print("General exception:::", e)
             return Response({"status": False, "message": "An unexpected error occurred", "data": None}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class ValidateVote(APIView):
     @extend_schema(
@@ -504,10 +501,9 @@ class ValidateVote(APIView):
         },
     )
     def post(self, request):
-        print(request.data)
         serializer = UpdateVoteRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         votes = serializer.validated_data["votes"]
 
         try:
@@ -517,9 +513,9 @@ class ValidateVote(APIView):
                     otp = vote.get("otp")
 
                     circle_vote = CircleMembershipVote.get_vote(id=vote_id)
-                    
+
                     if not circle_vote:
-                        return Response({"status": False, "message": f"Membership Vote not found"}, status=status.HTTP_404_NOT_FOUND)
+                        return Response({"status": False, "message": "Membership Vote not found"}, status=status.HTTP_404_NOT_FOUND)
 
                     result = OTP.validate(
                         purpose=OtpPurpose.VOTER_VALIDATION,
@@ -537,8 +533,10 @@ class ValidateVote(APIView):
                     updated_vote = CircleMembershipVote.update_vote_status(vote_id=vote_id, status=VoteStatus.APPROVED)
                     if not updated_vote:
                         transaction.set_rollback(True)
-                        return Response({"status": False, "message": f"Error updating vote for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST)
-                    
+                        return Response(
+                            {"status": False, "message": f"Error updating vote for voter {circle_vote.voter.first_name + ' ' + circle_vote.voter.surname}"}, status=status.HTTP_400_BAD_REQUEST
+                        )
+
                 return Response({"status": True, "message": "All votes validated and updated successfully"}, status=status.HTTP_200_OK)
         except ValidationError as e:
             print("ValidateVote::::Validation exception:::", e)
@@ -575,9 +573,8 @@ class RemoveVoter(APIView):
         serializers.is_valid(raise_exception=True)
         vote_id = serializers.validated_data.get("vote_id")
 
-
         result = CircleMembershipVote.delete_vote(vote_id)
-            
+
         return Response(
             data=result,
             status=status.HTTP_200_OK,
@@ -611,85 +608,55 @@ class AddVoter(APIView):
         serializers.is_valid(raise_exception=True)
         trust_circle_id = serializers.validated_data.get("trust_circle_id")
         voter_id = serializers.validated_data.get("voter_id")
-        
+
         if not trust_circle_id:
             return Response(
-                {
-                    "status": False,
-                    "message": "Woman does not belong to a trust circle"
-                },
+                {"status": False, "message": "Woman does not belong to a trust circle"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         trust_circle = TrustCircle.get_trust_circle(id=trust_circle_id)
         if not trust_circle:
             return Response(
-                {
-                    "status": False,
-                    "message": "Trust Circle not found"
-                },
+                {"status": False, "message": "Trust Circle not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         woman = Woman.get_woman(trust_circle_id=trust_circle_id)
-        
+
         if not woman:
             return Response(
-                {
-                    "status": False,
-                    "message": "Candidate not found"
-                },
+                {"status": False, "message": "Candidate not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if woman.get("status") == WomanStatus.ACTIVE:
             return Response(
-                {
-                    "status": False,
-                    "message": "Cannot add vote. Candidate member is already active in the circle."
-                },
+                {"status": False, "message": "Cannot add vote. Candidate member is already active in the circle."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         voter = Woman.get_woman(id=voter_id)
-        
+
         if not voter:
             return Response(
-                {
-                    "status": False,
-                    "message": "Voter not found"
-                },
+                {"status": False, "message": "Voter not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         # Check if the maximum number of votes has been exceeded
-        active_votes = CircleMembershipVote.fetch_votes(
-            trust_circle=trust_circle,
-            candidate_member_id=woman.get("id"),
-            status=VoteStatus.APPROVED
-        ).count()
+        active_votes = CircleMembershipVote.fetch_votes(trust_circle=trust_circle, candidate_member_id=woman.get("id"), status=VoteStatus.APPROVED).count()
 
         if active_votes >= 2:
             return Response(
-                {
-                    "status": False,
-                    "message": "Maximum number of votes (2) has been exceeded."
-                },
+                {"status": False, "message": "Maximum number of votes (2) has been exceeded."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Create the vote
-        CircleMembershipVote.create_vote(
-            trust_circle=trust_circle,
-            candidate_member_id=woman.get("id"),
-            voter_id=voter_id,
-            status=VoteStatus.PENDING
-        )
+        CircleMembershipVote.create_vote(trust_circle=trust_circle, candidate_member_id=woman.get("id"), voter_id=voter_id, status=VoteStatus.PENDING)
 
         return Response(
-            {
-                "status": True,
-                "message": "Vote successfully added."
-            },
+            {"status": True, "message": "Vote successfully added."},
             status=status.HTTP_200_OK,
         )
 
@@ -727,7 +694,7 @@ class FetchVotes(APIView):
         trust_circle_id = serializer.validated_data.get("trust_circle_id")
         candidate_member = serializer.validated_data.get("candidate_member")
         filters = dict()
-        
+
         if trust_circle_id:
             filters["trust_circle_id"] = trust_circle_id
         if candidate_member:
