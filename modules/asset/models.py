@@ -45,6 +45,10 @@ class Asset(ModelMixin):
             "vendor__id",
             "vendor__first_name",
             "vendor__surname",
+            "vendor__business_type",
+            "vendor__business_description",
+            "vendor__phone",
+            "vendor__community",
         ]
 
     @classmethod
@@ -108,11 +112,13 @@ class Asset(ModelMixin):
             queryset = queryset.filter(conditions)
 
         pending_statuses = [AssetStatus.REQUESTED, AssetStatus.QUERIED]
-        ongoing_statuses = [AssetStatus.APPROVED]
+        ongoing_statuses = [AssetStatus.RUNNING, AssetStatus.APPROVED]
         completed_statuses = [AssetStatus.CLOSED]
         failed_statuses = [AssetStatus.REJECTED, AssetStatus.FAILED]
 
         count_filters = {
+            "total_assets": Count("id"),
+            "total_asset_value": Sum("value"),
             "total_pending_assets": Count("id", filter=Q(status__in=pending_statuses)),
             "total_ongoing_assets": Count("id", filter=Q(status__in=ongoing_statuses)),
             "total_completed_assets": Count("id", filter=Q(status__in=completed_statuses)),

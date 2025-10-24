@@ -19,13 +19,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
 // import { documentColumns, trustCircleColumns, womenColumns } from "@/components/vendors/vendorColumn"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import type { VendorDetail, VendorGuarantor, VendorStatus } from "@/types/global"
+import type { VendorGuarantor, VendorStatus } from "@/types/global"
 import {
+    type VendorDetailData,
     useGetVendorDetailMutation,
     useUpdateGuarantorVerificationStatusMutation,
     useUpdateVendorApplicationStatusMutation,
 } from "@/states/api/endpoints/vendors/vendorApiSlice"
+import { useFetchTrustCirclesQuery } from "@/states/api/endpoints/trustcircles/trustcirlcesApiSlice"
+import { useFetchWomenQuery } from "@/states/api/endpoints/women/womenApiSlice"
 import { toast } from "sonner"
+import RejectionModal from "@/components/vendors/RejectionModal"
 
 interface ActionFeedback {
     type: "success" | "error"
@@ -148,60 +152,65 @@ const buildGuarantorName = (guarantor: Pick<VendorGuarantor, "first_name" | "oth
     [guarantor.first_name, guarantor.other_name, guarantor.surname].filter(Boolean).join(" ")
 
 const buildStatData = (
-    vendor: VendorDetail,
-    trustCirclesCount: number,
-    womenMembersCount: number,
+    metrics?: {
+        total_circles?: number;
+        total_women?: number;
+        total_running_assets?: number;
+    },
+    fallbackCircles: number = 0,
+    fallbackWomen: number = 0,
 ): StatProps[] => {
-    // const repaymentRate = vendor.repayment_rate ?? vendor.repaymentRate
     return [
         {
             name: "Trust Circles",
-            value: `${trustCirclesCount || vendor.active_trust_circles_count || 0}`,
+            value: `${metrics?.total_circles ?? fallbackCircles}`,
             icon: "Users",
-            description: "Active trust circles",
+            description: "Total trust circles",
         },
         {
             name: "Women Members",
-            value: `${womenMembersCount || vendor.total_women_onboarded || 0}`,
+            value: `${metrics?.total_women ?? fallbackWomen}`,
             icon: "UserCheck",
             description: "Women onboarded under vendor",
         },
         {
             name: "Running Assets",
-            value: `${0}`,
-            icon: "UserCheck",
+            value: `${metrics?.total_running_assets ?? 0}`,
+            icon: "CreditCard",
             description: "Total running assets under vendor",
         },
-        // {
-        //     name: "Repayment Rate",
-        //     value: repaymentRate != null ? `${repaymentRate}%` : "N/A",
-        //     icon: "TrendingUp",
-        //     description: "Overall repayment success",
-        // },
-        // {
-        //     name: "Membership",
-        //     value: formatMembershipDuration(vendor.created_at),
-        //     icon: "Calendar",
-        //     description: vendor.created_at ? `Joined ${new Date(vendor.created_at).toLocaleDateString()}` : "Join date unavailable",
-        // },
     ]
 }
 
 export default function VendorDetailPage() {
     const { id } = useParams<{ id: string }>()
     const [activeTab, setActiveTab] = useState("overview")
-    const [vendor, setVendor] = useState<VendorDetail | null>(null)
+    const [vendor, setVendor] = useState<VendorDetailData | null>(null)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null)
     const [isFetchingVendor, setIsFetchingVendor] = useState(false)
     const [selectedGuarantor, setSelectedGuarantor] = useState<VendorGuarantor | null>(null)
     const [isGuarantorModalOpen, setIsGuarantorModalOpen] = useState(false)
+    const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false)
 
     const [getVendorDetail] = useGetVendorDetailMutation()
     const [updateVendorStatus, { isLoading: isUpdatingStatus }] = useUpdateVendorApplicationStatusMutation()
     const [updateGuarantorVerificationStatus, { isLoading: isUpdatingGuarantor }] =
         useUpdateGuarantorVerificationStatusMutation()
 
+    // Fetch trust circles for this vendor when the trust circles tab is active
+    const shouldFetchCircles = activeTab === "trust-circles" && !!id
+    const { data: trustCirclesData, isLoading: isLoadingCircles } = useFetchTrustCirclesQuery(
+        shouldFetchCircles ? { filters: { vendor_id: id } } : undefined,
+        { skip: !shouldFetchCircles }
+    )
+
+    // Fetch women for this vendor when the women members tab is active
+    const shouldFetchWomen = activeTab === "women-members" && !!id
+    const { data: womenData, isLoading: isLoadingWomen } = useFetchWomenQuery(
+        shouldFetchWomen ? { filters: { vendor_id: id } } : undefined,
+        { skip: !shouldFetchWomen }
+    )
 
     useEffect(() => {
         if (!id) {
@@ -216,7 +225,7 @@ export default function VendorDetailPage() {
 
             ; (async () => {
                 try {
-                    const response = await getVendorDetail({ vendor_id: id }).unwrap()
+                    const response = await getVendorDetail({ vendor_id: id, include_summary: true }).unwrap()
                     if (!isMounted) return
 
                     if (!response.status || !response.data) {
@@ -240,7 +249,7 @@ export default function VendorDetailPage() {
         return () => {
             isMounted = false
         }
-    }, [id, getVendorDetail])
+    }, [])
 
     // const handleStatusChange = async (nextStatus: VendorStatus | string) => {
     //     if (!vendor) return
@@ -263,13 +272,14 @@ export default function VendorDetailPage() {
     //         setActionFeedback({ type: "error", message: getErrorMessage(error, "Unable to update vendor status") })
     //     }
     // }
-    const handleStatusChange = async (nextStatus: VendorStatus | string) => {
+    const handleStatusChange = async (nextStatus: VendorStatus | string, rejectionReason?: string) => {
         if (!vendor) return
 
         try {
             const response = await updateVendorStatus({
                 vendor_id: vendor.id,
                 status: nextStatus,
+                rejection_reason: rejectionReason,
             }).unwrap()
 
             if (!response.status) {
@@ -279,13 +289,23 @@ export default function VendorDetailPage() {
 
             setVendor((prev) => (prev ? { ...prev, status: nextStatus } : prev))
             toast.success(response.message || "Vendor status updated successfully")
+
+            // Close rejection modal if it was open
+            if (isRejectionModalOpen) {
+                setIsRejectionModalOpen(false)
+            }
         } catch (error) {
             toast.error(getErrorMessage(error, "Unable to update vendor status"))
         }
     }
 
     const handleApprove = () => handleStatusChange("ACTIVE")
-    const handleReject = () => handleStatusChange("REJECTED")
+    const handleReject = () => {
+        setIsRejectionModalOpen(true)
+    }
+    const handleRejectConfirm = (reason: string) => {
+        handleStatusChange("REJECTED", reason)
+    }
     const handleSuspend = () => handleStatusChange("SUSPENDED")
 
     const handleGuarantorSelect = (guarantor: VendorGuarantor) => {
@@ -412,7 +432,8 @@ export default function VendorDetailPage() {
         .slice(0, 2)
         .toUpperCase() || "VN"
 
-    const statData = buildStatData(vendor, trustCircles.length, womenMembers.length)
+    // Use metrics from API if available, otherwise fall back to array lengths
+    const statData = buildStatData(vendor.metrics, trustCircles.length, womenMembers.length)
     const selectedGuarantorName = selectedGuarantor ? buildGuarantorName(selectedGuarantor) : ""
 
     return (
@@ -483,7 +504,7 @@ export default function VendorDetailPage() {
                         </div>
                     </div>
 
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border-t">
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 border-t">
                         {statData.map((stat) => (
                             <StatCard key={stat.name} {...stat} />
                         ))}
@@ -491,7 +512,7 @@ export default function VendorDetailPage() {
                 </div>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="w-full grid grid-cols-4 bg-card p-1 h-auto rounded-lg border shadow-sm">
+                    <TabsList className="w-full grid grid-cols-3 bg-card p-1 h-auto rounded-lg border shadow-sm">
                         <TabsTrigger value="overview" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1">
                             <Users className="h-4 w-4" /> Overview
                         </TabsTrigger>
@@ -605,21 +626,39 @@ export default function VendorDetailPage() {
                     </TabsContent>
 
                     <TabsContent value="trust-circles">
-                        <DataTable
-                            columns={trustCircleColumns}
-                            data={trustCircles}
-                            searchColumn="name"
-                            searchPlaceholder="Search circles..."
-                        />
+                        {isLoadingCircles ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                    <span className="text-sm">Loading trust circles...</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <DataTable
+                                columns={trustCircleColumns}
+                                data={trustCirclesData?.data || []}
+                                searchColumn="name"
+                                searchPlaceholder="Search circles..."
+                            />
+                        )}
                     </TabsContent>
 
                     <TabsContent value="women-members">
-                        <DataTable
-                            columns={womenColumns}
-                            data={womenMembers}
-                            searchColumn="name"
-                            searchPlaceholder="Search women..."
-                        />
+                        {isLoadingWomen ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                    <span className="text-sm">Loading women members...</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <DataTable
+                                columns={womenColumns}
+                                data={Array.isArray(womenData?.data) ? womenData.data : (womenData?.data as any)?.women ?? []}
+                                searchColumn="name"
+                                searchPlaceholder="Search women..."
+                            />
+                        )}
                     </TabsContent>
 
                     {/* <TabsContent value="documents">
@@ -729,6 +768,14 @@ export default function VendorDetailPage() {
                         )}
                     </DialogContent>
                 </Dialog>
+
+                <RejectionModal
+                    isOpen={isRejectionModalOpen}
+                    onClose={() => setIsRejectionModalOpen(false)}
+                    onConfirm={handleRejectConfirm}
+                    isLoading={isUpdatingStatus}
+                    vendorName={vendorName}
+                />
             </div>
         </div>
     )

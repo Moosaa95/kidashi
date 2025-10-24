@@ -20,25 +20,27 @@ export default function WomenManagement() {
         isLoading: womenLoading,
         isFetching: womenFetching,
         error: womenError,
-    } = useFetchWomenQuery()
-    const women: WomanSummary[] = womenData?.data ?? []
+    } = useFetchWomenQuery({ include_summary: true })
 
-    const totalWomen = women.length
-    const activeWomen = women.filter((woman) => woman.status === "ACTIVE").length
-    const ongoingLoans = women.filter((woman) => {
-        const status = woman.repayment_status ?? ""
-        return status && !["NOT_APPLICABLE", "PAID_OFF"].includes(status)
-    }).length
-    // const atRisk = women.filter((woman) => {
-    //     const status = woman.repayment_status ?? ""
-    //     return ["LATE", "DEFAULTED"].includes(status)
-    // }).length
+    // Handle both response formats
+    const women: WomanSummary[] = Array.isArray(womenData?.data)
+        ? womenData.data
+        : (womenData?.data as any)?.women ?? []
+
+    const metrics = Array.isArray(womenData?.data)
+        ? null
+        : (womenData?.data as any)?.summary
+
+    const totalWomen = metrics?.total_women ?? women.length
+    const activeWomen = metrics?.active_women ?? women.filter((woman) => woman.status === "ACTIVE").length
+    const inactiveWomen = metrics?.inactive_women ?? women.filter((woman) => woman.status === "INACTIVE").length
+    const suspendedWomen = metrics?.suspended_women ?? women.filter((woman) => woman.status === "SUSPENDED").length
 
     const statsData: StatProps[] = [
         {
             name: "Total Women",
             value: totalWomen.toString(),
-            change: "",
+            change: metrics?.active_percentage ? `${metrics.active_percentage}% active` : "",
             changeType: "positive",
             icon: "Users",
             description: "Registered across the program",
@@ -52,21 +54,21 @@ export default function WomenManagement() {
             description: "Currently engaged",
         },
         {
-            name: "Ongoing Loans",
-            value: ongoingLoans.toString(),
+            name: "Inactive Women",
+            value: inactiveWomen.toString(),
             change: "",
-            changeType: "positive",
-            icon: "CreditCard",
-            description: "Loans in progress",
+            // changeType: "negative" as inactiveWomen > 0 ? "negative" : "positive",
+            icon: "UserX",
+            description: "Not currently active",
         },
-        // {
-        //     name: "At Risk",
-        //     value: atRisk.toString(),
-        //     change: "",
-        //     changeType: atRisk > 0 ? "negative" : "positive",
-        //     icon: "AlertTriangle",
-        //     description: "Late or defaulted loans",
-        // },
+        {
+            name: "Suspended Women",
+            value: suspendedWomen.toString(),
+            change: "",
+            changeType: suspendedWomen > 0 ? "negative" : "positive",
+            icon: "Shield",
+            description: "Temporarily suspended",
+        },
     ]
 
     const filteredWomen = useMemo(() => {
@@ -102,7 +104,7 @@ export default function WomenManagement() {
             </div>
 
             {/* Stats */}
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-4">
                 {(womenLoading || womenFetching) ? (
                     Array.from({ length: 4 }).map((_, index) => (
                         <StatCardSkeleton key={index} />

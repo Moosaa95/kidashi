@@ -15,27 +15,27 @@ export const circleColumns: ColumnDef<TrustCircles>[] = [
         ),
     },
     {
-        accessorKey: "name",
+        accessorKey: "circle_name",
         header: "Circle Name",
     },
+    //combined vendor first name and surname to make vendor name
     {
-        accessorKey: "vendorName",
-        header: "Vendor",
+        accessorKey: "vendor_name",
+        header: "Vendor Name",
+        cell: ({ row }) => <span className="font-medium">{row.original.vendor__first_name} {row.original.vendor__surname}</span>,
     },
     {
-        accessorKey: "location",
-        header: "Location",
-    },
-    {
-        accessorKey: "eligibleForLoan",
+        accessorKey: "loan_eligibility",
         header: "Loan Eligibility",
-        cell: ({ row }) => (
-            <span
-                className={row.original.eligibleForLoan ? "text-green-600" : "text-red-600"}
-            >
-                {row.original.eligibleForLoan ? "Eligible" : "Ineligible"}
-            </span>
-        ),
+        cell: ({ row }) => {
+            const eligibility = row.original.loan_eligibility
+            const color = eligibility === "ELIGIBLE" ? "text-green-600" : eligibility === "NOT_ELIGIBLE" ? "text-red-600" : "text-yellow-600"
+            return (
+                <span className={color}>
+                    {eligibility}
+                </span>
+            )
+        },
     },
     {
         accessorKey: "status",
@@ -52,19 +52,19 @@ export const circleColumns: ColumnDef<TrustCircles>[] = [
         },
     },
     {
-        accessorKey: "womenCount",
+        accessorKey: "current_member_count",
         header: "Women Members",
     },
     {
-        accessorKey: "totalLoanAmount",
-        header: "Total Loan Amount",
-        cell: ({ row }) => `₦${row.original.totalLoanAmount.toLocaleString()}`
+        accessorKey: "total_asset_amount",
+        header: "Total Asset Amount",
+        cell: ({ row }) => `₦${(row.original.total_asset_amount || 0).toLocaleString()}`
     },
-    {
-        accessorKey: "runningLoansCount",
-        header: "Running Loans",
-        // cell: ({ row }) => row.original.runningLoansCount.toLocaleString()
-    },
+    // {
+    //     accessorKey: "runningLoansCount",
+    //     header: "Running Loans",
+    //     // cell: ({ row }) => row.original.runningLoansCount.toLocaleString()
+    // },
     {
         id: "actions",
         header: "Actions",
@@ -77,7 +77,7 @@ export const circleColumns: ColumnDef<TrustCircles>[] = [
                         variant="outline"
                         asChild
                     >
-                        <Link to={`/dashboard/trust-circles/${vendor.id}`}>
+                        <Link to={`/trust-circles/${vendor.id}`}>
                             <Eye className="h-4 w-4" />
                             View
                         </Link>

@@ -31,6 +31,7 @@ API_URLS = [
     path("api/v1/security/", include("modules.security.urls")),
     path("api/v1/asset/", include("modules.asset.urls")),
     path("api/v1/notification/", include("modules.notification.urls")),
+    path("api/v1/general/", include("modules.general.urls")),
     # path("api/v1/service/", include("modules.service.urls")),
 ]
 

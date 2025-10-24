@@ -45,6 +45,7 @@ class AssetSerializer(serializers.Serializer):
 class FetchAssetsFilterSerializer(serializers.Serializer):
     filters = AssetSerializer(required=False)
     count = serializers.IntegerField(required=False, help_text="Optional number of recent records to fetch")
+    include_summary = serializers.BooleanField(required=False, default=False, help_text="Include summary metrics")
 
 
 class GetAssetRequestSerializer(serializers.Serializer):

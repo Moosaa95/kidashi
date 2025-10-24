@@ -59,10 +59,10 @@ class Woman(ModelMixin):
     cba_customer_id = models.UUIDField(blank=True, null=True, help_text="Customer ID from the bank system", unique=True, db_index=True)
     repayment_status = models.CharField(max_length=20, choices=RepaymentStatus.choices, default=RepaymentStatus.NOT_APPLICABLE, db_index=True)
     status = models.CharField(max_length=20, choices=WomanStatus.choices, default=WomanStatus.ACTIVE)
-
+    is_verified = models.BooleanField(default=False, db_index=True)
     # Foreign key relationships
     vendor = models.ForeignKey("vendor.Vendor", on_delete=models.DO_NOTHING, related_name="women", help_text="Vendor who onboarded this woman", null=True, blank=True)
-    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="trust_circle_women", help_text="Trust circle this woman belongs to", null=True, blank=True)
+    trust_circle = models.ForeignKey("trust_circle.TrustCircle", on_delete=models.CASCADE, related_name="women", help_text="Trust circle this woman belongs to", null=True, blank=True)
     geo_region = models.ForeignKey(GeoRegion, on_delete=models.SET_NULL, null=True, blank=True)
     state = models.CharField(max_length=100, blank=True, null=True)
     lga = models.CharField(max_length=100, blank=True, null=True)
@@ -110,12 +110,18 @@ class Woman(ModelMixin):
             "cba_customer_id",
             "repayment_status",
             "status",
-            "vendor",
             "trust_circle",
             "geo_region",
             "state",
             "lga",
             "country",
+            "created_at",
+            "vendor_id",
+            "vendor__first_name",
+            "vendor__surname",
+            "trust_circle__circle_name",
+            "trust_circle_id",
+            "is_verified",
         ]
 
     @property
@@ -165,12 +171,46 @@ class Woman(ModelMixin):
 
     @classmethod
     def get_woman(cls, **filters):
+        obj = filters.pop("obj", False)
         ongoing_statuses = [AssetStatus.REQUESTED, AssetStatus.APPROVED]
-        return cls.objects.filter(**filters).annotate(ongoing_asset_count=Count("assets_requested", filter=Q(assets_requested__status__in=ongoing_statuses))).values(*cls.get_fields()).first()
-    
+        try:
+            queryset = cls.objects.select_related("vendor", "trust_circle", "geo_region").annotate(
+                ongoing_asset_count=Count(
+                    "assets_requested",
+                    filter=Q(assets_requested__status__in=ongoing_statuses),
+                )
+            )
+            if obj:
+                return queryset.get(**filters)
+            else:
+                return queryset.filter(**filters).values(*cls.get_fields()).first()
+        except cls.DoesNotExist:
+            return None
+
     @classmethod
-    def update_woman(cls, woman_id, **kwargs):
-        return cls.objects.filter(id=woman_id).update(**kwargs)
+    def get_women_metrics(cls, conditions=None):
+        queryset = cls.objects.all()
+
+        if conditions:
+            if isinstance(conditions, Q):
+                queryset = queryset.filter(conditions)
+            elif isinstance(conditions, dict):
+                queryset = queryset.filter(**conditions)
+
+        metrics = queryset.aggregate(
+            total_women=Count("id"),
+            active_women=Count("id", filter=Q(status=WomanStatus.ACTIVE)),
+            inactive_women=Count("id", filter=Q(status=WomanStatus.INACTIVE)),
+            suspended_women=Count("id", filter=Q(status=WomanStatus.SUSPENDED)),
+        )
+
+        total = metrics["total_women"] or 0
+        if total:
+            metrics["active_percentage"] = round(metrics["active_women"] / total * 100, 2)
+            metrics["inactive_percentage"] = round(metrics["inactive_women"] / total * 100, 2)
+            metrics["suspended_percentage"] = round(metrics["suspended_women"] / total * 100, 2)
+
+        return metrics
 
 
 class NextOfKin(ModelMixin):

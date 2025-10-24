@@ -114,6 +114,11 @@ class PayrepCba(BaseCbaClient):
         payload = dict(loan_id=str(loan_id))
         return self.send_request(url, data=payload, token=token)
 
+    def fetch_cba_customer_asset_metric_staff(self, loan_id):
+        url = f"{self.base_url}/loan/staff/fetch_cba_customer_asset_metric"
+        payload = dict(loan_id=str(loan_id))
+        return self.send_request(url, data=payload, method="post", token="token-not-required")
+
     def create_loan_asset(self, payload, token):
         url = f"{self.base_url}/loan/mobile/collect_asset"
         response = self.send_request(url, data=payload, method="post", token=token)

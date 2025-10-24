@@ -5,11 +5,11 @@ from django.core.validators import MaxValueValidator
 from django.db import models
 from django.db.utils import IntegrityError
 from django.utils import timezone
-from django.db.models import QuerySet, Q, When, Case, Value, BooleanField, F, Count
+from django.db.models import QuerySet, Q, When, Case, Value, BooleanField, F, Count, Sum
 from typing import TYPE_CHECKING
 
 from common.mixins import ModelMixin
-from modules.trust_circle.enums import TrustCircleStatus, LoanEligibility, NewMembershipVoteOption, TrustCircleActivityType, VoteStatus
+from modules.trust_circle.enums import TrustCircleStatus, LoanEligibility, TrustCircleActivityType, VoteStatus
 from modules.woman.enums import WomanStatus
 
 
@@ -45,7 +45,7 @@ class TrustCircle(ModelMixin):
 
     @property
     def current_member_count(self):
-        return self.trust_circle_women.count()
+        return self.women.count()
 
     @property
     def can_add_more_members(self):
@@ -87,7 +87,7 @@ class TrustCircle(ModelMixin):
             "created_at",
             "updated_at",
         ]
-        
+
     @classmethod
     def fetch_trust_circles(cls, **filters):
         return cls.objects.filter(**filters).values(*cls.get_fields())
@@ -103,11 +103,13 @@ class TrustCircle(ModelMixin):
             queryset = queryset.filter(conditions)
 
         queryset = queryset.annotate(
-            current_member_count=Count("trust_circle_women"),
+            current_member_count=Count("women", distinct=True),
             get_active_members=Count(
-                "trust_circle_women",
-                filter=Q(trust_circle_women__status=TrustCircleStatus.ACTIVE),
+                "women",
+                filter=Q(women__status=WomanStatus.ACTIVE),
+                distinct=True,
             ),
+            total_asset_amount=Sum("women__assets_requested__value", distinct=True),
             can_add_more_members=Case(
                 When(current_member_count__lt=F("max_members"), then=Value(True)),
                 default=Value(False),
@@ -132,6 +134,8 @@ class TrustCircle(ModelMixin):
         if count:
             queryset = queryset[: int(count)]
 
+        queryset = queryset.distinct()
+
         return queryset.values(
             "id",
             "circle_name",
@@ -139,6 +143,7 @@ class TrustCircle(ModelMixin):
             "max_members",
             "current_member_count",
             "get_active_members",
+            "total_asset_amount",
             "can_add_more_members",
             "is_full",
             "can_accept_new_members_by_voting",
@@ -148,6 +153,9 @@ class TrustCircle(ModelMixin):
             "created_at",
             "updated_at",
             "vendor_id",
+            "vendor__first_name",
+            "vendor__surname",
+            "vendor__cba_customer_id",
         )
 
     @classmethod
@@ -163,7 +171,7 @@ class TrustCircle(ModelMixin):
                 if trust_circle.count():
                     trust_circle = trust_circle.first()
             else:
-                trust_circle = cls.objects.select_related("vendor").prefetch_related("trust_circle_women").get(**kwargs)
+                trust_circle = cls.objects.select_related("vendor").prefetch_related("women").get(**kwargs)
             return trust_circle
         except cls.DoesNotExist:
             return None
@@ -173,6 +181,24 @@ class TrustCircle(ModelMixin):
         if self.pk and self.current_member_count > self.max_members:
             raise ValidationError(f"Trust circle cannot have more than {self.max_members} members")
 
+    @classmethod
+    def get_trust_circle_metrics(cls, conditions=None):
+        queryset = cls.objects.all()
+        if conditions:
+            if isinstance(conditions, Q):
+                queryset = queryset.filter(conditions)
+            elif isinstance(conditions, dict):
+                queryset = queryset.filter(**conditions)
+
+        return queryset.aggregate(
+            total_circles=Count("id", distinct=True),
+            active_circles=Count("id", filter=Q(status=TrustCircleStatus.ACTIVE), distinct=True),
+            forming_circles=Count("id", filter=Q(status=TrustCircleStatus.FORMING)),
+            eligible_circles=Count("id", filter=Q(loan_eligibility=LoanEligibility.ELIGIBLE)),
+            active_members=Count("women__status", filter=Q(women__status="ACTIVE")),
+            total_circle_members=Count("women__id", distinct=True),
+            # total_asset_amount=Sum("women__assets_requested__value", distinct=True),
+        )
 
 
 class CircleMembershipVote(ModelMixin):
@@ -199,7 +225,7 @@ class CircleMembershipVote(ModelMixin):
 
     def __str__(self):
         return f"Vote for {self.candidate_member} in {self.trust_circle.circle_name} - {self.status}"
-    
+
     @classmethod
     def get_fields(cls):
         return [
@@ -221,7 +247,7 @@ class CircleMembershipVote(ModelMixin):
             "created_at",
             "updated_at",
         ]
-    
+
     @classmethod
     def create_vote(cls, **kwargs):
         try:
@@ -230,7 +256,7 @@ class CircleMembershipVote(ModelMixin):
         except IntegrityError as e:
             print(f"IntegrityError while creating vote: {e}")
             return None
-        
+
     @classmethod
     def get_vote(cls, **kwargs):
         try:
@@ -248,21 +274,22 @@ class CircleMembershipVote(ModelMixin):
         return cls.objects.filter(id=vote_id).update(status=status)
 
     @classmethod
-    def delete_vote(cls, vote_id):
-        vote = cls.objects.filter(id=vote_id).first()
+    def delete_vote(cls, voter_id):
+        vote = cls.objects.filter(id=voter_id).first()
 
         if not vote:
             return dict(status=False, message="No vote found for the given voter_id")
-        
+
         if vote.status != VoteStatus.PENDING:
             return dict(status=False, message="Only pending votes can be deleted")
-        
-        deleted_vote = cls.objects.filter(id=vote_id).delete()
+
+        deleted_vote = cls.objects.filter(id=voter_id).delete()
         if not deleted_vote:
             return dict(status=False, message="Failed to delete the vote")
-        
+
         return dict(status=True, message="Vote deleted successfully")
-     
+
+
 class CircleActivity(ModelMixin):
     """
     Model to track activities within trust circles for audit purposes

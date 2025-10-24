@@ -10,6 +10,7 @@ from modules.vendor.enums import GurantorVerificationStatus, VendorStatus
 from modules.vendor.models import Guarantor, Vendor
 from modules.vendor.serializers import (
     FetchVendorFilterSerializer,
+    GetVendorDetailRequestSerializer,
     GuarantorDetailSerializer,
     GuarantorVerificationUpdateSerializer,
     VendorDetailSerializer,
@@ -25,50 +26,59 @@ class FetchVendorsFilter(APIView):
         request=FetchVendorFilterSerializer,
     )
     def post(self, request):
-        print("VENDORS")
         serializer = FetchVendorFilterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        and_condition = Q()
-        print("INTERNAL=======REQUEST", request)
+        condition = Q()
         filters = serializer.validated_data.get("filters", {})
-        if not filters:
-            print("not filter")
-            filtered = Vendor.fetch_vendors(count=50)
-            return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
 
         date = filters.pop("date", None)
         start_date = filters.pop("start_date", None)
         end_date = filters.pop("end_date", None)
-        # Apply date filters
+
         if date:
             filters["created_at__startswith"] = date
         if start_date and end_date:
             filters["created_at__range"] = [start_date, end_date]
 
-        # Apply remaining filters
         for key, value in filters.items():
-            and_condition.add(Q(**{key: value}), Q.AND)
+            if value not in (None, "", []):
+                condition &= Q(**{key: value})
 
-        filtered = Vendor.fetch_vendors(conditions=and_condition)
-        return Response({"status": True, "data": filtered}, status=status.HTTP_200_OK)
+        filtered = Vendor.fetch_vendors(conditions=condition)
+        vendor_metrics = Vendor.get_vendor_metrics(conditions=condition)
+        return Response(
+            {
+                "status": True,
+                "data": filtered,
+                "metrics": vendor_metrics,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class GetVendorDetail(APIView):
     @extend_schema(
         tags=["Vendor"],
         summary="Get Vendor Detail",
-        request=VendorSerializer,
+        request=GetVendorDetailRequestSerializer,
     )
     def post(self, request):
         response_dict = dict(status=False)
-        serializer = VendorSerializer(data=request.data)
+        serializer = GetVendorDetailRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         vendor_id = serializer.validated_data.get("vendor_id")
+        include_summary = serializer.validated_data.get("include_summary", False)
+
         if not vendor_id:
             response_dict.update(message="vendor id is required")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
         vendor = Vendor.get_vendor(id=vendor_id)
         response_serializer = VendorDetailSerializer(vendor).data
+
+        if include_summary:
+            condition = Q(id=vendor_id)
+            metrics = Vendor.get_vendor_metrics(conditions=condition)
+            response_serializer["metrics"] = metrics
         response_dict.update(status=True, data=response_serializer)
         return Response(response_dict, status=status.HTTP_200_OK)
 
@@ -85,9 +95,17 @@ class UpdateVendorApplicationStatus(APIView):
         serializer.is_valid(raise_exception=True)
         vendor_id = serializer.validated_data.get("vendor_id")
         status_value = serializer.validated_data.get("status")
+        rejection_reason = serializer.validated_data.get("rejection_reason")
+
         if not vendor_id or not status_value:
             response_dict.update(message="vendor id and status are required")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate rejection reason if status is REJECTED
+        if status_value == VendorStatus.REJECTED and not rejection_reason:
+            response_dict.update(message="rejection reason is required when rejecting a vendor")
+            return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
+
         vendor = Vendor.get_vendor(id=vendor_id)
         if not vendor:
             response_dict.update(message="vendor not found")
@@ -97,7 +115,12 @@ class UpdateVendorApplicationStatus(APIView):
             response_dict.update(message="Vendor cannot be activated — requires two verified guarantors.")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)
 
-        updated_count = Vendor.update_vendor(filters={"id": vendor_id}, params={"status": status_value})
+        # Prepare update parameters
+        update_params = {"status": status_value}
+        if status_value == VendorStatus.REJECTED and rejection_reason:
+            update_params["rejection_reason"] = rejection_reason
+
+        updated_count = Vendor.update_vendor(filters={"id": vendor_id}, params=update_params)
         if not updated_count:
             response_dict.update(message="Vendor status update failed")
             return Response(response_dict, status=status.HTTP_400_BAD_REQUEST)

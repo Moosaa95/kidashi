@@ -122,23 +122,22 @@ export interface VendorDetail {
 
 export interface TrustCircles {
     id: string
-    name: string
-    vendorId: string
-    vendorName: string
+    circle_name: string
+    can_accept_new_members_by_voting: boolean
+    can_add_more_members: boolean
+    is_full: boolean
+    get_active_members: number
+    total_asset_amount: number
+    vendor_id: string
+    vendor__first_name: string
+    vendor__surname: string
     location: string
-    womenCount: number
-    eligibleForLoan: boolean
-    createdAt: string
+    max_members: number
+    loan_eligibility: "ELIGIBLE" | "NOT_ELIGIBLE" | "UNDER_REVIEW"
+    created_at: string
     status: "active" | "inactive"
-    activeWomen: number
-    inactiveWomen: number
-    totalLoan: number
-    activeLoan: number
-    repaidLoan: number
-    defaultLoan: number
-    totalLoanAmount: number
-    repaymentRate: number
-    lastActivity: string
+    current_members_count: number
+    current_member_count?: number
 }
 
 
@@ -202,6 +201,10 @@ export interface WomanDetail {
     state: string | null
     lga: string | null
     country: string | null
+    created_at?: string | null
+    vendor__first_name?: string | null
+    vendor__surname?: string | null
+    trust_circle__circle_name?: string | null
 }
 
 export interface WomanFilters {
@@ -211,6 +214,37 @@ export interface WomanFilters {
     trust_circle_id?: string
 }
 
+
+export interface Asset {
+    id: string
+    name?: string | null
+    value: number
+    markup: number
+    status: "REQUESTED" | "QUERIED" | "APPROVED" | "REJECTED" | "FAILED" | "CLOSED" | "RUNNING"
+    loan_id?: string | null
+    product_code?: string | null
+    created_at: string
+    reject_reason?: string | null
+    items_requested?: any[]
+    woman_id?: string
+    woman__first_name?: string
+    woman__surname?: string
+    woman__trust_circle__circle_name?: string
+    vendor__id?: string
+    vendor__first_name?: string
+    vendor__surname?: string
+    vendor__business_type?: string
+    vendor__business_description?: string
+    vendor__phone?: string
+    vendor__community?: string
+}
+
+export interface AssetFilters {
+    status?: string
+    woman_id?: string
+    vendor_id?: string
+    loan_id?: string
+}
 
 export interface Transaction {
     id: string

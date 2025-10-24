@@ -12,7 +12,7 @@ export interface StatProps {
     description?: string
 }
 
-export default function StatCard({ name, value, change = "", changeType = "positive", icon, description = "last month" }: StatProps) {
+export default function StatCard({ name, value, change: _change = "", changeType: _changeType = "positive", icon, description: _description = "last month" }: StatProps) {
     const IconComponent = Icons[icon as keyof typeof Icons] as Icons.LucideIcon
 
     const Icon = IconComponent || Icons.AlertCircle
@@ -25,7 +25,7 @@ export default function StatCard({ name, value, change = "", changeType = "posit
             </CardHeader>
             <CardContent>
                 <div className="text-2xl font-bold text-foreground">{value}</div>
-                <p className="text-xs text-muted-foreground">
+                {/* <p className="text-xs text-muted-foreground">
                     <span
                         className={`font-medium ${changeType === "positive" ? "text-primary" : "text-destructive"
                             }`}
@@ -33,7 +33,7 @@ export default function StatCard({ name, value, change = "", changeType = "posit
                         {change}
                     </span>{" "}
                     {description}
-                </p>
+                </p> */}
             </CardContent>
         </Card>
     )
