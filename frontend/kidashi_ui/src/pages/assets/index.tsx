@@ -195,7 +195,7 @@ export default function AssetManagement() {
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="REQUESTED">Pending</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="RUNNING">Active</TabsTrigger>
                             <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="CLOSED">Completed</TabsTrigger>
-                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="REJECTED">Rejected</TabsTrigger>
+                            <TabsTrigger className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md gap-1" value="FAILED">Failed</TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </CardHeader>

@@ -121,6 +121,7 @@ class Woman(ModelMixin):
             "vendor__surname",
             "trust_circle__circle_name",
             "trust_circle_id",
+            "is_verified",
         ]
 
     @property

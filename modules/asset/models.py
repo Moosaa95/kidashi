@@ -45,6 +45,10 @@ class Asset(ModelMixin):
             "vendor__id",
             "vendor__first_name",
             "vendor__surname",
+            "vendor__business_type",
+            "vendor__business_description",
+            "vendor__phone",
+            "vendor__community",
         ]
 
     @classmethod

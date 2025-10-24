@@ -146,12 +146,12 @@ export default function AssetDetail() {
                                 {new Date(asset.created_at).toLocaleDateString()}
                             </span>
                         </div>
-                        {asset.loan_id && (
+                        {/* {asset.reject_reason && (
                             <div className="flex justify-between">
-                                <span className="text-sm text-muted-foreground">Loan ID</span>
-                                <span className="text-sm font-medium">{asset.loan_id}</span>
+                                <span className="text-sm text-muted-foreground">Rejection Reason</span>
+                                <span className="text-sm font-medium">{asset.reject_reason}</span>
                             </div>
-                        )}
+                        )} */}
                     </CardContent>
                 </Card>
 
@@ -272,7 +272,12 @@ export default function AssetDetail() {
                                 <p className="text-sm font-medium">
                                     {asset.vendor__first_name} {asset.vendor__surname}
                                 </p>
-                                <p className="text-xs text-muted-foreground">Vendor ID: {asset.vendor__id}</p>
+                                <p className="text-xs text-muted-foreground">Business Type: {asset.vendor__business_type}</p>
+                                <p className="text-xs text-muted-foreground">Business Description: {asset.vendor__business_description}</p>
+                                <p className="text-xs text-muted-foreground">Vendor Phone: {asset.vendor__phone}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Community: {asset.vendor__community || "N/A"}
+                                </p>
                             </div>
                             <Button asChild variant="outline" size="sm">
                                 <Link to={`/vendors/${asset.vendor__id}`}>
@@ -285,7 +290,7 @@ export default function AssetDetail() {
             )}
 
             {/* Rejection Reason (if applicable) */}
-            {asset.status === "REJECTED" && asset.reject_reason && (
+            {(asset.status === "REJECTED" || asset.status === "FAILED") && asset.reject_reason && (
                 <Card className="border-red-200 bg-red-50">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-red-700">
@@ -313,8 +318,8 @@ export default function AssetDetail() {
                             {asset.items_requested.map((item: any, index: number) => (
                                 <div key={index} className="flex justify-between items-center p-2 bg-muted/50 rounded">
                                     <span className="text-sm">{item.name || item.description || `Item ${index + 1}`}</span>
-                                    {item.quantity && (
-                                        <span className="text-xs text-muted-foreground">Qty: {item.quantity}</span>
+                                    {item.price && (
+                                        <span className="text-xs text-muted-foreground">Price: N{item.price}</span>
                                     )}
                                 </div>
                             ))}

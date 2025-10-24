@@ -128,46 +128,43 @@ class GetAssetDetail(APIView):
         asset_id = serializer.validated_data.get("asset_id")
         loan_id = serializer.validated_data.get("loan_id")
 
-        # Build filters based on provided identifier
         filters = {"id": asset_id} if asset_id else {"loan_id": loan_id}
         asset = Asset.get_asset(**filters)
 
         if not asset:
             return Response(dict(status=False, message="Asset not found"), status=status.HTTP_404_NOT_FOUND)
 
-        # Prepare response data
         response_data = {"status": True, "message": "Asset fetched successfully", "data": {"asset": asset}}
 
-        # Fetch repayment metrics if asset has a loan_id and is active
-        if asset.get("loan_id") and asset.get("status") in ["RUNNING", "APPROVED"]:
+        if asset.get("loan_id") and asset.get("status") in ["RUNNING", "APPROVED", "CLOSED"]:
             try:
-                # Get PayRep service integration
                 service = Service.get_service(code=ServiceCode.CBA_CODE)
+                if not service:
+                    return Response(response_data, status=status.HTTP_200_OK)
+
                 integration = service.active_integrations(channel="API").first()
+                if not integration:
+                    print("No active API integration found for CBA service")
+                    return Response(response_data, status=status.HTTP_200_OK)
 
-                if integration:
-                    provider = integration.get_client()
-                    # Note: Staff endpoints may need different auth handling
-                    # For now, attempting to fetch metrics without token
-                    try:
-                        cba_response = provider.fetch_cba_customer_asset_metric(str(asset.get("loan_id")))
+                provider = integration.get_client()
+                cba_response = provider.fetch_cba_customer_asset_metric_staff(str(asset.get("loan_id")))
 
-                        metrics = dict(
-                            disbursement_date=cba_response.get("disbursement_date"),
-                            maturity_date=cba_response.get("maturity_date"),
-                            amount_unpaid=cba_response.get("amount_unpaid", 0),
-                            amount_repaid=cba_response.get("amount_repaid", 0),
-                            repayment_progress=cba_response.get("repayment_progress", 0),
-                            principal_balance_left=cba_response.get("principal_balance_left", 0),
-                        )
-                        response_data["data"]["metrics"] = metrics
-                    except Exception as e:
-                        # If metrics fetch fails, continue without them
-                        print(f"Failed to fetch asset metrics: {e}")
-                        pass
+                if cba_response.get("req_status") and cba_response.get("status"):
+                    metrics_data = cba_response.get("data", {})
+                    metrics = dict(
+                        disbursement_date=metrics_data.get("disbursement_date"),
+                        maturity_date=metrics_data.get("maturity_date"),
+                        amount_unpaid=metrics_data.get("amount_unpaid", 0),
+                        amount_repaid=metrics_data.get("amount_repaid", 0),
+                        repayment_progress=metrics_data.get("repayment_progress", 0),
+                        principal_balance_left=metrics_data.get("principal_balance_left", 0),
+                    )
+                    response_data["data"]["metrics"] = metrics
+                else:
+                    print(f"Failed to fetch metrics from Shinobi: {cba_response.get('message', 'Unknown error')}")
+
             except Exception as e:
-                # If service lookup fails, continue without metrics
-                print(f"Failed to get PayRep service: {e}")
-                pass
+                print(f"Error fetching asset metrics: {e}")
 
         return Response(response_data, status=status.HTTP_200_OK)

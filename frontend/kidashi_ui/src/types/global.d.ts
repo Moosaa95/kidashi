@@ -233,6 +233,10 @@ export interface Asset {
     vendor__id?: string
     vendor__first_name?: string
     vendor__surname?: string
+    vendor__business_type?: string
+    vendor__business_description?: string
+    vendor__phone?: string
+    vendor__community?: string
 }
 
 export interface AssetFilters {
